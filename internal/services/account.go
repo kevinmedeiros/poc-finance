@@ -27,7 +27,17 @@ func (s *AccountService) GetUserAccounts(userID uint) ([]models.Account, error) 
 		return nil, err
 	}
 
-	// TODO: In future iterations, also get joint accounts from user's groups
+	// Get joint accounts from user's groups
+	var groupIDs []uint
+	database.DB.Model(&models.GroupMember{}).Where("user_id = ?", userID).Pluck("group_id", &groupIDs)
+
+	if len(groupIDs) > 0 {
+		var jointAccounts []models.Account
+		if err := database.DB.Where("group_id IN ? AND type = ?", groupIDs, models.AccountTypeJoint).Find(&jointAccounts).Error; err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, jointAccounts...)
+	}
 
 	return accounts, nil
 }
@@ -68,7 +78,13 @@ func (s *AccountService) CanUserAccessAccount(userID, accountID uint) bool {
 		return true
 	}
 
-	// TODO: In future iterations, check if user is a member of the group for joint accounts
+	// For joint accounts, check if user is a member of the group
+	if account.Type == models.AccountTypeJoint && account.GroupID != nil {
+		var member models.GroupMember
+		if err := database.DB.Where("group_id = ? AND user_id = ?", *account.GroupID, userID).First(&member).Error; err == nil {
+			return true
+		}
+	}
 
 	return false
 }
@@ -94,4 +110,55 @@ func (s *AccountService) EnsureUserHasAccount(userID uint) (*models.Account, err
 	}
 
 	return account, nil
+}
+
+// CreateJointAccount creates a new joint account linked to a group
+func (s *AccountService) CreateJointAccount(name string, groupID, userID uint) (*models.Account, error) {
+	// Verify user is a member of the group
+	var member models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ?", groupID, userID).First(&member).Error; err != nil {
+		return nil, ErrUnauthorized
+	}
+
+	account := &models.Account{
+		Name:    name,
+		Type:    models.AccountTypeJoint,
+		UserID:  userID, // Creator
+		GroupID: &groupID,
+	}
+
+	if err := database.DB.Create(account).Error; err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+// GetGroupJointAccounts returns all joint accounts for a group
+func (s *AccountService) GetGroupJointAccounts(groupID uint) ([]models.Account, error) {
+	var accounts []models.Account
+	if err := database.DB.Where("group_id = ? AND type = ?", groupID, models.AccountTypeJoint).Find(&accounts).Error; err != nil {
+		return nil, err
+	}
+	return accounts, nil
+}
+
+// DeleteJointAccount deletes a joint account (only group members can delete)
+func (s *AccountService) DeleteJointAccount(accountID, userID uint) error {
+	var account models.Account
+	if err := database.DB.First(&account, accountID).Error; err != nil {
+		return ErrAccountNotFound
+	}
+
+	if account.Type != models.AccountTypeJoint || account.GroupID == nil {
+		return ErrUnauthorized
+	}
+
+	// Verify user is a member of the group
+	var member models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ?", *account.GroupID, userID).First(&member).Error; err != nil {
+		return ErrUnauthorized
+	}
+
+	return database.DB.Delete(&account).Error
 }

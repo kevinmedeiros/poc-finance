@@ -80,6 +80,7 @@
 {{define "group-list"}}
 <div class="divide-y divide-slate-100">
     {{$userID := .userID}}
+    {{$groupAccounts := .groupAccounts}}
     {{range .groups}}
     <div class="p-6 hover:bg-slate-50 transition-colors">
         <div class="flex items-start justify-between">
@@ -130,6 +131,58 @@
                     </div>
                 </div>
                 {{end}}
+                <!-- Joint Accounts Section -->
+                <div class="mt-6 pt-4 border-t border-slate-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Contas Conjuntas
+                        </p>
+                    </div>
+                    <div id="joint-accounts-{{.ID}}" class="mb-3">
+                        {{$accounts := index $groupAccounts .ID}}
+                        {{if $accounts}}
+                        <div class="space-y-2">
+                            {{$groupID := $.ID}}
+                            {{range $accounts}}
+                            <div class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-medium text-slate-800">{{.Name}}</span>
+                                </div>
+                                <button hx-delete="/groups/{{$groupID}}/accounts/{{.ID}}" hx-target="#joint-accounts-{{$groupID}}" hx-swap="innerHTML"
+                                    hx-confirm="Tem certeza que deseja excluir esta conta conjunta?"
+                                    class="text-red-500 hover:text-red-700 p-1 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            {{end}}
+                        </div>
+                        {{else}}
+                        <p class="text-sm text-slate-500 italic">Nenhuma conta conjunta criada</p>
+                        {{end}}
+                    </div>
+                    <!-- Create joint account form -->
+                    <form hx-post="/groups/{{.ID}}/accounts" hx-target="#joint-accounts-{{.ID}}" hx-swap="innerHTML" class="flex gap-2">
+                        <input type="text" name="name" required placeholder="Nome da conta conjunta"
+                            class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <button type="submit"
+                            class="inline-flex items-center gap-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium text-sm btn-press shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Criar Conta
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="flex-shrink-0 ml-4 flex gap-2">
                 {{range .Members}}

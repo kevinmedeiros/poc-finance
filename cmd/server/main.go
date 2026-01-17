@@ -64,7 +64,7 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/settings.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
-	case strings.Contains(baseName, "invite"):
+	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
 		return echo.ErrNotFound
@@ -223,6 +223,10 @@ func main() {
 	protected.POST("/groups/join/:code", groupHandler.AcceptInvite)
 	protected.DELETE("/groups/invites/:id", groupHandler.RevokeInvite)
 	protected.POST("/groups/:id/leave", groupHandler.LeaveGroup)
+
+	// Contas conjuntas (joint accounts)
+	protected.POST("/groups/:id/accounts", groupHandler.CreateJointAccount)
+	protected.DELETE("/groups/:id/accounts/:accountId", groupHandler.DeleteJointAccount)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
