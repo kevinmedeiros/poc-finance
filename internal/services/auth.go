@@ -25,9 +25,10 @@ var (
 var JWTSecret = []byte("your-super-secret-key-change-in-production")
 
 const (
-	AccessTokenDuration  = 15 * time.Minute
-	RefreshTokenDuration = 7 * 24 * time.Hour
-	BcryptCost           = 12
+	AccessTokenDuration        = 15 * time.Minute
+	RefreshTokenDuration       = 7 * 24 * time.Hour
+	PasswordResetTokenDuration = 1 * time.Hour
+	BcryptCost                 = 12
 )
 
 type Claims struct {
@@ -220,4 +221,92 @@ func (s *AuthService) GetUserByID(id uint) (*models.User, error) {
 // CleanupExpiredTokens removes all expired refresh tokens
 func (s *AuthService) CleanupExpiredTokens() error {
 	return database.DB.Where("expires_at < ?", time.Now()).Delete(&models.RefreshToken{}).Error
+}
+
+// GeneratePasswordResetToken creates a password reset token for a user
+func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return "", ErrUserNotFound
+	}
+
+	// Invalidate any existing reset tokens for this user
+	database.DB.Where("user_id = ? AND used = ?", user.ID, false).Delete(&models.PasswordResetToken{})
+
+	// Generate random token
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	tokenString := hex.EncodeToString(bytes)
+
+	// Store in database
+	resetToken := &models.PasswordResetToken{
+		UserID:    user.ID,
+		Token:     tokenString,
+		ExpiresAt: time.Now().Add(PasswordResetTokenDuration),
+		Used:      false,
+	}
+
+	if err := database.DB.Create(resetToken).Error; err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+// ValidatePasswordResetToken validates a password reset token
+func (s *AuthService) ValidatePasswordResetToken(tokenString string) (*models.User, error) {
+	var resetToken models.PasswordResetToken
+	if err := database.DB.Where("token = ? AND used = ?", tokenString, false).Preload("User").First(&resetToken).Error; err != nil {
+		return nil, ErrTokenInvalid
+	}
+
+	if resetToken.IsExpired() {
+		database.DB.Delete(&resetToken)
+		return nil, ErrTokenExpired
+	}
+
+	return &resetToken.User, nil
+}
+
+// ResetPassword changes a user's password using a valid reset token
+func (s *AuthService) ResetPassword(tokenString, newPassword string) error {
+	var resetToken models.PasswordResetToken
+	if err := database.DB.Where("token = ? AND used = ?", tokenString, false).Preload("User").First(&resetToken).Error; err != nil {
+		return ErrTokenInvalid
+	}
+
+	if resetToken.IsExpired() {
+		database.DB.Delete(&resetToken)
+		return ErrTokenExpired
+	}
+
+	// Hash new password
+	hash, err := s.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	// Update user's password
+	if err := database.DB.Model(&resetToken.User).Update("password_hash", hash).Error; err != nil {
+		return err
+	}
+
+	// Mark token as used
+	database.DB.Model(&resetToken).Update("used", true)
+
+	// Revoke all user's refresh tokens for security
+	s.RevokeAllUserTokens(resetToken.UserID)
+
+	return nil
+}
+
+// GetUserByEmail retrieves a user by email
+func (s *AuthService) GetUserByEmail(email string) (*models.User, error) {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, ErrUserNotFound
+	}
+	return &user, nil
 }

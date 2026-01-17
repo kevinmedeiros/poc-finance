@@ -106,6 +106,8 @@ func loadTemplates() *TemplateRegistry {
 	authPages := []string{
 		"internal/templates/register.html",
 		"internal/templates/login.html",
+		"internal/templates/forgot-password.html",
+		"internal/templates/reset-password.html",
 	}
 
 	for _, page := range pages {
@@ -153,6 +155,10 @@ func main() {
 	e.GET("/login", authHandler.LoginPage)
 	e.POST("/login", authHandler.Login)
 	e.POST("/logout", authHandler.Logout)
+	e.GET("/forgot-password", authHandler.ForgotPasswordPage)
+	e.POST("/forgot-password", authHandler.ForgotPassword)
+	e.GET("/reset-password", authHandler.ResetPasswordPage)
+	e.POST("/reset-password", authHandler.ResetPassword)
 
 	// Rotas
 	e.GET("/", dashboardHandler.Index)

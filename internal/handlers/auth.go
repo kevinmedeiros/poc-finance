@@ -83,8 +83,10 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 func (h *AuthHandler) LoginPage(c echo.Context) error {
 	registered := c.QueryParam("registered") == "1"
+	reset := c.QueryParam("reset") == "1"
 	return c.Render(http.StatusOK, "login.html", map[string]interface{}{
 		"registered": registered,
+		"reset":      reset,
 	})
 }
 
@@ -167,4 +169,124 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	})
 
 	return c.Redirect(http.StatusSeeOther, "/login")
+}
+
+func (h *AuthHandler) ForgotPasswordPage(c echo.Context) error {
+	return c.Render(http.StatusOK, "forgot-password.html", nil)
+}
+
+type ForgotPasswordRequest struct {
+	Email string `form:"email"`
+}
+
+func (h *AuthHandler) ForgotPassword(c echo.Context) error {
+	var req ForgotPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
+			"error": "Dados inválidos",
+		})
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+
+	if req.Email == "" {
+		return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
+			"error": "Email é obrigatório",
+		})
+	}
+
+	// Generate reset token (we don't reveal if user exists for security)
+	token, err := h.authService.GeneratePasswordResetToken(req.Email)
+	if err == nil {
+		// In production, send email with reset link
+		// For now, we'll show the token in the success message (for testing)
+		resetLink := "/reset-password?token=" + token
+		return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
+			"success":   true,
+			"resetLink": resetLink, // Remove in production - send via email
+		})
+	}
+
+	// Always show success message to prevent email enumeration
+	return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
+		"success": true,
+	})
+}
+
+func (h *AuthHandler) ResetPasswordPage(c echo.Context) error {
+	token := c.QueryParam("token")
+	if token == "" {
+		return c.Redirect(http.StatusSeeOther, "/forgot-password")
+	}
+
+	// Validate token before showing form
+	_, err := h.authService.ValidatePasswordResetToken(token)
+	if err != nil {
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error":        "Link de recuperação inválido ou expirado",
+			"invalidToken": true,
+		})
+	}
+
+	return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+		"token": token,
+	})
+}
+
+type ResetPasswordRequest struct {
+	Token           string `form:"token"`
+	Password        string `form:"password"`
+	PasswordConfirm string `form:"password_confirm"`
+}
+
+func (h *AuthHandler) ResetPassword(c echo.Context) error {
+	var req ResetPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error": "Dados inválidos",
+			"token": req.Token,
+		})
+	}
+
+	if req.Token == "" {
+		return c.Redirect(http.StatusSeeOther, "/forgot-password")
+	}
+
+	if req.Password == "" || req.PasswordConfirm == "" {
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error": "Todos os campos são obrigatórios",
+			"token": req.Token,
+		})
+	}
+
+	if len(req.Password) < 6 {
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error": "A senha deve ter pelo menos 6 caracteres",
+			"token": req.Token,
+		})
+	}
+
+	if req.Password != req.PasswordConfirm {
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error": "As senhas não coincidem",
+			"token": req.Token,
+		})
+	}
+
+	// Reset password
+	if err := h.authService.ResetPassword(req.Token, req.Password); err != nil {
+		if errors.Is(err, services.ErrTokenExpired) || errors.Is(err, services.ErrTokenInvalid) {
+			return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+				"error":        "Link de recuperação inválido ou expirado",
+				"invalidToken": true,
+			})
+		}
+		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
+			"error": "Erro ao redefinir senha. Tente novamente.",
+			"token": req.Token,
+		})
+	}
+
+	// Redirect to login with success message
+	return c.Redirect(http.StatusSeeOther, "/login?reset=1")
 }

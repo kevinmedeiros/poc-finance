@@ -32,3 +32,20 @@ func (r *RefreshToken) TableName() string {
 func (r *RefreshToken) IsExpired() bool {
 	return time.Now().After(r.ExpiresAt)
 }
+
+type PasswordResetToken struct {
+	gorm.Model
+	UserID    uint      `json:"user_id" gorm:"not null;index"`
+	User      User      `json:"-" gorm:"foreignKey:UserID"`
+	Token     string    `json:"token" gorm:"uniqueIndex;not null"`
+	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+	Used      bool      `json:"used" gorm:"default:false"`
+}
+
+func (p *PasswordResetToken) TableName() string {
+	return "password_reset_tokens"
+}
+
+func (p *PasswordResetToken) IsExpired() bool {
+	return time.Now().After(p.ExpiresAt)
+}

@@ -27,6 +27,7 @@ func Init() error {
 	err = DB.AutoMigrate(
 		&models.User{},
 		&models.RefreshToken{},
+		&models.PasswordResetToken{},
 		&models.Income{},
 		&models.Expense{},
 		&models.CreditCard{},
