@@ -62,6 +62,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/cards.html"
 	case strings.Contains(baseName, "settings"):
 		templateFile = "internal/templates/settings.html"
+	case strings.Contains(baseName, "goal"):
+		templateFile = "internal/templates/goals.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"):
@@ -118,6 +120,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/groups.html",
 		"internal/templates/accounts.html",
 		"internal/templates/group-dashboard.html",
+		"internal/templates/goals.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -169,6 +172,7 @@ func main() {
 	settingsHandler := handlers.NewSettingsHandler()
 	groupHandler := handlers.NewGroupHandler()
 	accountHandler := handlers.NewAccountHandler()
+	goalHandler := handlers.NewGoalHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -237,6 +241,12 @@ func main() {
 
 	// Dashboard do grupo
 	protected.GET("/groups/:id/dashboard", groupHandler.Dashboard)
+
+	// Metas do grupo
+	protected.GET("/groups/:id/goals", goalHandler.GoalsPage)
+	protected.POST("/groups/:id/goals", goalHandler.Create)
+	protected.DELETE("/goals/:goalId", goalHandler.Delete)
+	protected.POST("/goals/:goalId/contribution", goalHandler.AddContribution)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")

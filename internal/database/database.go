@@ -40,6 +40,8 @@ func Init() error {
 		&models.FamilyGroup{},
 		&models.GroupMember{},
 		&models.GroupInvite{},
+		&models.GroupGoal{},
+		&models.GoalContribution{},
 	)
 	if err != nil {
 		return err

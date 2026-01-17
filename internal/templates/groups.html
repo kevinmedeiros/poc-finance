@@ -192,6 +192,13 @@
                     </svg>
                     Dashboard
                 </a>
+                <a href="/groups/{{.ID}}/goals"
+                    class="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-lg hover:bg-amber-100 font-medium text-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Metas
+                </a>
                 {{range .Members}}
                 {{if and (eq .UserID $userID) (eq .Role "admin")}}
                 <button hx-post="/groups/{{$.ID}}/invite" hx-target="#invite-modal-content" hx-swap="innerHTML"
