@@ -184,11 +184,30 @@ func (s *GroupService) IsGroupAdmin(groupID, userID uint) bool {
 }
 
 // LeaveGroup removes a user from a group
+// If the last member leaves, the group is automatically deleted
 func (s *GroupService) LeaveGroup(groupID, userID uint) error {
 	// Check if user is a member
 	var member models.GroupMember
 	if err := database.DB.Where("group_id = ? AND user_id = ?", groupID, userID).First(&member).Error; err != nil {
 		return ErrNotGroupMember
+	}
+
+	// Count total members in the group
+	var memberCount int64
+	database.DB.Model(&models.GroupMember{}).
+		Where("group_id = ?", groupID).
+		Count(&memberCount)
+
+	// If this is the last member, delete the group entirely
+	if memberCount <= 1 {
+		// Delete the membership first
+		if err := database.DB.Delete(&member).Error; err != nil {
+			return err
+		}
+		// Delete associated invites
+		database.DB.Where("group_id = ?", groupID).Delete(&models.GroupInvite{})
+		// Delete the group
+		return database.DB.Delete(&models.FamilyGroup{}, groupID).Error
 	}
 
 	// If user is admin, check if they're the last admin
