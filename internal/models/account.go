@@ -11,11 +11,12 @@ const (
 
 type Account struct {
 	gorm.Model
-	Name    string      `json:"name" gorm:"not null"`
-	Type    AccountType `json:"type" gorm:"not null;default:'individual'"`
-	UserID  uint        `json:"user_id" gorm:"not null;index"` // Owner (for individual) or creator (for joint)
-	User    User        `json:"-" gorm:"foreignKey:UserID"`
-	GroupID *uint       `json:"group_id" gorm:"index"` // Optional: for joint accounts linked to a group
+	Name        string      `json:"name" gorm:"not null"`
+	Type        AccountType `json:"type" gorm:"not null;default:'individual'"`
+	UserID      uint        `json:"user_id" gorm:"not null;index"` // Owner (for individual) or creator (for joint)
+	User        User        `json:"-" gorm:"foreignKey:UserID"`
+	GroupID     *uint       `json:"group_id" gorm:"index"` // Optional: for joint accounts linked to a group
+	BudgetLimit *float64    `json:"budget_limit"`          // Optional monthly expense limit
 }
 
 func (a *Account) TableName() string {

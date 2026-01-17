@@ -221,3 +221,42 @@ func (s *NotificationService) NotifyMonthlySummary(summaryData GroupSummaryData,
 	}
 	return nil
 }
+
+// BudgetAlertData holds data for budget limit alert notifications
+type BudgetAlertData struct {
+	Account       *models.Account
+	TotalExpenses float64
+	BudgetLimit   float64
+	Percentage    float64
+}
+
+// NotifyBudgetLimitReached creates notifications when account budget limit is reached or exceeded
+func (s *NotificationService) NotifyBudgetLimitReached(alertData BudgetAlertData, members []models.User) error {
+	statusText := "atingiu"
+	if alertData.Percentage > 100 {
+		statusText = "ultrapassou"
+	}
+
+	message := fmt.Sprintf("A conta \"%s\" %s o limite de orçamento! Despesas: R$ %.2f / R$ %.2f (%.0f%%)",
+		alertData.Account.Name,
+		statusText,
+		alertData.TotalExpenses,
+		alertData.BudgetLimit,
+		alertData.Percentage,
+	)
+
+	for _, member := range members {
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeBudgetAlert,
+			Title:   "Alerta de orçamento",
+			Message: message,
+			Link:    "/expenses",
+			GroupID: alertData.Account.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}

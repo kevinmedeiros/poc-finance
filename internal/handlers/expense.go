@@ -193,6 +193,9 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 	// Notify group members if this is a joint account expense
 	h.notifyPartnerExpense(userID, accountID, &expense)
 
+	// Check budget limit and notify if exceeded
+	h.checkBudgetLimit(accountID)
+
 	return h.renderExpenseList(c, string(expenseType))
 }
 
@@ -218,6 +221,43 @@ func (h *ExpenseHandler) notifyPartnerExpense(creatorID uint, accountID uint, ex
 
 	// Send notifications (errors are logged but don't fail the request)
 	h.notificationService.NotifyPartnerExpense(expense, account, creatorID, creator.Name, members)
+}
+
+// checkBudgetLimit checks if account has reached its budget limit and sends notification
+func (h *ExpenseHandler) checkBudgetLimit(accountID uint) {
+	// Get account balance to check total expenses
+	balance, err := h.accountService.GetAccountBalance(accountID)
+	if err != nil {
+		return
+	}
+
+	// Check if budget limit is set
+	if balance.Account.BudgetLimit == nil || *balance.Account.BudgetLimit <= 0 {
+		return
+	}
+
+	budgetLimit := *balance.Account.BudgetLimit
+	percentage := (balance.TotalExpenses / budgetLimit) * 100
+
+	// Only notify if expenses reach or exceed 100% of budget
+	if percentage < 100 {
+		return
+	}
+
+	// Get account members to notify
+	members, err := h.accountService.GetAccountMembers(accountID)
+	if err != nil {
+		return
+	}
+
+	// Send budget alert notification
+	alertData := services.BudgetAlertData{
+		Account:       &balance.Account,
+		TotalExpenses: balance.TotalExpenses,
+		BudgetLimit:   budgetLimit,
+		Percentage:    percentage,
+	}
+	h.notificationService.NotifyBudgetLimitReached(alertData, members)
 }
 
 func (h *ExpenseHandler) Toggle(c echo.Context) error {
