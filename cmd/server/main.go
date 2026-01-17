@@ -13,6 +13,8 @@ import (
 
 	"poc-finance/internal/database"
 	"poc-finance/internal/handlers"
+	authmw "poc-finance/internal/middleware"
+	"poc-finance/internal/services"
 )
 
 type TemplateRegistry struct {
@@ -149,7 +151,7 @@ func main() {
 	exportHandler := handlers.NewExportHandler()
 	settingsHandler := handlers.NewSettingsHandler()
 
-	// Auth routes
+	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
 	e.POST("/register", authHandler.Register)
 	e.GET("/login", authHandler.LoginPage)
@@ -160,36 +162,41 @@ func main() {
 	e.GET("/reset-password", authHandler.ResetPasswordPage)
 	e.POST("/reset-password", authHandler.ResetPassword)
 
-	// Rotas
-	e.GET("/", dashboardHandler.Index)
+	// Protected routes (authentication required)
+	authService := services.NewAuthService()
+	protected := e.Group("")
+	protected.Use(authmw.AuthMiddleware(authService))
+
+	// Dashboard
+	protected.GET("/", dashboardHandler.Index)
 
 	// Recebimentos
-	e.GET("/incomes", incomeHandler.List)
-	e.POST("/incomes", incomeHandler.Create)
-	e.DELETE("/incomes/:id", incomeHandler.Delete)
-	e.GET("/incomes/preview", incomeHandler.CalculatePreview)
+	protected.GET("/incomes", incomeHandler.List)
+	protected.POST("/incomes", incomeHandler.Create)
+	protected.DELETE("/incomes/:id", incomeHandler.Delete)
+	protected.GET("/incomes/preview", incomeHandler.CalculatePreview)
 
 	// Despesas
-	e.GET("/expenses", expenseHandler.List)
-	e.POST("/expenses", expenseHandler.Create)
-	e.POST("/expenses/:id/toggle", expenseHandler.Toggle)
-	e.POST("/expenses/:id/paid", expenseHandler.MarkPaid)
-	e.POST("/expenses/:id/unpaid", expenseHandler.MarkUnpaid)
-	e.DELETE("/expenses/:id", expenseHandler.Delete)
+	protected.GET("/expenses", expenseHandler.List)
+	protected.POST("/expenses", expenseHandler.Create)
+	protected.POST("/expenses/:id/toggle", expenseHandler.Toggle)
+	protected.POST("/expenses/:id/paid", expenseHandler.MarkPaid)
+	protected.POST("/expenses/:id/unpaid", expenseHandler.MarkUnpaid)
+	protected.DELETE("/expenses/:id", expenseHandler.Delete)
 
 	// Cartões
-	e.GET("/cards", cardHandler.List)
-	e.POST("/cards", cardHandler.CreateCard)
-	e.DELETE("/cards/:id", cardHandler.DeleteCard)
-	e.POST("/installments", cardHandler.CreateInstallment)
-	e.DELETE("/installments/:id", cardHandler.DeleteInstallment)
+	protected.GET("/cards", cardHandler.List)
+	protected.POST("/cards", cardHandler.CreateCard)
+	protected.DELETE("/cards/:id", cardHandler.DeleteCard)
+	protected.POST("/installments", cardHandler.CreateInstallment)
+	protected.DELETE("/installments/:id", cardHandler.DeleteInstallment)
 
 	// Exportação
-	e.GET("/export", exportHandler.ExportYear)
+	protected.GET("/export", exportHandler.ExportYear)
 
 	// Configurações
-	e.GET("/settings", settingsHandler.Get)
-	e.POST("/settings", settingsHandler.Update)
+	protected.GET("/settings", settingsHandler.Get)
+	protected.POST("/settings", settingsHandler.Update)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
