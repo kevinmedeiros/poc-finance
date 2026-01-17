@@ -411,17 +411,21 @@ func (h *GroupHandler) Dashboard(c echo.Context) error {
 	var members []models.GroupMember
 	database.DB.Preload("User").Where("group_id = ?", groupID).Find(&members)
 
+	// Get member contributions
+	memberContributions := services.GetMemberContributions(database.DB, uint(groupID), accountIDs)
+
 	data := map[string]interface{}{
-		"group":           group,
-		"members":         members,
-		"currentMonth":    currentSummary,
-		"monthSummaries":  monthSummaries,
-		"accountBalances": accountBalances,
-		"totalIncome":     totalIncome,
-		"totalExpenses":   totalExpenses,
-		"totalBalance":    totalBalance,
-		"upcomingBills":   upcomingBills,
-		"now":             now,
+		"group":               group,
+		"members":             members,
+		"currentMonth":        currentSummary,
+		"monthSummaries":      monthSummaries,
+		"accountBalances":     accountBalances,
+		"totalIncome":         totalIncome,
+		"totalExpenses":       totalExpenses,
+		"totalBalance":        totalBalance,
+		"upcomingBills":       upcomingBills,
+		"memberContributions": memberContributions,
+		"now":                 now,
 	}
 
 	return c.Render(http.StatusOK, "group-dashboard.html", data)

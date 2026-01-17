@@ -139,6 +139,88 @@ func GetRevenue12MonthsForAccounts(db *gorm.DB, accountIDs []uint) float64 {
 }
 
 // GetMonthlySummaryForAccounts retorna o resumo mensal para contas específicas
+// MemberContribution representa a contribuição de um membro do grupo
+type MemberContribution struct {
+	User           models.User
+	TotalIncome    float64 // Receitas nas contas conjuntas
+	TotalExpenses  float64 // Despesas atribuídas ao membro (splits)
+	NetBalance     float64 // income - expenses
+	ExpensePercent float64 // Porcentagem das despesas totais
+}
+
+// GetMemberContributions retorna as contribuições de cada membro do grupo
+func GetMemberContributions(db *gorm.DB, groupID uint, accountIDs []uint) []MemberContribution {
+	if len(accountIDs) == 0 {
+		return nil
+	}
+
+	// Get all group members
+	var members []models.GroupMember
+	db.Preload("User").Where("group_id = ?", groupID).Find(&members)
+
+	if len(members) == 0 {
+		return nil
+	}
+
+	// Calculate expense totals from splits for each member
+	type ExpenseResult struct {
+		UserID uint
+		Total  float64
+	}
+	var expenseResults []ExpenseResult
+	db.Model(&models.ExpenseSplit{}).
+		Select("expense_splits.user_id, COALESCE(SUM(expense_splits.amount), 0) as total").
+		Joins("JOIN expenses ON expenses.id = expense_splits.expense_id").
+		Where("expenses.account_id IN ? AND expenses.deleted_at IS NULL AND expense_splits.deleted_at IS NULL", accountIDs).
+		Group("expense_splits.user_id").
+		Scan(&expenseResults)
+
+	expenseByUser := make(map[uint]float64)
+	var totalGroupExpenses float64
+	for _, r := range expenseResults {
+		expenseByUser[r.UserID] = r.Total
+		totalGroupExpenses += r.Total
+	}
+
+	// Also get non-split expenses for the accounts and distribute equally
+	var nonSplitExpenses []models.Expense
+	db.Where("account_id IN ? AND is_split = ?", accountIDs, false).Find(&nonSplitExpenses)
+	var totalNonSplit float64
+	for _, e := range nonSplitExpenses {
+		totalNonSplit += e.Amount
+	}
+	// Distribute non-split expenses equally among members
+	perMemberNonSplit := totalNonSplit / float64(len(members))
+	totalGroupExpenses += totalNonSplit
+
+	// Calculate income totals for each member (from accounts they own or group shared)
+	// For joint accounts, income is shared equally among members
+	var totalIncome float64
+	db.Model(&models.Income{}).
+		Select("COALESCE(SUM(gross_amount), 0)").
+		Where("account_id IN ?", accountIDs).
+		Scan(&totalIncome)
+	perMemberIncome := totalIncome / float64(len(members))
+
+	// Build contribution list
+	contributions := make([]MemberContribution, 0, len(members))
+	for _, m := range members {
+		userExpenses := expenseByUser[m.UserID] + perMemberNonSplit
+		contribution := MemberContribution{
+			User:          m.User,
+			TotalIncome:   perMemberIncome,
+			TotalExpenses: userExpenses,
+			NetBalance:    perMemberIncome - userExpenses,
+		}
+		if totalGroupExpenses > 0 {
+			contribution.ExpensePercent = (userExpenses / totalGroupExpenses) * 100
+		}
+		contributions = append(contributions, contribution)
+	}
+
+	return contributions
+}
+
 func GetMonthlySummaryForAccounts(db *gorm.DB, year int, month int, accountIDs []uint) MonthlySummary {
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
