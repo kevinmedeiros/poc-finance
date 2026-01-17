@@ -93,3 +93,30 @@ func (s *NotificationService) NotifyGroupInvite(userID uint, group *models.Famil
 	}
 	return s.Create(notification)
 }
+
+// NotifyPartnerExpense creates notifications for group members when a new expense is added to a joint account
+func (s *NotificationService) NotifyPartnerExpense(expense *models.Expense, account *models.Account, creatorID uint, creatorName string, groupMembers []models.User) error {
+	if account.GroupID == nil {
+		return nil
+	}
+
+	for _, member := range groupMembers {
+		// Don't notify the creator
+		if member.ID == creatorID {
+			continue
+		}
+
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeExpense,
+			Title:   "Novo gasto do parceiro",
+			Message: fmt.Sprintf("%s adicionou \"%s\" (R$ %.2f) na conta conjunta \"%s\"", creatorName, expense.Name, expense.Amount, account.Name),
+			Link:    "/expenses",
+			GroupID: account.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}

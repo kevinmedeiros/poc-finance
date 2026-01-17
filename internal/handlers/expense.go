@@ -14,12 +14,14 @@ import (
 )
 
 type ExpenseHandler struct {
-	accountService *services.AccountService
+	accountService      *services.AccountService
+	notificationService *services.NotificationService
 }
 
 func NewExpenseHandler() *ExpenseHandler {
 	return &ExpenseHandler{
-		accountService: services.NewAccountService(),
+		accountService:      services.NewAccountService(),
+		notificationService: services.NewNotificationService(),
 	}
 }
 
@@ -188,7 +190,34 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 
 	tx.Commit()
 
+	// Notify group members if this is a joint account expense
+	h.notifyPartnerExpense(userID, accountID, &expense)
+
 	return h.renderExpenseList(c, string(expenseType))
+}
+
+// notifyPartnerExpense sends notifications to group members when an expense is added to a joint account
+func (h *ExpenseHandler) notifyPartnerExpense(creatorID uint, accountID uint, expense *models.Expense) {
+	// Get the account to check if it's a joint account
+	account, err := h.accountService.GetAccountByID(accountID)
+	if err != nil || account.Type != models.AccountTypeJoint || account.GroupID == nil {
+		return
+	}
+
+	// Get the creator's name
+	var creator models.User
+	if err := database.DB.First(&creator, creatorID).Error; err != nil {
+		return
+	}
+
+	// Get all group members
+	members, err := h.accountService.GetAccountMembers(accountID)
+	if err != nil {
+		return
+	}
+
+	// Send notifications (errors are logged but don't fail the request)
+	h.notificationService.NotifyPartnerExpense(expense, account, creatorID, creator.Name, members)
 }
 
 func (h *ExpenseHandler) Toggle(c echo.Context) error {
