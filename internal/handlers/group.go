@@ -414,6 +414,31 @@ func (h *GroupHandler) Dashboard(c echo.Context) error {
 	// Get member contributions
 	memberContributions := services.GetMemberContributions(database.DB, uint(groupID), accountIDs)
 
+	// HOLISTIC SUMMARY - All accounts (individual + joint) for the family group
+	allAccountIDs, _ := h.accountService.GetAllGroupAccountIDs(uint(groupID))
+	holisticSummary := services.GetMonthlySummaryForAccounts(database.DB, year, month, allAccountIDs)
+	allAccountBalances, _ := h.accountService.GetAllGroupAccountsWithBalances(uint(groupID))
+
+	// Calculate holistic totals
+	var holisticIncome, holisticExpenses, holisticBalance float64
+	for _, ab := range allAccountBalances {
+		holisticIncome += ab.TotalIncome
+		holisticExpenses += ab.TotalExpenses
+		holisticBalance += ab.Balance
+	}
+
+	// 6-month holistic projection
+	var holisticMonthSummaries []services.MonthlySummary
+	for i := 0; i < 6; i++ {
+		m := month + i
+		y := year
+		if m > 12 {
+			m -= 12
+			y++
+		}
+		holisticMonthSummaries = append(holisticMonthSummaries, services.GetMonthlySummaryForAccounts(database.DB, y, m, allAccountIDs))
+	}
+
 	data := map[string]interface{}{
 		"group":               group,
 		"members":             members,
@@ -426,6 +451,13 @@ func (h *GroupHandler) Dashboard(c echo.Context) error {
 		"upcomingBills":       upcomingBills,
 		"memberContributions": memberContributions,
 		"now":                 now,
+		// Holistic summary data
+		"holisticSummary":        holisticSummary,
+		"holisticIncome":         holisticIncome,
+		"holisticExpenses":       holisticExpenses,
+		"holisticBalance":        holisticBalance,
+		"holisticMonthSummaries": holisticMonthSummaries,
+		"allAccountBalances":     allAccountBalances,
 	}
 
 	return c.Render(http.StatusOK, "group-dashboard.html", data)

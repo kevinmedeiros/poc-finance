@@ -327,3 +327,57 @@ func (s *AccountService) GetGroupJointAccountsWithBalances(groupID uint) ([]Acco
 
 	return balances, nil
 }
+
+// GetAllGroupAccountIDs returns all account IDs for a family group:
+// - Individual accounts of all members
+// - Joint accounts of the group
+func (s *AccountService) GetAllGroupAccountIDs(groupID uint) ([]uint, error) {
+	var accountIDs []uint
+
+	// Get all member user IDs
+	var memberUserIDs []uint
+	if err := database.DB.Model(&models.GroupMember{}).
+		Where("group_id = ?", groupID).
+		Pluck("user_id", &memberUserIDs).Error; err != nil {
+		return nil, err
+	}
+
+	// Get individual accounts of all members
+	if len(memberUserIDs) > 0 {
+		var individualIDs []uint
+		if err := database.DB.Model(&models.Account{}).
+			Where("user_id IN ? AND type = ?", memberUserIDs, models.AccountTypeIndividual).
+			Pluck("id", &individualIDs).Error; err != nil {
+			return nil, err
+		}
+		accountIDs = append(accountIDs, individualIDs...)
+	}
+
+	// Get joint accounts of the group
+	jointIDs, err := s.GetGroupJointAccountIDs(groupID)
+	if err != nil {
+		return nil, err
+	}
+	accountIDs = append(accountIDs, jointIDs...)
+
+	return accountIDs, nil
+}
+
+// GetAllGroupAccountsWithBalances returns all accounts for a family group with their balances
+func (s *AccountService) GetAllGroupAccountsWithBalances(groupID uint) ([]AccountBalance, error) {
+	accountIDs, err := s.GetAllGroupAccountIDs(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]AccountBalance, 0, len(accountIDs))
+	for _, accID := range accountIDs {
+		balance, err := s.GetAccountBalance(accID)
+		if err != nil {
+			continue
+		}
+		balances = append(balances, *balance)
+	}
+
+	return balances, nil
+}
