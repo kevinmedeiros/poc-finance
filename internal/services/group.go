@@ -183,6 +183,13 @@ func (s *GroupService) IsGroupAdmin(groupID, userID uint) bool {
 	return err == nil
 }
 
+// IsGroupMember checks if a user is a member of a group
+func (s *GroupService) IsGroupMember(groupID, userID uint) bool {
+	var member models.GroupMember
+	err := database.DB.Where("group_id = ? AND user_id = ?", groupID, userID).First(&member).Error
+	return err == nil
+}
+
 // LeaveGroup removes a user from a group
 // If the last member leaves, the group is automatically deleted
 func (s *GroupService) LeaveGroup(groupID, userID uint) error {

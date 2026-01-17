@@ -1,0 +1,252 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                <a href="/groups" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">{{.group.Name}}</h1>
+            </div>
+            <p class="text-slate-500">Dashboard consolidado das contas conjuntas</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            {{range .members}}
+            <div class="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border border-slate-200">
+                <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-semibold text-primary-600">{{slice .User.Name 0 1}}</span>
+                </div>
+                <span class="text-sm text-slate-600">{{.User.Name}}</span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Cards de Resumo Rapido -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Receita -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
+            <div class="flex items-center justify-between">
+                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Entrada</span>
+            </div>
+            <p class="text-2xl font-bold text-slate-800 mt-4">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
+            <p class="text-sm text-slate-500 mt-1">Receita do Mes</p>
+        </div>
+
+        <!-- Despesas -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
+            <div class="flex items-center justify-between">
+                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Saida</span>
+            </div>
+            <p class="text-2xl font-bold text-slate-800 mt-4">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
+            <p class="text-sm text-slate-500 mt-1">Despesas do Mes</p>
+        </div>
+
+        <!-- Contas Conjuntas -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
+            <div class="flex items-center justify-between">
+                <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded-full">Grupo</span>
+            </div>
+            <p class="text-2xl font-bold text-slate-800 mt-4">{{len .accountBalances}}</p>
+            <p class="text-sm text-slate-500 mt-1">Contas Conjuntas</p>
+        </div>
+
+        <!-- Saldo Total -->
+        <div class="bg-gradient-to-br {{if gt .totalBalance 0.0}}from-emerald-500 to-emerald-600{{else}}from-rose-500 to-rose-600{{end}} rounded-xl shadow-sm p-5 card-hover">
+            <div class="flex items-center justify-between">
+                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium text-white/90 bg-white/20 px-2 py-1 rounded-full">Saldo</span>
+            </div>
+            <p class="text-2xl font-bold text-white mt-4">R$ {{printf "%.2f" .totalBalance}}</p>
+            <p class="text-sm text-white/80 mt-1">Saldo Total</p>
+        </div>
+    </div>
+
+    <!-- Grid Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Contas do Grupo (2 colunas) -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Contas Conjuntas
+                </h2>
+            </div>
+
+            <div class="p-6">
+                {{if .accountBalances}}
+                <div class="space-y-4">
+                    {{range .accountBalances}}
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-slate-800">{{.Account.Name}}</h3>
+                                <div class="flex items-center gap-4 mt-1 text-sm">
+                                    <span class="text-emerald-600">+R$ {{printf "%.2f" .TotalIncome}}</span>
+                                    <span class="text-rose-500">-R$ {{printf "%.2f" .TotalExpenses}}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold {{if gt .Balance 0.0}}text-emerald-600{{else}}text-rose-600{{end}}">
+                                R$ {{printf "%.2f" .Balance}}
+                            </p>
+                            <p class="text-xs text-slate-500">Saldo</p>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </div>
+                    <p class="text-slate-500">Nenhuma conta conjunta criada</p>
+                    <a href="/groups" class="mt-4 inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Criar conta conjunta
+                    </a>
+                </div>
+                {{end}}
+
+                <!-- Totais -->
+                {{if .accountBalances}}
+                <div class="mt-6 pt-6 border-t border-slate-200">
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-slate-600 font-medium">Total Receitas</span>
+                        <span class="text-lg font-bold text-emerald-600">R$ {{printf "%.2f" .totalIncome}}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-slate-600 font-medium">Total Despesas</span>
+                        <span class="text-lg font-bold text-rose-500">R$ {{printf "%.2f" .totalExpenses}}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-4 px-5 rounded-xl {{if gt .totalBalance 0.0}}bg-emerald-50 border border-emerald-100{{else}}bg-rose-50 border border-rose-100{{end}} mt-2">
+                        <span class="font-bold {{if gt .totalBalance 0.0}}text-emerald-700{{else}}text-rose-700{{end}}">Saldo Consolidado</span>
+                        <span class="text-2xl font-bold {{if gt .totalBalance 0.0}}text-emerald-600{{else}}text-rose-600{{end}}">R$ {{printf "%.2f" .totalBalance}}</span>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Proximos Vencimentos (1 coluna) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Proximos Vencimentos
+                </h2>
+            </div>
+
+            <div class="p-4">
+                {{if .upcomingBills}}
+                <div class="space-y-2 max-h-[400px] overflow-y-auto">
+                    {{range .upcomingBills}}
+                    <div class="flex items-center justify-between p-3 rounded-lg {{if le .DueIn 3}}bg-rose-50 border border-rose-100{{else if le .DueIn 7}}bg-amber-50 border border-amber-100{{else}}bg-slate-50 border border-slate-100{{end}}">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-slate-800 truncate">{{.Name}}</p>
+                            <p class="text-xs text-slate-500">{{.DueDate.Format "02/01/2006"}}</p>
+                        </div>
+                        <div class="flex items-center gap-3 ml-3">
+                            <span class="text-xs font-medium px-2 py-1 rounded-full {{if le .DueIn 3}}bg-rose-100 text-rose-700{{else if le .DueIn 7}}bg-amber-100 text-amber-700{{else}}bg-slate-200 text-slate-600{{end}}">
+                                {{if eq .DueIn 0}}Hoje{{else if eq .DueIn 1}}Amanha{{else}}{{.DueIn}}d{{end}}
+                            </span>
+                            <span class="font-bold text-slate-800 whitespace-nowrap">R$ {{printf "%.2f" .Amount}}</span>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-slate-500">Nenhum vencimento proximo</p>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- Projecao 6 meses -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                Projecao - Proximos 6 Meses
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="bg-slate-50">
+                        <th class="text-left py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mes</th>
+                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Receita</th>
+                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Despesas</th>
+                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {{range .monthSummaries}}
+                    <tr class="table-row-hover">
+                        <td class="py-4 px-6">
+                            <span class="font-medium text-slate-800">{{.Month.Format "Jan/2006"}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="text-emerald-600 font-semibold">R$ {{printf "%.2f" .TotalIncomeGross}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="text-rose-500 font-semibold">R$ {{printf "%.2f" .TotalExpenses}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="font-bold {{if gt .Balance 0.0}}text-emerald-600{{else}}text-rose-600{{end}}">
+                                R$ {{printf "%.2f" .Balance}}
+                            </span>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

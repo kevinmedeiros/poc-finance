@@ -297,3 +297,33 @@ func (s *AccountService) GetUserAccountsWithBalances(userID uint) ([]AccountBala
 
 	return balances, nil
 }
+
+// GetGroupJointAccountIDs returns all joint account IDs for a group
+func (s *AccountService) GetGroupJointAccountIDs(groupID uint) ([]uint, error) {
+	var accountIDs []uint
+	if err := database.DB.Model(&models.Account{}).
+		Where("group_id = ? AND type = ?", groupID, models.AccountTypeJoint).
+		Pluck("id", &accountIDs).Error; err != nil {
+		return nil, err
+	}
+	return accountIDs, nil
+}
+
+// GetGroupJointAccountsWithBalances returns all joint accounts for a group with their balances
+func (s *AccountService) GetGroupJointAccountsWithBalances(groupID uint) ([]AccountBalance, error) {
+	accounts, err := s.GetGroupJointAccounts(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]AccountBalance, 0, len(accounts))
+	for _, acc := range accounts {
+		balance, err := s.GetAccountBalance(acc.ID)
+		if err != nil {
+			continue
+		}
+		balances = append(balances, *balance)
+	}
+
+	return balances, nil
+}

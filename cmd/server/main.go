@@ -117,6 +117,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/settings.html",
 		"internal/templates/groups.html",
 		"internal/templates/accounts.html",
+		"internal/templates/group-dashboard.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -233,6 +234,9 @@ func main() {
 	// Contas conjuntas (joint accounts)
 	protected.POST("/groups/:id/accounts", groupHandler.CreateJointAccount)
 	protected.DELETE("/groups/:id/accounts/:accountId", groupHandler.DeleteJointAccount)
+
+	// Dashboard do grupo
+	protected.GET("/groups/:id/dashboard", groupHandler.Dashboard)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
