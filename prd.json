@@ -1,0 +1,261 @@
+{
+  "name": "Autenticação e Compartilhamento Familiar",
+  "userStories": [
+    {
+      "id": "AUTH-01",
+      "title": "Registro de usuário",
+      "description": "Cadastro com email + senha",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "AUTH-02",
+      "title": "Login",
+      "description": "Autenticação email + senha",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "AUTH-03",
+      "title": "Logout",
+      "description": "Encerramento de sessão",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "AUTH-04",
+      "title": "Recuperação de senha",
+      "description": "Reset via email",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "AUTH-05",
+      "title": "JWT Tokens",
+      "description": "Access token + refresh token para sessões",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "AUTH-06",
+      "title": "Middleware de autenticação",
+      "description": "Proteção de rotas privadas",
+      "category": "authentication",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-01",
+      "title": "Criar grupo familiar",
+      "description": "Usuário cria grupo e se torna membro",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-02",
+      "title": "Convidar membros",
+      "description": "Gerar código/link de convite",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-03",
+      "title": "Aceitar convite",
+      "description": "Entrar em grupo via código/link",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-04",
+      "title": "Listar membros",
+      "description": "Visualizar todos os membros do grupo",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-05",
+      "title": "Sair do grupo",
+      "description": "Membro pode deixar o grupo",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-06",
+      "title": "Excluir grupo",
+      "description": "Apenas quando todos saírem",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GROUP-07",
+      "title": "Membros ilimitados",
+      "description": "Suporte a 2+ pessoas com papéis iguais",
+      "category": "groups",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "ACC-01",
+      "title": "Conta individual",
+      "description": "Cada membro tem dados privados por padrão",
+      "category": "accounts",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "ACC-02",
+      "title": "Contas conjuntas ilimitadas",
+      "description": "Criar múltiplas contas compartilhadas",
+      "category": "accounts",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "ACC-03",
+      "title": "Vincular transação à conta",
+      "description": "Associar receita/despesa a conta individual ou conjunta",
+      "category": "accounts",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "ACC-04",
+      "title": "Divisão automática",
+      "description": "Dividir despesas por percentual customizado entre membros",
+      "category": "accounts",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "ACC-05",
+      "title": "Saldo por conta",
+      "description": "Visualizar saldo de cada conta",
+      "category": "accounts",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "DASH-01",
+      "title": "Dashboard individual",
+      "description": "Visão das finanças pessoais do usuário",
+      "category": "dashboard",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "DASH-02",
+      "title": "Dashboard do grupo",
+      "description": "Visão consolidada de todas as contas conjuntas",
+      "category": "dashboard",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "DASH-03",
+      "title": "Comparativo entre membros",
+      "description": "Visualizar contribuições de cada membro",
+      "category": "dashboard",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "DASH-04",
+      "title": "Filtros por conta",
+      "description": "Filtrar por conta individual ou conjunta específica",
+      "category": "dashboard",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "DASH-05",
+      "title": "Resumo holístico",
+      "description": "Total de entradas/saídas do grupo familiar",
+      "category": "dashboard",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GOAL-01",
+      "title": "Criar meta do grupo",
+      "description": "Meta compartilhada",
+      "category": "goals",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GOAL-02",
+      "title": "Contribuição por membro",
+      "description": "Rastrear quanto cada um contribuiu",
+      "category": "goals",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GOAL-03",
+      "title": "Progresso visual",
+      "description": "Barra de progresso da meta",
+      "category": "goals",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "GOAL-04",
+      "title": "Vincular a conta conjunta",
+      "description": "Meta associada a uma conta específica",
+      "category": "goals",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "NOTIF-01",
+      "title": "Convite recebido",
+      "description": "Notificar quando convidado para grupo",
+      "category": "notifications",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "NOTIF-02",
+      "title": "Novo gasto do parceiro",
+      "description": "Notificar gastos em contas conjuntas",
+      "category": "notifications",
+      "passes": true,
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "NOTIF-03",
+      "title": "Meta atingida",
+      "description": "Notificar quando meta for alcançada",
+      "category": "notifications",
+      "passes": false
+    },
+    {
+      "id": "NOTIF-04",
+      "title": "Resumo periódico",
+      "description": "Resumo semanal/mensal do grupo",
+      "category": "notifications",
+      "passes": false
+    },
+    {
+      "id": "NOTIF-05",
+      "title": "Alerta de limite",
+      "description": "Notificar quando orçamento atingir limite",
+      "category": "notifications",
+      "passes": false
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-01-17T03:24:09.813Z"
+  }
+}

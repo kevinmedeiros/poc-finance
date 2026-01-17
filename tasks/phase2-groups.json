@@ -1,0 +1,98 @@
+{
+  "phase": 2,
+  "name": "Grupos Familiares",
+  "description": "Implementar sistema de grupos familiares com convites",
+  "status": "pending",
+  "tasks": [
+    {
+      "id": "TASK-2.1",
+      "feature_id": "GROUP-01",
+      "name": "Criar modelo FamilyGroup",
+      "description": "Criar struct FamilyGroup com campos: id, name, invite_code, created_at, updated_at",
+      "status": "pending",
+      "files": ["internal/models/family_group.go"],
+      "dependencies": []
+    },
+    {
+      "id": "TASK-2.2",
+      "feature_id": "GROUP-04",
+      "name": "Criar modelo GroupMember",
+      "description": "Criar struct GroupMember para relacionamento N:N entre User e FamilyGroup",
+      "status": "pending",
+      "files": ["internal/models/group_member.go"],
+      "dependencies": ["TASK-2.1"]
+    },
+    {
+      "id": "TASK-2.3",
+      "feature_id": "GROUP-01",
+      "name": "Implementar criação de grupo",
+      "description": "Handler POST /groups que cria grupo e adiciona criador como membro",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.1", "TASK-2.2"]
+    },
+    {
+      "id": "TASK-2.4",
+      "feature_id": "GROUP-02",
+      "name": "Implementar geração de convite",
+      "description": "Handler POST /groups/:id/invite que gera código único de convite",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.3"]
+    },
+    {
+      "id": "TASK-2.5",
+      "feature_id": "GROUP-03",
+      "name": "Implementar aceitar convite",
+      "description": "Handler POST /groups/join que adiciona usuário ao grupo via código",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.4"]
+    },
+    {
+      "id": "TASK-2.6",
+      "feature_id": "GROUP-04",
+      "name": "Implementar listagem de grupos e membros",
+      "description": "Handlers GET /groups e GET /groups/:id com lista de membros",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.3"]
+    },
+    {
+      "id": "TASK-2.7",
+      "feature_id": "GROUP-05",
+      "name": "Implementar saída do grupo",
+      "description": "Handler DELETE /groups/:id/leave para membro sair do grupo",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.3"]
+    },
+    {
+      "id": "TASK-2.8",
+      "feature_id": "GROUP-06",
+      "name": "Implementar exclusão automática",
+      "description": "Lógica para excluir grupo quando último membro sair",
+      "status": "pending",
+      "files": ["internal/handlers/group.go"],
+      "dependencies": ["TASK-2.7"]
+    },
+    {
+      "id": "TASK-2.9",
+      "feature_id": "GROUP-01",
+      "name": "Criar templates de grupos",
+      "description": "Templates HTML para criar, listar e gerenciar grupos",
+      "status": "pending",
+      "files": ["templates/groups/list.html", "templates/groups/create.html", "templates/groups/detail.html", "templates/groups/join.html"],
+      "dependencies": ["TASK-2.3"]
+    },
+    {
+      "id": "TASK-2.10",
+      "feature_id": "GROUP-01",
+      "name": "Migração de banco de dados",
+      "description": "Atualizar AutoMigrate para incluir FamilyGroup e GroupMember",
+      "status": "pending",
+      "files": ["internal/database/database.go"],
+      "dependencies": ["TASK-2.1", "TASK-2.2"]
+    }
+  ]
+}

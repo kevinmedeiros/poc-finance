@@ -1,0 +1,98 @@
+{
+  "phase": 4,
+  "name": "Dashboard e Relatórios",
+  "description": "Implementar dashboards individual, do grupo e comparativo",
+  "status": "pending",
+  "tasks": [
+    {
+      "id": "TASK-4.1",
+      "feature_id": "DASH-01",
+      "name": "Refatorar dashboard individual",
+      "description": "Atualizar dashboard existente para filtrar por conta individual do usuário",
+      "status": "pending",
+      "files": ["internal/handlers/dashboard.go", "internal/services/summary.go"],
+      "dependencies": []
+    },
+    {
+      "id": "TASK-4.2",
+      "feature_id": "DASH-02",
+      "name": "Implementar dashboard do grupo",
+      "description": "Criar dashboard com visão consolidada de contas conjuntas do grupo",
+      "status": "pending",
+      "files": ["internal/handlers/dashboard.go", "internal/services/summary.go"],
+      "dependencies": ["TASK-4.1"]
+    },
+    {
+      "id": "TASK-4.3",
+      "feature_id": "DASH-03",
+      "name": "Implementar comparativo de membros",
+      "description": "Criar visualização de contribuições de cada membro do grupo",
+      "status": "pending",
+      "files": ["internal/handlers/dashboard.go", "internal/services/summary.go"],
+      "dependencies": ["TASK-4.2"]
+    },
+    {
+      "id": "TASK-4.4",
+      "feature_id": "DASH-04",
+      "name": "Implementar filtros por conta",
+      "description": "Adicionar seletor de conta no dashboard para filtrar visualização",
+      "status": "pending",
+      "files": ["internal/handlers/dashboard.go"],
+      "dependencies": ["TASK-4.1"]
+    },
+    {
+      "id": "TASK-4.5",
+      "feature_id": "DASH-05",
+      "name": "Implementar resumo holístico",
+      "description": "Criar visão total de entradas/saídas do grupo familiar",
+      "status": "pending",
+      "files": ["internal/handlers/dashboard.go", "internal/services/summary.go"],
+      "dependencies": ["TASK-4.2"]
+    },
+    {
+      "id": "TASK-4.6",
+      "feature_id": "DASH-01",
+      "name": "Criar template dashboard individual",
+      "description": "Template HTML para dashboard pessoal",
+      "status": "pending",
+      "files": ["templates/dashboard/individual.html"],
+      "dependencies": ["TASK-4.1"]
+    },
+    {
+      "id": "TASK-4.7",
+      "feature_id": "DASH-02",
+      "name": "Criar template dashboard grupo",
+      "description": "Template HTML para dashboard do grupo",
+      "status": "pending",
+      "files": ["templates/dashboard/group.html"],
+      "dependencies": ["TASK-4.2"]
+    },
+    {
+      "id": "TASK-4.8",
+      "feature_id": "DASH-03",
+      "name": "Criar template comparativo",
+      "description": "Template HTML para comparativo de membros com barras de progresso",
+      "status": "pending",
+      "files": ["templates/dashboard/comparative.html"],
+      "dependencies": ["TASK-4.3"]
+    },
+    {
+      "id": "TASK-4.9",
+      "feature_id": "DASH-04",
+      "name": "Criar componente seletor de conta",
+      "description": "Componente HTMX reutilizável para seleção de conta",
+      "status": "pending",
+      "files": ["templates/components/account-selector.html"],
+      "dependencies": ["TASK-4.4"]
+    },
+    {
+      "id": "TASK-4.10",
+      "feature_id": "DASH-01",
+      "name": "Implementar navegação entre dashboards",
+      "description": "Tabs ou menu para alternar entre individual, grupo e comparativo",
+      "status": "pending",
+      "files": ["templates/dashboard/layout.html"],
+      "dependencies": ["TASK-4.6", "TASK-4.7", "TASK-4.8"]
+    }
+  ]
+}

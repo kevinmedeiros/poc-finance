@@ -1,0 +1,116 @@
+{
+  "phase": 1,
+  "name": "Autenticação",
+  "description": "Implementar sistema de autenticação com JWT",
+  "status": "pending",
+  "tasks": [
+    {
+      "id": "TASK-1.1",
+      "feature_id": "AUTH-01",
+      "name": "Criar modelo User",
+      "description": "Criar struct User com campos: id, email, password_hash, name, created_at, updated_at",
+      "status": "pending",
+      "files": ["internal/models/user.go"],
+      "dependencies": []
+    },
+    {
+      "id": "TASK-1.2",
+      "feature_id": "AUTH-05",
+      "name": "Criar modelo RefreshToken",
+      "description": "Criar struct RefreshToken para armazenar tokens de refresh",
+      "status": "pending",
+      "files": ["internal/models/refresh_token.go"],
+      "dependencies": ["TASK-1.1"]
+    },
+    {
+      "id": "TASK-1.3",
+      "feature_id": "AUTH-05",
+      "name": "Configurar JWT",
+      "description": "Adicionar dependência golang-jwt e criar funções de geração/validação de tokens",
+      "status": "pending",
+      "files": ["internal/auth/jwt.go"],
+      "dependencies": ["TASK-1.1"]
+    },
+    {
+      "id": "TASK-1.4",
+      "feature_id": "AUTH-01",
+      "name": "Implementar registro de usuário",
+      "description": "Handler POST /auth/register com validação de email único e hash de senha com bcrypt",
+      "status": "pending",
+      "files": ["internal/handlers/auth.go"],
+      "dependencies": ["TASK-1.1", "TASK-1.3"]
+    },
+    {
+      "id": "TASK-1.5",
+      "feature_id": "AUTH-02",
+      "name": "Implementar login",
+      "description": "Handler POST /auth/login que retorna access token e refresh token",
+      "status": "pending",
+      "files": ["internal/handlers/auth.go"],
+      "dependencies": ["TASK-1.4"]
+    },
+    {
+      "id": "TASK-1.6",
+      "feature_id": "AUTH-03",
+      "name": "Implementar logout",
+      "description": "Handler POST /auth/logout que invalida refresh token",
+      "status": "pending",
+      "files": ["internal/handlers/auth.go"],
+      "dependencies": ["TASK-1.5"]
+    },
+    {
+      "id": "TASK-1.7",
+      "feature_id": "AUTH-05",
+      "name": "Implementar refresh token",
+      "description": "Handler POST /auth/refresh para renovar access token",
+      "status": "pending",
+      "files": ["internal/handlers/auth.go"],
+      "dependencies": ["TASK-1.5"]
+    },
+    {
+      "id": "TASK-1.8",
+      "feature_id": "AUTH-06",
+      "name": "Criar middleware de autenticação",
+      "description": "Middleware Echo para validar JWT em rotas protegidas",
+      "status": "pending",
+      "files": ["internal/middleware/auth.go"],
+      "dependencies": ["TASK-1.3"]
+    },
+    {
+      "id": "TASK-1.9",
+      "feature_id": "AUTH-04",
+      "name": "Implementar recuperação de senha",
+      "description": "Handlers para forgot-password e reset-password",
+      "status": "pending",
+      "files": ["internal/handlers/auth.go", "internal/services/email.go"],
+      "dependencies": ["TASK-1.5"]
+    },
+    {
+      "id": "TASK-1.10",
+      "feature_id": "AUTH-01",
+      "name": "Criar templates de autenticação",
+      "description": "Templates HTML para login, registro e reset de senha",
+      "status": "pending",
+      "files": ["templates/auth/login.html", "templates/auth/register.html", "templates/auth/reset-password.html"],
+      "dependencies": ["TASK-1.4", "TASK-1.5"]
+    },
+    {
+      "id": "TASK-1.11",
+      "feature_id": "AUTH-06",
+      "name": "Atualizar rotas existentes",
+      "description": "Aplicar middleware de autenticação em todas as rotas existentes",
+      "status": "pending",
+      "files": ["cmd/server/main.go"],
+      "dependencies": ["TASK-1.8"]
+    },
+    {
+      "id": "TASK-1.12",
+      "feature_id": "AUTH-01",
+      "name": "Migração de banco de dados",
+      "description": "Atualizar AutoMigrate para incluir User e RefreshToken",
+      "status": "pending",
+      "files": ["internal/database/database.go"],
+      "dependencies": ["TASK-1.1", "TASK-1.2"]
+    }
+  ]
+}

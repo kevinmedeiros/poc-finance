@@ -120,3 +120,21 @@ func (s *NotificationService) NotifyPartnerExpense(expense *models.Expense, acco
 	}
 	return nil
 }
+
+// NotifyGoalReached creates notifications for all group members when a goal is reached
+func (s *NotificationService) NotifyGoalReached(goal *models.GroupGoal, groupMembers []models.User) error {
+	for _, member := range groupMembers {
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeGoalReached,
+			Title:   "Meta atingida!",
+			Message: fmt.Sprintf("A meta \"%s\" do grupo \"%s\" foi alcançada! (R$ %.2f)", goal.Name, goal.Group.Name, goal.TargetAmount),
+			Link:    fmt.Sprintf("/groups/%d/goals", goal.GroupID),
+			GroupID: &goal.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -190,6 +190,22 @@ func (s *GroupService) IsGroupMember(groupID, userID uint) bool {
 	return err == nil
 }
 
+// GetGroupMembers returns all users that are members of a group
+func (s *GroupService) GetGroupMembers(groupID uint) ([]models.User, error) {
+	var members []models.GroupMember
+	if err := database.DB.Where("group_id = ?", groupID).
+		Preload("User").
+		Find(&members).Error; err != nil {
+		return nil, err
+	}
+
+	users := make([]models.User, len(members))
+	for i, m := range members {
+		users[i] = m.User
+	}
+	return users, nil
+}
+
 // LeaveGroup removes a user from a group
 // If the last member leaves, the group is automatically deleted
 func (s *GroupService) LeaveGroup(groupID, userID uint) error {

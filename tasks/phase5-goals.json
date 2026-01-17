@@ -1,0 +1,89 @@
+{
+  "phase": 5,
+  "name": "Metas Financeiras",
+  "description": "Implementar sistema de metas compartilhadas do grupo",
+  "status": "pending",
+  "tasks": [
+    {
+      "id": "TASK-5.1",
+      "feature_id": "GOAL-01",
+      "name": "Criar modelo FinancialGoal",
+      "description": "Criar struct FinancialGoal com campos: id, group_id, account_id, name, target_amount, current_amount, deadline, created_at",
+      "status": "pending",
+      "files": ["internal/models/financial_goal.go"],
+      "dependencies": []
+    },
+    {
+      "id": "TASK-5.2",
+      "feature_id": "GOAL-02",
+      "name": "Criar modelo GoalContribution",
+      "description": "Criar struct para rastrear contribuição de cada membro",
+      "status": "pending",
+      "files": ["internal/models/goal_contribution.go"],
+      "dependencies": ["TASK-5.1"]
+    },
+    {
+      "id": "TASK-5.3",
+      "feature_id": "GOAL-01",
+      "name": "Implementar CRUD de metas",
+      "description": "Handlers para criar, listar, editar e excluir metas do grupo",
+      "status": "pending",
+      "files": ["internal/handlers/goal.go"],
+      "dependencies": ["TASK-5.1"]
+    },
+    {
+      "id": "TASK-5.4",
+      "feature_id": "GOAL-02",
+      "name": "Implementar contribuições",
+      "description": "Lógica para registrar e calcular contribuição de cada membro",
+      "status": "pending",
+      "files": ["internal/handlers/goal.go", "internal/services/goal.go"],
+      "dependencies": ["TASK-5.2", "TASK-5.3"]
+    },
+    {
+      "id": "TASK-5.5",
+      "feature_id": "GOAL-04",
+      "name": "Vincular meta a conta conjunta",
+      "description": "Atualizar automaticamente current_amount baseado em transações da conta",
+      "status": "pending",
+      "files": ["internal/services/goal.go"],
+      "dependencies": ["TASK-5.3"]
+    },
+    {
+      "id": "TASK-5.6",
+      "feature_id": "GOAL-03",
+      "name": "Criar template lista de metas",
+      "description": "Template HTML para listar metas com barras de progresso",
+      "status": "pending",
+      "files": ["templates/goals/list.html"],
+      "dependencies": ["TASK-5.3"]
+    },
+    {
+      "id": "TASK-5.7",
+      "feature_id": "GOAL-01",
+      "name": "Criar template criar/editar meta",
+      "description": "Templates HTML para formulários de meta",
+      "status": "pending",
+      "files": ["templates/goals/create.html", "templates/goals/edit.html"],
+      "dependencies": ["TASK-5.3"]
+    },
+    {
+      "id": "TASK-5.8",
+      "feature_id": "GOAL-02",
+      "name": "Criar template detalhes da meta",
+      "description": "Template HTML mostrando contribuições de cada membro",
+      "status": "pending",
+      "files": ["templates/goals/detail.html"],
+      "dependencies": ["TASK-5.4"]
+    },
+    {
+      "id": "TASK-5.9",
+      "feature_id": "GOAL-01",
+      "name": "Migração de banco de dados",
+      "description": "Atualizar AutoMigrate para incluir FinancialGoal e GoalContribution",
+      "status": "pending",
+      "files": ["internal/database/database.go"],
+      "dependencies": ["TASK-5.1", "TASK-5.2"]
+    }
+  ]
+}

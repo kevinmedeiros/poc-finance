@@ -14,12 +14,14 @@ var (
 )
 
 type GoalService struct {
-	groupService *GroupService
+	groupService        *GroupService
+	notificationService *NotificationService
 }
 
 func NewGoalService() *GoalService {
 	return &GoalService{
-		groupService: NewGroupService(),
+		groupService:        NewGroupService(),
+		notificationService: NewNotificationService(),
 	}
 }
 
@@ -181,15 +183,22 @@ func (s *GoalService) updateGoalCurrentAmount(goalID uint) {
 		Scan(&totalAmount)
 
 	var goal models.GroupGoal
-	database.DB.First(&goal, goalID)
+	database.DB.Preload("Group").First(&goal, goalID)
 
 	updates := map[string]interface{}{
 		"current_amount": totalAmount,
 	}
 
 	// Check if goal is completed
-	if totalAmount >= goal.TargetAmount && goal.Status == models.GoalStatusActive {
+	wasActive := goal.Status == models.GoalStatusActive
+	if totalAmount >= goal.TargetAmount && wasActive {
 		updates["status"] = models.GoalStatusCompleted
+
+		// Notify all group members that the goal was reached
+		members, err := s.groupService.GetGroupMembers(goal.GroupID)
+		if err == nil && len(members) > 0 {
+			s.notificationService.NotifyGoalReached(&goal, members)
+		}
 	}
 
 	database.DB.Model(&goal).Updates(updates)
