@@ -6,7 +6,22 @@
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Dashboard</h1>
             <p class="text-slate-500 mt-1">Visao geral das suas financas</p>
         </div>
-        <div class="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Account Filter -->
+            <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
+                <label for="account_filter" class="sr-only">Filtrar por conta</label>
+                <select id="account_filter" name="account_id"
+                    class="w-full sm:w-auto text-sm font-medium text-slate-700 bg-transparent border-none focus:ring-0 cursor-pointer"
+                    onchange="window.location.href='/?account_id=' + this.value">
+                    <option value="all" {{if eq .selectedAccountID 0}}selected{{end}}>Todas as Contas</option>
+                    {{range .accounts}}
+                    <option value="{{.ID}}" {{if eq $.selectedAccountID .ID}}selected{{end}}>
+                        {{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}
+                    </option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
             <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -20,6 +35,7 @@
             <div class="text-sm">
                 <p class="text-slate-500">Faixa {{.currentBracket}}</p>
                 <p class="font-bold text-primary-600">{{printf "%.2f" .effectiveRate}}%</p>
+            </div>
             </div>
         </div>
     </div>

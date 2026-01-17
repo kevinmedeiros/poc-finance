@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -32,7 +33,31 @@ type UpcomingBill struct {
 
 func (h *DashboardHandler) Index(c echo.Context) error {
 	userID := middleware.GetUserID(c)
-	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+	allAccounts, _ := h.accountService.GetUserAccounts(userID)
+	allAccountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
+	// Handle account filter from query parameter
+	var selectedAccountID uint
+	var accountIDs []uint
+	accountIDParam := c.QueryParam("account_id")
+
+	if accountIDParam != "" && accountIDParam != "all" {
+		parsedID, err := strconv.ParseUint(accountIDParam, 10, 32)
+		if err == nil {
+			selectedAccountID = uint(parsedID)
+			// Validate user has access to this account
+			if h.accountService.CanUserAccessAccount(userID, selectedAccountID) {
+				accountIDs = []uint{selectedAccountID}
+			} else {
+				// Fallback to all accounts if invalid
+				accountIDs = allAccountIDs
+			}
+		} else {
+			accountIDs = allAccountIDs
+		}
+	} else {
+		accountIDs = allAccountIDs
+	}
 
 	now := time.Now()
 	year := now.Year()
@@ -83,6 +108,8 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		"liquidoAposImpostos": liquidoAposImpostos,
 		"totalSaidas":         totalSaidas,
 		"saldoFinal":          saldoFinal,
+		"accounts":            allAccounts,
+		"selectedAccountID":   selectedAccountID,
 	}
 
 	return c.Render(http.StatusOK, "dashboard.html", data)
