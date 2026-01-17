@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeiro PJ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1; }
+        .htmx-request.htmx-indicator { opacity: 1; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="text-xl font-bold">Financeiro PJ</a>
+                <div class="flex space-x-4">
+                    <a href="/" class="hover:bg-indigo-700 px-3 py-2 rounded">Dashboard</a>
+                    <a href="/incomes" class="hover:bg-indigo-700 px-3 py-2 rounded">Recebimentos</a>
+                    <a href="/expenses" class="hover:bg-indigo-700 px-3 py-2 rounded">Despesas</a>
+                    <a href="/cards" class="hover:bg-indigo-700 px-3 py-2 rounded">Cartões</a>
+                    <a href="/export?year={{.now.Year}}" class="hover:bg-indigo-700 px-3 py-2 rounded bg-green-600">Exportar Excel</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="container mx-auto px-4 py-8">
+        {{template "content" .}}
+    </main>
+</body>
+</html>

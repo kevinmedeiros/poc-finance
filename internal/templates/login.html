@@ -1,0 +1,108 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Financeiro PJ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .btn-press:active { transform: scale(0.98); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center px-4">
+    {{template "content" .}}
+</body>
+</html>
+{{end}}
+
+{{define "content"}}
+<div class="w-full max-w-md animate-fade-in">
+    <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">Entrar</h1>
+        <p class="text-slate-500 mt-2">Acesse sua conta para continuar</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        {{if .registered}}
+        <div class="bg-emerald-50 text-emerald-700 p-4 rounded-lg text-sm flex items-center gap-3 mb-6 border border-emerald-100">
+            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Conta criada com sucesso! Faca login para continuar.</span>
+        </div>
+        {{end}}
+
+        {{if .error}}
+        <div class="bg-rose-50 text-rose-700 p-4 rounded-lg text-sm flex items-center gap-3 mb-6 border border-rose-100">
+            <svg class="w-5 h-5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>{{.error}}</span>
+        </div>
+        {{end}}
+
+        <form action="/login" method="POST" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                <input type="email" name="email" value="{{.email}}" required
+                    class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="seu@email.com">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Senha</label>
+                <input type="password" name="password" required
+                    class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Sua senha">
+            </div>
+
+            <button type="submit" class="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-medium btn-press flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                </svg>
+                Entrar
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-slate-500 text-sm">
+                Nao tem uma conta?
+                <a href="/register" class="text-primary-600 hover:text-primary-700 font-medium">Criar conta</a>
+            </p>
+        </div>
+    </div>
+</div>
+{{end}}
