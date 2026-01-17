@@ -172,6 +172,19 @@ func (s *AuthService) Register(email, password, name string) (*models.User, erro
 		return nil, err
 	}
 
+	// Auto-create individual account for the user (private data by default)
+	account := &models.Account{
+		Name:   "Conta Pessoal",
+		Type:   models.AccountTypeIndividual,
+		UserID: user.ID,
+	}
+
+	if err := database.DB.Create(account).Error; err != nil {
+		// Rollback user creation if account creation fails
+		database.DB.Delete(user)
+		return nil, err
+	}
+
 	return user, nil
 }
 

@@ -11,12 +11,14 @@ const (
 
 type Expense struct {
 	gorm.Model
-	Name     string      `json:"name" gorm:"not null"`
-	Amount   float64     `json:"amount" gorm:"not null"`
-	Type     ExpenseType `json:"type" gorm:"not null"`
-	DueDay   int         `json:"due_day" gorm:"default:1"`
-	Category string      `json:"category"`
-	Active   bool        `json:"active" gorm:"default:true"`
+	AccountID uint        `json:"account_id" gorm:"not null;index"`
+	Account   Account     `json:"-" gorm:"foreignKey:AccountID"`
+	Name      string      `json:"name" gorm:"not null"`
+	Amount    float64     `json:"amount" gorm:"not null"`
+	Type      ExpenseType `json:"type" gorm:"not null"`
+	DueDay    int         `json:"due_day" gorm:"default:1"`
+	Category  string      `json:"category"`
+	Active    bool        `json:"active" gorm:"default:true"`
 }
 
 func (e *Expense) TableName() string {

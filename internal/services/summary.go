@@ -119,3 +119,89 @@ func GetRevenue12Months(db *gorm.DB) float64 {
 
 	return total
 }
+
+// GetRevenue12MonthsForAccounts retorna o faturamento bruto dos últimos 12 meses para contas específicas
+func GetRevenue12MonthsForAccounts(db *gorm.DB, accountIDs []uint) float64 {
+	if len(accountIDs) == 0 {
+		return 0
+	}
+
+	endDate := time.Now()
+	startDate := endDate.AddDate(-1, 0, 0)
+
+	var total float64
+	db.Model(&models.Income{}).
+		Where("date BETWEEN ? AND ? AND account_id IN ?", startDate, endDate, accountIDs).
+		Select("COALESCE(SUM(gross_amount), 0)").
+		Scan(&total)
+
+	return total
+}
+
+// GetMonthlySummaryForAccounts retorna o resumo mensal para contas específicas
+func GetMonthlySummaryForAccounts(db *gorm.DB, year int, month int, accountIDs []uint) MonthlySummary {
+	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
+
+	summary := MonthlySummary{
+		Month:     startDate,
+		MonthName: monthNames[time.Month(month)] + " " + string(rune(year)),
+	}
+
+	if len(accountIDs) == 0 {
+		return summary
+	}
+
+	// Total de recebimentos
+	var incomes []models.Income
+	db.Where("date BETWEEN ? AND ? AND account_id IN ?", startDate, endDate, accountIDs).Find(&incomes)
+	for _, i := range incomes {
+		summary.TotalIncomeGross += i.GrossAmount
+		summary.TotalIncomeNet += i.NetAmount
+		summary.TotalTax += i.TaxAmount
+	}
+
+	// Total de despesas fixas (ativas)
+	var fixedExpenses []models.Expense
+	db.Where("type = ? AND active = ? AND account_id IN ?", models.ExpenseTypeFixed, true, accountIDs).Find(&fixedExpenses)
+	for _, e := range fixedExpenses {
+		summary.TotalFixed += e.Amount
+	}
+
+	// Total de despesas variáveis do mês
+	var variableExpenses []models.Expense
+	db.Where("type = ? AND active = ? AND created_at BETWEEN ? AND ? AND account_id IN ?",
+		models.ExpenseTypeVariable, true, startDate, endDate, accountIDs).Find(&variableExpenses)
+	for _, e := range variableExpenses {
+		summary.TotalVariable += e.Amount
+	}
+
+	// Total de parcelas de cartão no mês
+	var creditCards []models.CreditCard
+	db.Where("account_id IN ?", accountIDs).Preload("Installments").Find(&creditCards)
+	for _, card := range creditCards {
+		for _, inst := range card.Installments {
+			// Calcula se a parcela entra neste mês
+			installmentMonth := inst.StartDate
+			for i := 1; i <= inst.TotalInstallments; i++ {
+				if installmentMonth.Year() == year && int(installmentMonth.Month()) == month {
+					summary.TotalCards += inst.InstallmentAmount
+					break
+				}
+				installmentMonth = installmentMonth.AddDate(0, 1, 0)
+			}
+		}
+	}
+
+	// Total de contas a pagar do mês
+	var bills []models.Bill
+	db.Where("due_date BETWEEN ? AND ? AND account_id IN ?", startDate, endDate, accountIDs).Find(&bills)
+	for _, b := range bills {
+		summary.TotalBills += b.Amount
+	}
+
+	summary.TotalExpenses = summary.TotalFixed + summary.TotalVariable + summary.TotalCards + summary.TotalBills
+	summary.Balance = summary.TotalIncomeNet - summary.TotalExpenses
+
+	return summary
+}

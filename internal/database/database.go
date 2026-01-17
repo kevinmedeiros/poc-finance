@@ -28,6 +28,7 @@ func Init() error {
 		&models.User{},
 		&models.RefreshToken{},
 		&models.PasswordResetToken{},
+		&models.Account{},
 		&models.Income{},
 		&models.Expense{},
 		&models.CreditCard{},

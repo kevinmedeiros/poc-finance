@@ -8,14 +8,19 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/database"
+	"poc-finance/internal/middleware"
 	"poc-finance/internal/models"
 	"poc-finance/internal/services"
 )
 
-type IncomeHandler struct{}
+type IncomeHandler struct {
+	accountService *services.AccountService
+}
 
 func NewIncomeHandler() *IncomeHandler {
-	return &IncomeHandler{}
+	return &IncomeHandler{
+		accountService: services.NewAccountService(),
+	}
 }
 
 type CreateIncomeRequest struct {
@@ -26,25 +31,34 @@ type CreateIncomeRequest struct {
 }
 
 func (h *IncomeHandler) List(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	var incomes []models.Income
-	database.DB.Order("date DESC").Find(&incomes)
+	database.DB.Where("account_id IN ?", accountIDs).Order("date DESC").Find(&incomes)
 
 	// Calcula faturamento 12 meses para mostrar na tela
-	revenue12M := services.GetRevenue12Months(database.DB)
+	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
 	bracket, rate, nextAt := services.GetBracketInfo(revenue12M)
 
 	data := map[string]interface{}{
-		"incomes":       incomes,
-		"revenue12m":    revenue12M,
+		"incomes":        incomes,
+		"revenue12m":     revenue12M,
 		"currentBracket": bracket,
-		"effectiveRate": rate,
-		"nextBracketAt": nextAt,
+		"effectiveRate":  rate,
+		"nextBracketAt":  nextAt,
 	}
 
 	return c.Render(http.StatusOK, "income.html", data)
 }
 
 func (h *IncomeHandler) Create(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	account, err := h.accountService.GetUserIndividualAccount(userID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Conta não encontrada")
+	}
+
 	var req CreateIncomeRequest
 	if err := c.Bind(&req); err != nil {
 		return c.String(http.StatusBadRequest, "Dados inválidos")
@@ -59,10 +73,12 @@ func (h *IncomeHandler) Create(c echo.Context) error {
 	amountBRL := req.AmountUSD * req.ExchangeRate
 
 	// Busca faturamento dos últimos 12 meses para calcular imposto
-	revenue12M := services.GetRevenue12Months(database.DB)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
 	taxCalc := services.CalculateTax(revenue12M, amountBRL)
 
 	income := models.Income{
+		AccountID:    account.ID,
 		Date:         date,
 		AmountUSD:    req.AmountUSD,
 		ExchangeRate: req.ExchangeRate,
@@ -79,7 +95,7 @@ func (h *IncomeHandler) Create(c echo.Context) error {
 
 	// Retorna a lista atualizada (para HTMX)
 	var incomes []models.Income
-	database.DB.Order("date DESC").Find(&incomes)
+	database.DB.Where("account_id IN ?", accountIDs).Order("date DESC").Find(&incomes)
 
 	return c.Render(http.StatusOK, "partials/income-list.html", map[string]interface{}{
 		"incomes": incomes,
@@ -87,14 +103,23 @@ func (h *IncomeHandler) Create(c echo.Context) error {
 }
 
 func (h *IncomeHandler) Delete(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	id, _ := strconv.Atoi(c.Param("id"))
 
-	if err := database.DB.Delete(&models.Income{}, id).Error; err != nil {
+	// Verify the income belongs to user's accounts before deleting
+	var income models.Income
+	if err := database.DB.Where("id = ? AND account_id IN ?", id, accountIDs).First(&income).Error; err != nil {
+		return c.String(http.StatusNotFound, "Recebimento não encontrado")
+	}
+
+	if err := database.DB.Delete(&income).Error; err != nil {
 		return c.String(http.StatusInternalServerError, "Erro ao deletar")
 	}
 
 	var incomes []models.Income
-	database.DB.Order("date DESC").Find(&incomes)
+	database.DB.Where("account_id IN ?", accountIDs).Order("date DESC").Find(&incomes)
 
 	return c.Render(http.StatusOK, "partials/income-list.html", map[string]interface{}{
 		"incomes": incomes,
@@ -103,6 +128,9 @@ func (h *IncomeHandler) Delete(c echo.Context) error {
 
 // CalculatePreview retorna uma prévia do cálculo sem salvar
 func (h *IncomeHandler) CalculatePreview(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	amountUSD, _ := strconv.ParseFloat(c.QueryParam("amount_usd"), 64)
 	exchangeRate, _ := strconv.ParseFloat(c.QueryParam("exchange_rate"), 64)
 
@@ -115,7 +143,7 @@ func (h *IncomeHandler) CalculatePreview(c echo.Context) error {
 	}
 
 	amountBRL := amountUSD * exchangeRate
-	revenue12M := services.GetRevenue12Months(database.DB)
+	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
 	taxCalc := services.CalculateTax(revenue12M, amountBRL)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{

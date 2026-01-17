@@ -4,6 +4,8 @@ import "gorm.io/gorm"
 
 type CreditCard struct {
 	gorm.Model
+	AccountID    uint          `json:"account_id" gorm:"not null;index"`
+	Account      Account       `json:"-" gorm:"foreignKey:AccountID"`
 	Name         string        `json:"name" gorm:"not null"`
 	ClosingDay   int           `json:"closing_day" gorm:"not null"`
 	DueDay       int           `json:"due_day" gorm:"not null"`

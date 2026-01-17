@@ -8,6 +8,8 @@ import (
 
 type Bill struct {
 	gorm.Model
+	AccountID uint      `json:"account_id" gorm:"not null;index"`
+	Account   Account   `json:"-" gorm:"foreignKey:AccountID"`
 	Name      string    `json:"name" gorm:"not null"`
 	Amount    float64   `json:"amount" gorm:"not null"`
 	DueDate   time.Time `json:"due_date" gorm:"not null"`

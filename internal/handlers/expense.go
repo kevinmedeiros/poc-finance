@@ -8,13 +8,19 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/database"
+	"poc-finance/internal/middleware"
 	"poc-finance/internal/models"
+	"poc-finance/internal/services"
 )
 
-type ExpenseHandler struct{}
+type ExpenseHandler struct {
+	accountService *services.AccountService
+}
 
 func NewExpenseHandler() *ExpenseHandler {
-	return &ExpenseHandler{}
+	return &ExpenseHandler{
+		accountService: services.NewAccountService(),
+	}
 }
 
 type CreateExpenseRequest struct {
@@ -31,6 +37,9 @@ type ExpenseWithStatus struct {
 }
 
 func (h *ExpenseHandler) List(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
@@ -38,8 +47,8 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	var fixedExpenses []models.Expense
 	var variableExpenses []models.Expense
 
-	database.DB.Where("type = ?", models.ExpenseTypeFixed).Order("due_day, name").Find(&fixedExpenses)
-	database.DB.Where("type = ?", models.ExpenseTypeVariable).Order("created_at DESC").Find(&variableExpenses)
+	database.DB.Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs).Order("due_day, name").Find(&fixedExpenses)
+	database.DB.Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs).Order("created_at DESC").Find(&variableExpenses)
 
 	// Verifica status de pagamento para cada despesa fixa
 	fixedWithStatus := make([]ExpenseWithStatus, len(fixedExpenses))
@@ -84,6 +93,12 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 }
 
 func (h *ExpenseHandler) Create(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	account, err := h.accountService.GetUserIndividualAccount(userID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Conta não encontrada")
+	}
+
 	var req CreateExpenseRequest
 	if err := c.Bind(&req); err != nil {
 		return c.String(http.StatusBadRequest, "Dados inválidos")
@@ -95,12 +110,13 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 	}
 
 	expense := models.Expense{
-		Name:     req.Name,
-		Amount:   req.Amount,
-		Type:     expenseType,
-		DueDay:   req.DueDay,
-		Category: req.Category,
-		Active:   true,
+		AccountID: account.ID,
+		Name:      req.Name,
+		Amount:    req.Amount,
+		Type:      expenseType,
+		DueDay:    req.DueDay,
+		Category:  req.Category,
+		Active:    true,
 	}
 
 	if err := database.DB.Create(&expense).Error; err != nil {
@@ -111,10 +127,13 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 }
 
 func (h *ExpenseHandler) Toggle(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	id, _ := strconv.Atoi(c.Param("id"))
 
 	var expense models.Expense
-	if err := database.DB.First(&expense, id).Error; err != nil {
+	if err := database.DB.Where("id = ? AND account_id IN ?", id, accountIDs).First(&expense).Error; err != nil {
 		return c.String(http.StatusNotFound, "Despesa não encontrada")
 	}
 
@@ -125,10 +144,13 @@ func (h *ExpenseHandler) Toggle(c echo.Context) error {
 }
 
 func (h *ExpenseHandler) Delete(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	id, _ := strconv.Atoi(c.Param("id"))
 
 	var expense models.Expense
-	if err := database.DB.First(&expense, id).Error; err != nil {
+	if err := database.DB.Where("id = ? AND account_id IN ?", id, accountIDs).First(&expense).Error; err != nil {
 		return c.String(http.StatusNotFound, "Despesa não encontrada")
 	}
 
@@ -140,13 +162,16 @@ func (h *ExpenseHandler) Delete(c echo.Context) error {
 
 // MarkPaid marca uma despesa como paga no mês/ano atual
 func (h *ExpenseHandler) MarkPaid(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	id, _ := strconv.Atoi(c.Param("id"))
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
 
 	var expense models.Expense
-	if err := database.DB.First(&expense, id).Error; err != nil {
+	if err := database.DB.Where("id = ? AND account_id IN ?", id, accountIDs).First(&expense).Error; err != nil {
 		return c.String(http.StatusNotFound, "Despesa não encontrada")
 	}
 
@@ -171,13 +196,16 @@ func (h *ExpenseHandler) MarkPaid(c echo.Context) error {
 
 // MarkUnpaid remove a marcação de pago
 func (h *ExpenseHandler) MarkUnpaid(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	id, _ := strconv.Atoi(c.Param("id"))
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
 
 	var expense models.Expense
-	if err := database.DB.First(&expense, id).Error; err != nil {
+	if err := database.DB.Where("id = ? AND account_id IN ?", id, accountIDs).First(&expense).Error; err != nil {
 		return c.String(http.StatusNotFound, "Despesa não encontrada")
 	}
 
@@ -188,12 +216,15 @@ func (h *ExpenseHandler) MarkUnpaid(c echo.Context) error {
 }
 
 func (h *ExpenseHandler) renderExpenseList(c echo.Context, expenseType string) error {
+	userID := middleware.GetUserID(c)
+	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
 
 	var expenses []models.Expense
-	database.DB.Where("type = ?", expenseType).Order("due_day, name").Find(&expenses)
+	database.DB.Where("type = ? AND account_id IN ?", expenseType, accountIDs).Order("due_day, name").Find(&expenses)
 
 	template := "partials/fixed-expense-list.html"
 	if expenseType == "variable" {
