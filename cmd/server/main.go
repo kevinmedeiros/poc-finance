@@ -64,7 +64,7 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/settings.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
-	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"):
+	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
 		return echo.ErrNotFound
@@ -199,6 +199,7 @@ func main() {
 	protected.POST("/expenses/:id/paid", expenseHandler.MarkPaid)
 	protected.POST("/expenses/:id/unpaid", expenseHandler.MarkUnpaid)
 	protected.DELETE("/expenses/:id", expenseHandler.Delete)
+	protected.GET("/accounts/:accountId/members", expenseHandler.GetAccountMembers)
 
 	// Cartões
 	protected.GET("/cards", cardHandler.List)

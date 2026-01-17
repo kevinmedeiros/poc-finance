@@ -24,12 +24,15 @@ func NewExpenseHandler() *ExpenseHandler {
 }
 
 type CreateExpenseRequest struct {
-	AccountID uint    `form:"account_id"`
-	Name      string  `form:"name"`
-	Amount    float64 `form:"amount"`
-	Type      string  `form:"type"`
-	DueDay    int     `form:"due_day"`
-	Category  string  `form:"category"`
+	AccountID   uint      `form:"account_id"`
+	Name        string    `form:"name"`
+	Amount      float64   `form:"amount"`
+	Type        string    `form:"type"`
+	DueDay      int       `form:"due_day"`
+	Category    string    `form:"category"`
+	IsSplit     bool      `form:"is_split"`
+	SplitUsers  []uint    `form:"split_user_ids"`
+	SplitPcts   []float64 `form:"split_percentages"`
 }
 
 type ExpenseWithStatus struct {
@@ -49,8 +52,8 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	var fixedExpenses []models.Expense
 	var variableExpenses []models.Expense
 
-	database.DB.Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs).Order("due_day, name").Find(&fixedExpenses)
-	database.DB.Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs).Order("created_at DESC").Find(&variableExpenses)
+	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs).Order("due_day, name").Find(&fixedExpenses)
+	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs).Order("created_at DESC").Find(&variableExpenses)
 
 	// Verifica status de pagamento para cada despesa fixa
 	fixedWithStatus := make([]ExpenseWithStatus, len(fixedExpenses))
@@ -103,6 +106,10 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Dados inválidos")
 	}
 
+	// Parse split data from form
+	splitUserIDs := c.Request().Form["split_user_ids"]
+	splitPercentages := c.Request().Form["split_percentages"]
+
 	// Validate user has access to selected account
 	accountID := req.AccountID
 	if accountID == 0 {
@@ -121,6 +128,9 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 		expenseType = models.ExpenseTypeVariable
 	}
 
+	// Check if this is a split expense
+	isSplit := c.FormValue("is_split") == "on" || c.FormValue("is_split") == "true"
+
 	expense := models.Expense{
 		AccountID: accountID,
 		Name:      req.Name,
@@ -129,11 +139,54 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 		DueDay:    req.DueDay,
 		Category:  req.Category,
 		Active:    true,
+		IsSplit:   isSplit,
 	}
 
-	if err := database.DB.Create(&expense).Error; err != nil {
+	// Start transaction for expense + splits
+	tx := database.DB.Begin()
+
+	if err := tx.Create(&expense).Error; err != nil {
+		tx.Rollback()
 		return c.String(http.StatusInternalServerError, "Erro ao criar despesa")
 	}
+
+	// Create splits if this is a split expense
+	if isSplit && len(splitUserIDs) > 0 && len(splitUserIDs) == len(splitPercentages) {
+		var totalPercentage float64
+		for i := range splitUserIDs {
+			uid, err := strconv.ParseUint(splitUserIDs[i], 10, 32)
+			if err != nil {
+				continue
+			}
+			pct, err := strconv.ParseFloat(splitPercentages[i], 64)
+			if err != nil || pct <= 0 {
+				continue
+			}
+
+			totalPercentage += pct
+			splitAmount := req.Amount * pct / 100
+
+			split := models.ExpenseSplit{
+				ExpenseID:  expense.ID,
+				UserID:     uint(uid),
+				Percentage: pct,
+				Amount:     splitAmount,
+			}
+
+			if err := tx.Create(&split).Error; err != nil {
+				tx.Rollback()
+				return c.String(http.StatusInternalServerError, "Erro ao criar divisão")
+			}
+		}
+
+		// Validate total percentage equals 100
+		if totalPercentage < 99.99 || totalPercentage > 100.01 {
+			tx.Rollback()
+			return c.String(http.StatusBadRequest, "A soma dos percentuais deve ser 100%")
+		}
+	}
+
+	tx.Commit()
 
 	return h.renderExpenseList(c, string(expenseType))
 }
@@ -236,7 +289,7 @@ func (h *ExpenseHandler) renderExpenseList(c echo.Context, expenseType string) e
 	year := now.Year()
 
 	var expenses []models.Expense
-	database.DB.Where("type = ? AND account_id IN ?", expenseType, accountIDs).Order("due_day, name").Find(&expenses)
+	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", expenseType, accountIDs).Order("due_day, name").Find(&expenses)
 
 	template := "partials/fixed-expense-list.html"
 	if expenseType == "variable" {
@@ -280,4 +333,32 @@ func getExpenseCategories() []string {
 		"Impostos",
 		"Outros",
 	}
+}
+
+// GetAccountMembers returns members of an account for split configuration
+func (h *ExpenseHandler) GetAccountMembers(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	accountID, _ := strconv.Atoi(c.Param("accountId"))
+
+	// Verify user has access
+	if !h.accountService.CanUserAccessAccount(userID, uint(accountID)) {
+		return c.String(http.StatusForbidden, "Acesso negado")
+	}
+
+	account, err := h.accountService.GetAccountByID(uint(accountID))
+	if err != nil {
+		return c.String(http.StatusNotFound, "Conta não encontrada")
+	}
+
+	members, err := h.accountService.GetAccountMembers(uint(accountID))
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Erro ao buscar membros")
+	}
+
+	// Return HTML for member split inputs
+	return c.Render(http.StatusOK, "partials/split-members.html", map[string]interface{}{
+		"members":   members,
+		"account":   account,
+		"isJoint":   account.Type == models.AccountTypeJoint,
+	})
 }

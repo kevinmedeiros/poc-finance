@@ -31,6 +31,7 @@ func Init() error {
 		&models.Account{},
 		&models.Income{},
 		&models.Expense{},
+		&models.ExpenseSplit{},
 		&models.CreditCard{},
 		&models.Installment{},
 		&models.Bill{},

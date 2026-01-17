@@ -41,7 +41,13 @@
             <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form hx-post="/expenses" hx-target="#fixed-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="fixed">
-                    <select name="account_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
+                    <select name="account_id" required
+                        hx-get="/accounts/{value}/members"
+                        hx-trigger="change"
+                        hx-target="#fixed-split-container"
+                        hx-swap="innerHTML"
+                        onchange="this.setAttribute('hx-get', '/accounts/' + this.value + '/members'); htmx.process(this);"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
                         {{end}}
@@ -64,6 +70,15 @@
                         <input type="number" name="due_day" placeholder="Dia vencimento" min="1" max="31"
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                     </div>
+                    <!-- Split toggle -->
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="is_split" id="fixed-is-split"
+                            onchange="document.getElementById('fixed-split-container').classList.toggle('hidden', !this.checked)"
+                            class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
+                        <label for="fixed-is-split" class="text-sm text-slate-600">Dividir despesa entre membros</label>
+                    </div>
+                    <!-- Split members container -->
+                    <div id="fixed-split-container" class="hidden"></div>
                     <button type="submit" class="w-full bg-amber-500 text-white py-2.5 rounded-lg hover:bg-amber-600 text-sm font-medium btn-press flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -95,7 +110,13 @@
             <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form hx-post="/expenses" hx-target="#variable-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="variable">
-                    <select name="account_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white">
+                    <select name="account_id" required
+                        hx-get="/accounts/{value}/members"
+                        hx-trigger="change"
+                        hx-target="#variable-split-container"
+                        hx-swap="innerHTML"
+                        onchange="this.setAttribute('hx-get', '/accounts/' + this.value + '/members'); htmx.process(this);"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
                         {{end}}
@@ -114,6 +135,15 @@
                         <option value="{{.}}">{{.}}</option>
                         {{end}}
                     </select>
+                    <!-- Split toggle -->
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="is_split" id="variable-is-split"
+                            onchange="document.getElementById('variable-split-container').classList.toggle('hidden', !this.checked)"
+                            class="w-4 h-4 text-yellow-500 border-slate-300 rounded focus:ring-yellow-500">
+                        <label for="variable-is-split" class="text-sm text-slate-600">Dividir despesa entre membros</label>
+                    </div>
+                    <!-- Split members container -->
+                    <div id="variable-split-container" class="hidden"></div>
                     <button type="submit" class="w-full bg-yellow-500 text-white py-2.5 rounded-lg hover:bg-yellow-600 text-sm font-medium btn-press flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -160,8 +190,18 @@
                     {{if .IsPaid}}
                     <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Pago</span>
                     {{end}}
+                    {{if .IsSplit}}
+                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Dividida</span>
+                    {{end}}
                 </div>
                 <span class="text-xs text-slate-500">Vencimento dia {{.DueDay}}</span>
+                {{if .IsSplit}}
+                <div class="text-xs text-blue-600 mt-1">
+                    {{range .Splits}}
+                    <span class="inline-block mr-2">{{.User.Name}}: {{printf "%.0f" .Percentage}}% (R$ {{printf "%.2f" .Amount}})</span>
+                    {{end}}
+                </div>
+                {{end}}
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -211,7 +251,17 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-sm text-slate-800">{{.Name}}</span>
                 <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{{.Category}}</span>
+                {{if .IsSplit}}
+                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Dividida</span>
+                {{end}}
             </div>
+            {{if .IsSplit}}
+            <div class="text-xs text-blue-600 mt-1">
+                {{range .Splits}}
+                <span class="inline-block mr-2">{{.User.Name}}: {{printf "%.0f" .Percentage}}% (R$ {{printf "%.2f" .Amount}})</span>
+                {{end}}
+            </div>
+            {{end}}
         </div>
         <div class="flex items-center gap-3">
             <span class="font-bold text-sm text-yellow-600">R$ {{printf "%.2f" .Amount}}</span>

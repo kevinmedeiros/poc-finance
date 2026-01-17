@@ -19,6 +19,8 @@ type Expense struct {
 	DueDay    int         `json:"due_day" gorm:"default:1"`
 	Category  string      `json:"category"`
 	Active    bool        `json:"active" gorm:"default:true"`
+	IsSplit   bool        `json:"is_split" gorm:"default:false"`
+	Splits    []ExpenseSplit `json:"splits" gorm:"foreignKey:ExpenseID"`
 }
 
 func (e *Expense) TableName() string {

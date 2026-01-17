@@ -162,3 +162,46 @@ func (s *AccountService) DeleteJointAccount(accountID, userID uint) error {
 
 	return database.DB.Delete(&account).Error
 }
+
+// GetAccountMembers returns all members for an account (for joint accounts returns group members)
+func (s *AccountService) GetAccountMembers(accountID uint) ([]models.User, error) {
+	var account models.Account
+	if err := database.DB.First(&account, accountID).Error; err != nil {
+		return nil, ErrAccountNotFound
+	}
+
+	// For individual accounts, return only the owner
+	if account.Type == models.AccountTypeIndividual {
+		var user models.User
+		if err := database.DB.First(&user, account.UserID).Error; err != nil {
+			return nil, err
+		}
+		return []models.User{user}, nil
+	}
+
+	// For joint accounts, return all group members
+	if account.GroupID == nil {
+		return nil, ErrAccountNotFound
+	}
+
+	var members []models.GroupMember
+	if err := database.DB.Preload("User").Where("group_id = ?", *account.GroupID).Find(&members).Error; err != nil {
+		return nil, err
+	}
+
+	users := make([]models.User, len(members))
+	for i, m := range members {
+		users[i] = m.User
+	}
+
+	return users, nil
+}
+
+// GetAccountByID returns an account by its ID
+func (s *AccountService) GetAccountByID(accountID uint) (*models.Account, error) {
+	var account models.Account
+	if err := database.DB.First(&account, accountID).Error; err != nil {
+		return nil, ErrAccountNotFound
+	}
+	return &account, nil
+}
