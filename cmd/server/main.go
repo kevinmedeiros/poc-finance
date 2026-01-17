@@ -244,6 +244,10 @@ func main() {
 	// Dashboard do grupo
 	protected.GET("/groups/:id/dashboard", groupHandler.Dashboard)
 
+	// Resumo periódico do grupo
+	protected.POST("/groups/:id/summary/weekly", groupHandler.GenerateWeeklySummary)
+	protected.POST("/groups/:id/summary/monthly", groupHandler.GenerateMonthlySummary)
+
 	// Metas do grupo
 	protected.GET("/groups/:id/goals", goalHandler.GoalsPage)
 	protected.POST("/groups/:id/goals", goalHandler.Create)

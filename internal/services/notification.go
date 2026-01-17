@@ -138,3 +138,86 @@ func (s *NotificationService) NotifyGoalReached(goal *models.GroupGoal, groupMem
 	}
 	return nil
 }
+
+// GroupSummaryData holds the data for a periodic group summary
+type GroupSummaryData struct {
+	GroupName     string
+	GroupID       uint
+	PeriodType    string // "weekly" or "monthly"
+	PeriodLabel   string
+	TotalIncome   float64
+	TotalExpenses float64
+	Balance       float64
+	ExpenseCount  int
+	IncomeCount   int
+	GoalsProgress []GoalProgress
+}
+
+// GoalProgress represents progress data for a goal
+type GoalProgress struct {
+	Name          string
+	CurrentAmount float64
+	TargetAmount  float64
+	Percentage    float64
+}
+
+// NotifyWeeklySummary creates a weekly summary notification for all group members
+func (s *NotificationService) NotifyWeeklySummary(summaryData GroupSummaryData, groupMembers []models.User) error {
+	balanceSign := ""
+	if summaryData.Balance >= 0 {
+		balanceSign = "+"
+	}
+
+	message := fmt.Sprintf("Receitas: R$ %.2f | Despesas: R$ %.2f | Saldo: %sR$ %.2f",
+		summaryData.TotalIncome,
+		summaryData.TotalExpenses,
+		balanceSign,
+		summaryData.Balance,
+	)
+
+	for _, member := range groupMembers {
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeSummary,
+			Title:   fmt.Sprintf("Resumo semanal - %s", summaryData.GroupName),
+			Message: message,
+			Link:    fmt.Sprintf("/groups/%d/dashboard", summaryData.GroupID),
+			GroupID: &summaryData.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// NotifyMonthlySummary creates a monthly summary notification for all group members
+func (s *NotificationService) NotifyMonthlySummary(summaryData GroupSummaryData, groupMembers []models.User) error {
+	balanceSign := ""
+	if summaryData.Balance >= 0 {
+		balanceSign = "+"
+	}
+
+	message := fmt.Sprintf("%s: Receitas R$ %.2f | Despesas R$ %.2f | Saldo %sR$ %.2f",
+		summaryData.PeriodLabel,
+		summaryData.TotalIncome,
+		summaryData.TotalExpenses,
+		balanceSign,
+		summaryData.Balance,
+	)
+
+	for _, member := range groupMembers {
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeSummary,
+			Title:   fmt.Sprintf("Resumo mensal - %s", summaryData.GroupName),
+			Message: message,
+			Link:    fmt.Sprintf("/groups/%d/dashboard", summaryData.GroupID),
+			GroupID: &summaryData.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}

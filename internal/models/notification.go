@@ -14,6 +14,7 @@ const (
 	NotificationTypeExpense     NotificationType = "expense"
 	NotificationTypeGoalReached NotificationType = "goal_reached"
 	NotificationTypeBudgetAlert NotificationType = "budget_alert"
+	NotificationTypeSummary     NotificationType = "summary"
 )
 
 type Notification struct {
