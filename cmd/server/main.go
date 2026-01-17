@@ -62,6 +62,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/cards.html"
 	case strings.Contains(baseName, "settings"):
 		templateFile = "internal/templates/settings.html"
+	case strings.Contains(baseName, "group"):
+		templateFile = "internal/templates/groups.html"
 	default:
 		return echo.ErrNotFound
 	}
@@ -102,6 +104,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/expenses.html",
 		"internal/templates/cards.html",
 		"internal/templates/settings.html",
+		"internal/templates/groups.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -150,6 +153,7 @@ func main() {
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
 	settingsHandler := handlers.NewSettingsHandler()
+	groupHandler := handlers.NewGroupHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -197,6 +201,10 @@ func main() {
 	// Configurações
 	protected.GET("/settings", settingsHandler.Get)
 	protected.POST("/settings", settingsHandler.Update)
+
+	// Grupos familiares
+	protected.GET("/groups", groupHandler.List)
+	protected.POST("/groups", groupHandler.Create)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")

@@ -35,6 +35,8 @@ func Init() error {
 		&models.Bill{},
 		&models.Settings{},
 		&models.ExpensePayment{},
+		&models.FamilyGroup{},
+		&models.GroupMember{},
 	)
 	if err != nil {
 		return err
