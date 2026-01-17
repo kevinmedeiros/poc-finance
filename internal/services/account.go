@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"poc-finance/internal/database"
 	"poc-finance/internal/models"
@@ -204,4 +205,95 @@ func (s *AccountService) GetAccountByID(accountID uint) (*models.Account, error)
 		return nil, ErrAccountNotFound
 	}
 	return &account, nil
+}
+
+// AccountBalance holds balance information for an account
+type AccountBalance struct {
+	Account       models.Account
+	TotalIncome   float64
+	TotalExpenses float64
+	Balance       float64
+}
+
+// GetAccountBalance calculates the current balance for a specific account
+func (s *AccountService) GetAccountBalance(accountID uint) (*AccountBalance, error) {
+	var account models.Account
+	if err := database.DB.First(&account, accountID).Error; err != nil {
+		return nil, ErrAccountNotFound
+	}
+
+	// Calculate total income (net)
+	var totalIncome float64
+	database.DB.Model(&models.Income{}).
+		Where("account_id = ?", accountID).
+		Select("COALESCE(SUM(net_amount), 0)").
+		Scan(&totalIncome)
+
+	// Calculate total fixed expenses (active)
+	var totalFixed float64
+	database.DB.Model(&models.Expense{}).
+		Where("account_id = ? AND type = ? AND active = ?", accountID, models.ExpenseTypeFixed, true).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalFixed)
+
+	// Calculate total variable expenses (active)
+	var totalVariable float64
+	database.DB.Model(&models.Expense{}).
+		Where("account_id = ? AND type = ? AND active = ?", accountID, models.ExpenseTypeVariable, true).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalVariable)
+
+	// Calculate total bills
+	var totalBills float64
+	database.DB.Model(&models.Bill{}).
+		Where("account_id = ?", accountID).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalBills)
+
+	// Calculate total credit card installments for current month
+	now := time.Now()
+	year, month := now.Year(), int(now.Month())
+	var totalCards float64
+	var creditCards []models.CreditCard
+	database.DB.Where("account_id = ?", accountID).Preload("Installments").Find(&creditCards)
+	for _, card := range creditCards {
+		for _, inst := range card.Installments {
+			installmentMonth := inst.StartDate
+			for i := 1; i <= inst.TotalInstallments; i++ {
+				if installmentMonth.Year() == year && int(installmentMonth.Month()) == month {
+					totalCards += inst.InstallmentAmount
+					break
+				}
+				installmentMonth = installmentMonth.AddDate(0, 1, 0)
+			}
+		}
+	}
+
+	totalExpenses := totalFixed + totalVariable + totalBills + totalCards
+
+	return &AccountBalance{
+		Account:       account,
+		TotalIncome:   totalIncome,
+		TotalExpenses: totalExpenses,
+		Balance:       totalIncome - totalExpenses,
+	}, nil
+}
+
+// GetUserAccountsWithBalances returns all user accounts with their balances
+func (s *AccountService) GetUserAccountsWithBalances(userID uint) ([]AccountBalance, error) {
+	accounts, err := s.GetUserAccounts(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]AccountBalance, 0, len(accounts))
+	for _, acc := range accounts {
+		balance, err := s.GetAccountBalance(acc.ID)
+		if err != nil {
+			continue
+		}
+		balances = append(balances, *balance)
+	}
+
+	return balances, nil
 }

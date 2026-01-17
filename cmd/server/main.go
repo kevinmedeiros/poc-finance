@@ -116,6 +116,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/cards.html",
 		"internal/templates/settings.html",
 		"internal/templates/groups.html",
+		"internal/templates/accounts.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -166,6 +167,7 @@ func main() {
 	exportHandler := handlers.NewExportHandler()
 	settingsHandler := handlers.NewSettingsHandler()
 	groupHandler := handlers.NewGroupHandler()
+	accountHandler := handlers.NewAccountHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -185,6 +187,9 @@ func main() {
 
 	// Dashboard
 	protected.GET("/", dashboardHandler.Index)
+
+	// Contas (saldo por conta)
+	protected.GET("/accounts", accountHandler.List)
 
 	// Recebimentos
 	protected.GET("/incomes", incomeHandler.List)
