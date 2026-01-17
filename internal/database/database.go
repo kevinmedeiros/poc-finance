@@ -42,6 +42,7 @@ func Init() error {
 		&models.GroupInvite{},
 		&models.GroupGoal{},
 		&models.GoalContribution{},
+		&models.Notification{},
 	)
 	if err != nil {
 		return err

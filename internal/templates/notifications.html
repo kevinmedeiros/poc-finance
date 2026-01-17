@@ -1,0 +1,100 @@
+{{define "content"}}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Notificacoes</h1>
+            <p class="text-slate-600 mt-1">Gerencie suas notificacoes</p>
+        </div>
+        {{if gt .unreadCount 0}}
+        <button hx-post="/notifications/mark-all-read"
+                hx-target="#notification-list"
+                hx-swap="innerHTML"
+                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium btn-press">
+            Marcar todas como lidas
+        </button>
+        {{end}}
+    </div>
+
+    <!-- Notification List -->
+    <div id="notification-list" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {{if .notifications}}
+            {{range .notifications}}
+            <div id="notification-{{.ID}}" class="p-4 border-b border-slate-100 hover:bg-slate-50 {{if not .Read}}bg-primary-50{{end}}">
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        {{if eq .Type "group_invite"}}
+                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        {{else if eq .Type "expense"}}
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        {{else if eq .Type "goal_reached"}}
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        {{else}}
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                        </div>
+                        {{end}}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <p class="text-base font-medium text-slate-800">{{.Title}}</p>
+                            {{if not .Read}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800">
+                                Nova
+                            </span>
+                            {{end}}
+                        </div>
+                        <p class="text-sm text-slate-600 mt-1">{{.Message}}</p>
+                        <div class="flex items-center space-x-4 mt-2">
+                            <span class="text-xs text-slate-400">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
+                            {{if .Link}}
+                            <a href="{{.Link}}" class="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                                Ver detalhes
+                            </a>
+                            {{end}}
+                            {{if not .Read}}
+                            <button hx-post="/notifications/{{.ID}}/read"
+                                    hx-target="#notification-{{.ID}}"
+                                    hx-swap="outerHTML"
+                                    class="text-xs text-slate-500 hover:text-slate-700">
+                                Marcar como lida
+                            </button>
+                            {{end}}
+                            <button hx-delete="/notifications/{{.ID}}"
+                                    hx-target="#notification-{{.ID}}"
+                                    hx-swap="outerHTML"
+                                    hx-confirm="Tem certeza que deseja excluir esta notificacao?"
+                                    class="text-xs text-red-500 hover:text-red-700">
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        {{else}}
+            <div class="p-12 text-center text-slate-500">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <p class="text-lg font-medium">Nenhuma notificacao</p>
+                <p class="text-sm mt-1">Voce sera notificado quando houver novidades</p>
+            </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

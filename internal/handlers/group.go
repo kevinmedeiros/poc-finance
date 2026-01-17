@@ -15,14 +15,16 @@ import (
 )
 
 type GroupHandler struct {
-	groupService   *services.GroupService
-	accountService *services.AccountService
+	groupService        *services.GroupService
+	accountService      *services.AccountService
+	notificationService *services.NotificationService
 }
 
 func NewGroupHandler() *GroupHandler {
 	return &GroupHandler{
-		groupService:   services.NewGroupService(),
-		accountService: services.NewAccountService(),
+		groupService:        services.NewGroupService(),
+		accountService:      services.NewAccountService(),
+		notificationService: services.NewNotificationService(),
 	}
 }
 
@@ -266,6 +268,9 @@ func (h *GroupHandler) AcceptInvite(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 	code := c.Param("code")
 
+	// Get invite info before accepting (to get inviter name)
+	invite, _ := h.groupService.GetInviteByCode(code)
+
 	group, err := h.groupService.AcceptInvite(code, userID)
 	if err != nil {
 		errorMsg := "Erro ao aceitar convite"
@@ -285,6 +290,13 @@ func (h *GroupHandler) AcceptInvite(c echo.Context) error {
 			"error": errorMsg,
 		})
 	}
+
+	// Send notification to the new member
+	inviterName := "um membro"
+	if invite != nil && invite.CreatedBy.Name != "" {
+		inviterName = invite.CreatedBy.Name
+	}
+	h.notificationService.NotifyGroupInvite(userID, group, inviterName)
 
 	return c.Render(http.StatusOK, "join-group.html", map[string]interface{}{
 		"success": true,

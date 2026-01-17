@@ -66,7 +66,7 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/goals.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
-	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"):
+	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
 		return echo.ErrNotFound
@@ -121,6 +121,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/accounts.html",
 		"internal/templates/group-dashboard.html",
 		"internal/templates/goals.html",
+		"internal/templates/notifications.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -173,6 +174,7 @@ func main() {
 	groupHandler := handlers.NewGroupHandler()
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
+	notificationHandler := handlers.NewNotificationHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -247,6 +249,14 @@ func main() {
 	protected.POST("/groups/:id/goals", goalHandler.Create)
 	protected.DELETE("/goals/:goalId", goalHandler.Delete)
 	protected.POST("/goals/:goalId/contribution", goalHandler.AddContribution)
+
+	// Notificacoes
+	protected.GET("/notifications", notificationHandler.List)
+	protected.GET("/notifications/badge", notificationHandler.GetBadge)
+	protected.GET("/notifications/dropdown", notificationHandler.GetDropdown)
+	protected.POST("/notifications/:id/read", notificationHandler.MarkAsRead)
+	protected.POST("/notifications/mark-all-read", notificationHandler.MarkAllAsRead)
+	protected.DELETE("/notifications/:id", notificationHandler.Delete)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")

@@ -1,0 +1,87 @@
+{{define "notification-dropdown"}}
+<div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 z-50 animate-fade-in">
+    <div class="p-3 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-800">Notificacoes</h3>
+        {{if gt .unreadCount 0}}
+        <button hx-post="/notifications/mark-all-read"
+                hx-target="#notification-dropdown"
+                hx-swap="outerHTML"
+                class="text-xs text-primary-600 hover:text-primary-700 font-medium">
+            Marcar todas como lidas
+        </button>
+        {{end}}
+    </div>
+
+    <div class="max-h-80 overflow-y-auto">
+        {{if .notifications}}
+            {{range .notifications}}
+            <div class="p-3 border-b border-slate-100 hover:bg-slate-50 {{if not .Read}}bg-primary-50{{end}}">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        {{if eq .Type "group_invite"}}
+                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        {{else if eq .Type "expense"}}
+                        <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        {{else if eq .Type "goal_reached"}}
+                        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        {{else}}
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                        </div>
+                        {{end}}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-800">{{.Title}}</p>
+                        <p class="text-xs text-slate-600 mt-0.5">{{.Message}}</p>
+                        <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "02/01 15:04"}}</p>
+                    </div>
+                    {{if not .Read}}
+                    <button hx-post="/notifications/{{.ID}}/read"
+                            hx-target="#notification-dropdown"
+                            hx-swap="outerHTML"
+                            class="flex-shrink-0 w-2 h-2 rounded-full bg-primary-500"
+                            title="Marcar como lida">
+                    </button>
+                    {{end}}
+                </div>
+                {{if .Link}}
+                <a href="{{.Link}}" class="mt-2 inline-block text-xs text-primary-600 hover:text-primary-700 font-medium">
+                    Ver detalhes
+                </a>
+                {{end}}
+            </div>
+            {{end}}
+        {{else}}
+            <div class="p-6 text-center text-slate-500">
+                <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <p class="text-sm">Nenhuma notificacao</p>
+            </div>
+        {{end}}
+    </div>
+
+    {{if .notifications}}
+    <div class="p-2 border-t border-slate-200">
+        <a href="/notifications" class="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-1">
+            Ver todas as notificacoes
+        </a>
+    </div>
+    {{end}}
+</div>
+{{end}}
+{{template "notification-dropdown" .}}
