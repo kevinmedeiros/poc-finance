@@ -41,6 +41,11 @@
             <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form hx-post="/expenses" hx-target="#fixed-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="fixed">
+                    <select name="account_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
+                        {{range .accounts}}
+                        <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
+                        {{end}}
+                    </select>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="name" placeholder="Nome da despesa" required
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
@@ -90,6 +95,11 @@
             <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form hx-post="/expenses" hx-target="#variable-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="variable">
+                    <select name="account_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white">
+                        {{range .accounts}}
+                        <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
+                        {{end}}
+                    </select>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="name" placeholder="Nome da despesa" required
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">

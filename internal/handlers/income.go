@@ -24,6 +24,7 @@ func NewIncomeHandler() *IncomeHandler {
 }
 
 type CreateIncomeRequest struct {
+	AccountID    uint    `form:"account_id"`
 	Date         string  `form:"date"`
 	AmountUSD    float64 `form:"amount_usd"`
 	ExchangeRate float64 `form:"exchange_rate"`
@@ -33,6 +34,7 @@ type CreateIncomeRequest struct {
 func (h *IncomeHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+	accounts, _ := h.accountService.GetUserAccounts(userID)
 
 	var incomes []models.Income
 	database.DB.Where("account_id IN ?", accountIDs).Order("date DESC").Find(&incomes)
@@ -43,6 +45,7 @@ func (h *IncomeHandler) List(c echo.Context) error {
 
 	data := map[string]interface{}{
 		"incomes":        incomes,
+		"accounts":       accounts,
 		"revenue12m":     revenue12M,
 		"currentBracket": bracket,
 		"effectiveRate":  rate,
@@ -54,14 +57,23 @@ func (h *IncomeHandler) List(c echo.Context) error {
 
 func (h *IncomeHandler) Create(c echo.Context) error {
 	userID := middleware.GetUserID(c)
-	account, err := h.accountService.GetUserIndividualAccount(userID)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Conta não encontrada")
-	}
 
 	var req CreateIncomeRequest
 	if err := c.Bind(&req); err != nil {
 		return c.String(http.StatusBadRequest, "Dados inválidos")
+	}
+
+	// Validate user has access to selected account
+	accountID := req.AccountID
+	if accountID == 0 {
+		// Fallback to individual account if not specified
+		account, err := h.accountService.GetUserIndividualAccount(userID)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Conta não encontrada")
+		}
+		accountID = account.ID
+	} else if !h.accountService.CanUserAccessAccount(userID, accountID) {
+		return c.String(http.StatusForbidden, "Acesso negado à conta selecionada")
 	}
 
 	date, err := time.Parse("2006-01-02", req.Date)
@@ -78,7 +90,7 @@ func (h *IncomeHandler) Create(c echo.Context) error {
 	taxCalc := services.CalculateTax(revenue12M, amountBRL)
 
 	income := models.Income{
-		AccountID:    account.ID,
+		AccountID:    accountID,
 		Date:         date,
 		AmountUSD:    req.AmountUSD,
 		ExchangeRate: req.ExchangeRate,

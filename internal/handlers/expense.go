@@ -24,11 +24,12 @@ func NewExpenseHandler() *ExpenseHandler {
 }
 
 type CreateExpenseRequest struct {
-	Name     string  `form:"name"`
-	Amount   float64 `form:"amount"`
-	Type     string  `form:"type"`
-	DueDay   int     `form:"due_day"`
-	Category string  `form:"category"`
+	AccountID uint    `form:"account_id"`
+	Name      string  `form:"name"`
+	Amount    float64 `form:"amount"`
+	Type      string  `form:"type"`
+	DueDay    int     `form:"due_day"`
+	Category  string  `form:"category"`
 }
 
 type ExpenseWithStatus struct {
@@ -39,6 +40,7 @@ type ExpenseWithStatus struct {
 func (h *ExpenseHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
+	accounts, _ := h.accountService.GetUserAccounts(userID)
 
 	now := time.Now()
 	month := int(now.Month())
@@ -80,6 +82,7 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	data := map[string]interface{}{
 		"fixedExpenses":    fixedWithStatus,
 		"variableExpenses": variableExpenses,
+		"accounts":         accounts,
 		"totalFixed":       totalFixed,
 		"totalVariable":    totalVariable,
 		"totalPaid":        totalPaid,
@@ -94,14 +97,23 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 
 func (h *ExpenseHandler) Create(c echo.Context) error {
 	userID := middleware.GetUserID(c)
-	account, err := h.accountService.GetUserIndividualAccount(userID)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Conta não encontrada")
-	}
 
 	var req CreateExpenseRequest
 	if err := c.Bind(&req); err != nil {
 		return c.String(http.StatusBadRequest, "Dados inválidos")
+	}
+
+	// Validate user has access to selected account
+	accountID := req.AccountID
+	if accountID == 0 {
+		// Fallback to individual account if not specified
+		account, err := h.accountService.GetUserIndividualAccount(userID)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Conta não encontrada")
+		}
+		accountID = account.ID
+	} else if !h.accountService.CanUserAccessAccount(userID, accountID) {
+		return c.String(http.StatusForbidden, "Acesso negado à conta selecionada")
 	}
 
 	expenseType := models.ExpenseTypeFixed
@@ -110,7 +122,7 @@ func (h *ExpenseHandler) Create(c echo.Context) error {
 	}
 
 	expense := models.Expense{
-		AccountID: account.ID,
+		AccountID: accountID,
 		Name:      req.Name,
 		Amount:    req.Amount,
 		Type:      expenseType,
