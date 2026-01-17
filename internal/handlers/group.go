@@ -1,19 +1,26 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/database"
 	"poc-finance/internal/middleware"
 	"poc-finance/internal/models"
+	"poc-finance/internal/services"
 )
 
-type GroupHandler struct{}
+type GroupHandler struct {
+	groupService *services.GroupService
+}
 
 func NewGroupHandler() *GroupHandler {
-	return &GroupHandler{}
+	return &GroupHandler{
+		groupService: services.NewGroupService(),
+	}
 }
 
 type CreateGroupRequest struct {
@@ -85,4 +92,131 @@ func (h *GroupHandler) Create(c echo.Context) error {
 		"groups": groups,
 		"userID": userID,
 	})
+}
+
+// GenerateInvite creates a new invite code for a group
+func (h *GroupHandler) GenerateInvite(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	groupID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "ID do grupo inválido")
+	}
+
+	invite, err := h.groupService.GenerateInviteCode(uint(groupID), userID)
+	if err != nil {
+		if err == services.ErrNotGroupAdmin {
+			return c.String(http.StatusForbidden, "Você não é administrador deste grupo")
+		}
+		return c.String(http.StatusInternalServerError, "Erro ao gerar convite")
+	}
+
+	// Build invite link
+	scheme := "http"
+	if c.Request().TLS != nil {
+		scheme = "https"
+	}
+	inviteLink := fmt.Sprintf("%s://%s/groups/join/%s", scheme, c.Request().Host, invite.Code)
+
+	return c.Render(http.StatusOK, "partials/invite-modal.html", map[string]interface{}{
+		"invite":     invite,
+		"inviteLink": inviteLink,
+	})
+}
+
+// ListInvites shows all active invites for a group
+func (h *GroupHandler) ListInvites(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	groupID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "ID do grupo inválido")
+	}
+
+	invites, err := h.groupService.GetGroupInvites(uint(groupID), userID)
+	if err != nil {
+		if err == services.ErrNotGroupAdmin {
+			return c.String(http.StatusForbidden, "Você não é administrador deste grupo")
+		}
+		return c.String(http.StatusInternalServerError, "Erro ao buscar convites")
+	}
+
+	group, _ := h.groupService.GetGroupByID(uint(groupID))
+
+	// Build invite links
+	scheme := "http"
+	if c.Request().TLS != nil {
+		scheme = "https"
+	}
+	baseURL := fmt.Sprintf("%s://%s/groups/join/", scheme, c.Request().Host)
+
+	return c.Render(http.StatusOK, "partials/invite-list.html", map[string]interface{}{
+		"invites": invites,
+		"group":   group,
+		"baseURL": baseURL,
+	})
+}
+
+// JoinPage shows the page to accept an invite
+func (h *GroupHandler) JoinPage(c echo.Context) error {
+	code := c.Param("code")
+
+	invite, err := h.groupService.ValidateInvite(code)
+	if err != nil {
+		return c.Render(http.StatusOK, "join-group.html", map[string]interface{}{
+			"error": "Convite inválido ou expirado",
+		})
+	}
+
+	return c.Render(http.StatusOK, "join-group.html", map[string]interface{}{
+		"invite": invite,
+		"code":   code,
+	})
+}
+
+// AcceptInvite adds the user to the group
+func (h *GroupHandler) AcceptInvite(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	code := c.Param("code")
+
+	group, err := h.groupService.AcceptInvite(code, userID)
+	if err != nil {
+		errorMsg := "Erro ao aceitar convite"
+		switch err {
+		case services.ErrInviteNotFound:
+			errorMsg = "Convite não encontrado"
+		case services.ErrInviteExpired:
+			errorMsg = "Convite expirado"
+		case services.ErrInviteInvalid:
+			errorMsg = "Convite inválido"
+		case services.ErrInviteMaxUsed:
+			errorMsg = "Convite atingiu o limite de usos"
+		case services.ErrAlreadyMember:
+			errorMsg = "Você já é membro deste grupo"
+		}
+		return c.Render(http.StatusOK, "join-group.html", map[string]interface{}{
+			"error": errorMsg,
+		})
+	}
+
+	return c.Render(http.StatusOK, "join-group.html", map[string]interface{}{
+		"success": true,
+		"group":   group,
+	})
+}
+
+// RevokeInvite revokes an invite
+func (h *GroupHandler) RevokeInvite(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	inviteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "ID do convite inválido")
+	}
+
+	if err := h.groupService.RevokeInvite(uint(inviteID), userID); err != nil {
+		if err == services.ErrNotGroupAdmin {
+			return c.String(http.StatusForbidden, "Você não é administrador deste grupo")
+		}
+		return c.String(http.StatusInternalServerError, "Erro ao revogar convite")
+	}
+
+	return c.String(http.StatusOK, "")
 }

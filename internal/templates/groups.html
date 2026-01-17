@@ -1,4 +1,22 @@
 {{define "content"}}
+<!-- Invite Modal -->
+<div id="invite-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200">
+            <h3 class="text-lg font-semibold text-slate-800">Convite do Grupo</h3>
+            <button onclick="document.getElementById('invite-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-slate-600 p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="invite-modal-content" class="p-6">
+            <!-- Content loaded via HTMX -->
+        </div>
+    </div>
+</div>
+
 <div class="space-y-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -61,6 +79,7 @@
 
 {{define "group-list"}}
 <div class="divide-y divide-slate-100">
+    {{$userID := .userID}}
     {{range .groups}}
     <div class="p-6 hover:bg-slate-50 transition-colors">
         <div class="flex items-start justify-between">
@@ -112,6 +131,20 @@
                 </div>
                 {{end}}
             </div>
+            {{range .Members}}
+            {{if and (eq .UserID $userID) (eq .Role "admin")}}
+            <div class="flex-shrink-0 ml-4">
+                <button hx-post="/groups/{{$.ID}}/invite" hx-target="#invite-modal-content" hx-swap="innerHTML"
+                    onclick="document.getElementById('invite-modal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100 font-medium text-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                    Convidar
+                </button>
+            </div>
+            {{end}}
+            {{end}}
         </div>
     </div>
     {{else}}

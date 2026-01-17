@@ -1,0 +1,75 @@
+<div class="space-y-4">
+    <div class="text-center">
+        <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+            </svg>
+        </div>
+        <p class="text-slate-600 text-sm">Compartilhe o link abaixo para convidar membros para o grupo <strong>{{.invite.Group.Name}}</strong></p>
+    </div>
+
+    <div class="space-y-3">
+        <div>
+            <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Link de Convite</label>
+            <div class="flex gap-2">
+                <input type="text" id="invite-link" value="{{.inviteLink}}" readonly
+                    class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 font-mono">
+                <button onclick="copyInviteLink()"
+                    class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                    </svg>
+                    Copiar
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Codigo</label>
+            <div class="flex gap-2">
+                <input type="text" id="invite-code" value="{{.invite.Code}}" readonly
+                    class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 font-mono tracking-wider">
+                <button onclick="copyInviteCode()"
+                    class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 text-sm font-medium flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                    </svg>
+                    Copiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-700">
+        <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Este convite expira em <strong>7 dias</strong>. Qualquer pessoa com o link podera entrar no grupo.</span>
+        </div>
+    </div>
+
+    <div id="copy-feedback" class="hidden text-center text-emerald-600 text-sm font-medium py-2">
+        Copiado para a area de transferencia!
+    </div>
+</div>
+
+<script>
+function copyInviteLink() {
+    const input = document.getElementById('invite-link');
+    navigator.clipboard.writeText(input.value);
+    showCopyFeedback();
+}
+
+function copyInviteCode() {
+    const input = document.getElementById('invite-code');
+    navigator.clipboard.writeText(input.value);
+    showCopyFeedback();
+}
+
+function showCopyFeedback() {
+    const feedback = document.getElementById('copy-feedback');
+    feedback.classList.remove('hidden');
+    setTimeout(() => feedback.classList.add('hidden'), 2000);
+}
+</script>

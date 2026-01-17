@@ -1,0 +1,47 @@
+<div class="space-y-4">
+    <div class="text-center mb-4">
+        <h3 class="text-lg font-semibold text-slate-800">Convites Ativos</h3>
+        <p class="text-sm text-slate-500">Grupo: {{.group.Name}}</p>
+    </div>
+
+    {{if .invites}}
+    <div class="space-y-3">
+        {{range .invites}}
+        <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-mono text-slate-700 truncate">{{.Code}}</p>
+                    <div class="flex items-center gap-4 mt-1 text-xs text-slate-500">
+                        <span>Criado por {{.CreatedBy.Name}}</span>
+                        <span>Usos: {{.UsedCount}}{{if gt .MaxUses 0}}/{{.MaxUses}}{{end}}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 ml-4">
+                    <button onclick="navigator.clipboard.writeText('{{$.baseURL}}{{.Code}}')"
+                        class="text-primary-600 hover:text-primary-700 p-2 rounded-lg hover:bg-primary-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </button>
+                    <button hx-delete="/groups/invites/{{.ID}}" hx-swap="outerHTML" hx-target="closest div.bg-slate-50"
+                        class="text-rose-600 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="text-center py-6">
+        <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+        </div>
+        <p class="text-slate-500 text-sm">Nenhum convite ativo</p>
+    </div>
+    {{end}}
+</div>

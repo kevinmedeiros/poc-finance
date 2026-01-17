@@ -64,6 +64,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/settings.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
+	case strings.Contains(baseName, "invite"):
+		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
 		return echo.ErrNotFound
 	}
@@ -75,6 +77,15 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 	}
 
 	return tmpl.ExecuteTemplate(w, baseName, data)
+}
+
+func (t *TemplateRegistry) renderPartialFile(w io.Writer, filepath string, data interface{}) error {
+	tmpl, err := template.New("").Funcs(t.funcMap).ParseFiles(filepath)
+	if err != nil {
+		log.Printf("Error parsing partial template %s: %v", filepath, err)
+		return err
+	}
+	return tmpl.Execute(w, data)
 }
 
 func loadTemplates() *TemplateRegistry {
@@ -113,6 +124,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/login.html",
 		"internal/templates/forgot-password.html",
 		"internal/templates/reset-password.html",
+		"internal/templates/join-group.html",
 	}
 
 	for _, page := range pages {
@@ -205,6 +217,11 @@ func main() {
 	// Grupos familiares
 	protected.GET("/groups", groupHandler.List)
 	protected.POST("/groups", groupHandler.Create)
+	protected.POST("/groups/:id/invite", groupHandler.GenerateInvite)
+	protected.GET("/groups/:id/invites", groupHandler.ListInvites)
+	protected.GET("/groups/join/:code", groupHandler.JoinPage)
+	protected.POST("/groups/join/:code", groupHandler.AcceptInvite)
+	protected.DELETE("/groups/invites/:id", groupHandler.RevokeInvite)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
