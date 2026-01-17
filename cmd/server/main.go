@@ -222,6 +222,7 @@ func main() {
 	protected.GET("/groups/join/:code", groupHandler.JoinPage)
 	protected.POST("/groups/join/:code", groupHandler.AcceptInvite)
 	protected.DELETE("/groups/invites/:id", groupHandler.RevokeInvite)
+	protected.POST("/groups/:id/leave", groupHandler.LeaveGroup)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")

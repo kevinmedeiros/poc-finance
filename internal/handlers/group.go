@@ -220,3 +220,37 @@ func (h *GroupHandler) RevokeInvite(c echo.Context) error {
 
 	return c.String(http.StatusOK, "")
 }
+
+// LeaveGroup removes the current user from a group
+func (h *GroupHandler) LeaveGroup(c echo.Context) error {
+	userID := middleware.GetUserID(c)
+	groupID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "ID do grupo inválido")
+	}
+
+	if err := h.groupService.LeaveGroup(uint(groupID), userID); err != nil {
+		switch err {
+		case services.ErrNotGroupMember:
+			return c.String(http.StatusBadRequest, "Você não é membro deste grupo")
+		case services.ErrLastAdminCannotLeave:
+			return c.String(http.StatusBadRequest, "Você é o único administrador e não pode sair do grupo")
+		default:
+			return c.String(http.StatusInternalServerError, "Erro ao sair do grupo")
+		}
+	}
+
+	// Return updated list
+	var groups []models.FamilyGroup
+	database.DB.
+		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
+		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
+		Preload("Members").
+		Preload("Members.User").
+		Find(&groups)
+
+	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
+		"groups": groups,
+		"userID": userID,
+	})
+}

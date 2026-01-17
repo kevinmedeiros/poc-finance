@@ -11,13 +11,15 @@ import (
 )
 
 var (
-	ErrGroupNotFound     = errors.New("grupo não encontrado")
-	ErrInviteNotFound    = errors.New("convite não encontrado")
-	ErrInviteExpired     = errors.New("convite expirado")
-	ErrInviteInvalid     = errors.New("convite inválido")
-	ErrNotGroupAdmin     = errors.New("você não é administrador deste grupo")
-	ErrAlreadyMember     = errors.New("você já é membro deste grupo")
-	ErrInviteMaxUsed     = errors.New("convite atingiu o limite de usos")
+	ErrGroupNotFound        = errors.New("grupo não encontrado")
+	ErrInviteNotFound       = errors.New("convite não encontrado")
+	ErrInviteExpired        = errors.New("convite expirado")
+	ErrInviteInvalid        = errors.New("convite inválido")
+	ErrNotGroupAdmin        = errors.New("você não é administrador deste grupo")
+	ErrAlreadyMember        = errors.New("você já é membro deste grupo")
+	ErrInviteMaxUsed        = errors.New("convite atingiu o limite de usos")
+	ErrNotGroupMember       = errors.New("você não é membro deste grupo")
+	ErrLastAdminCannotLeave = errors.New("você é o único administrador e não pode sair do grupo")
 )
 
 const (
@@ -179,4 +181,28 @@ func (s *GroupService) IsGroupAdmin(groupID, userID uint) bool {
 	var member models.GroupMember
 	err := database.DB.Where("group_id = ? AND user_id = ? AND role = ?", groupID, userID, "admin").First(&member).Error
 	return err == nil
+}
+
+// LeaveGroup removes a user from a group
+func (s *GroupService) LeaveGroup(groupID, userID uint) error {
+	// Check if user is a member
+	var member models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ?", groupID, userID).First(&member).Error; err != nil {
+		return ErrNotGroupMember
+	}
+
+	// If user is admin, check if they're the last admin
+	if member.Role == "admin" {
+		var adminCount int64
+		database.DB.Model(&models.GroupMember{}).
+			Where("group_id = ? AND role = ?", groupID, "admin").
+			Count(&adminCount)
+
+		if adminCount <= 1 {
+			return ErrLastAdminCannotLeave
+		}
+	}
+
+	// Soft delete the membership
+	return database.DB.Delete(&member).Error
 }
