@@ -2,13 +2,36 @@ package handlers
 
 import (
 	"errors"
+	"html"
 	"net/http"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/services"
 )
+
+// isProduction returns true if ENV is set to "production"
+func isProduction() bool {
+	return os.Getenv("ENV") == "production"
+}
+
+// isValidPassword checks password complexity requirements
+func isValidPassword(password string) (bool, string) {
+	if len(password) < 8 {
+		return false, "A senha deve ter pelo menos 8 caracteres"
+	}
+	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
+	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
+
+	if !hasUpper || !hasLower || !hasNumber {
+		return false, "A senha deve conter letras maiúsculas, minúsculas e números"
+	}
+	return true, ""
+}
 
 type AuthHandler struct {
 	authService *services.AuthService
@@ -40,9 +63,9 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		})
 	}
 
-	// Validate input
+	// Validate and sanitize input
 	req.Email = strings.TrimSpace(req.Email)
-	req.Name = strings.TrimSpace(req.Name)
+	req.Name = html.EscapeString(strings.TrimSpace(req.Name))
 
 	if req.Email == "" || req.Password == "" || req.Name == "" {
 		return c.Render(http.StatusOK, "register.html", map[string]interface{}{
@@ -52,9 +75,10 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		})
 	}
 
-	if len(req.Password) < 6 {
+	// Validate password strength
+	if valid, errMsg := isValidPassword(req.Password); !valid {
 		return c.Render(http.StatusOK, "register.html", map[string]interface{}{
-			"error": "A senha deve ter pelo menos 6 caracteres",
+			"error": errMsg,
 			"email": req.Email,
 			"name":  req.Name,
 		})
@@ -84,23 +108,27 @@ func (h *AuthHandler) Register(c echo.Context) error {
 func (h *AuthHandler) LoginPage(c echo.Context) error {
 	registered := c.QueryParam("registered") == "1"
 	reset := c.QueryParam("reset") == "1"
+	redirect := c.QueryParam("redirect")
 	return c.Render(http.StatusOK, "login.html", map[string]interface{}{
 		"registered": registered,
 		"reset":      reset,
+		"redirect":   redirect,
 	})
 }
 
 type LoginRequest struct {
 	Email    string `form:"email"`
 	Password string `form:"password"`
+	Redirect string `form:"redirect"`
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
 	var req LoginRequest
 	if err := c.Bind(&req); err != nil {
 		return c.Render(http.StatusOK, "login.html", map[string]interface{}{
-			"error": "Dados inválidos",
-			"email": req.Email,
+			"error":    "Dados inválidos",
+			"email":    req.Email,
+			"redirect": req.Redirect,
 		})
 	}
 
@@ -108,8 +136,9 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	if req.Email == "" || req.Password == "" {
 		return c.Render(http.StatusOK, "login.html", map[string]interface{}{
-			"error": "Email e senha são obrigatórios",
-			"email": req.Email,
+			"error":    "Email e senha são obrigatórios",
+			"email":    req.Email,
+			"redirect": req.Redirect,
 		})
 	}
 
@@ -117,19 +146,21 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	_, accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
 		return c.Render(http.StatusOK, "login.html", map[string]interface{}{
-			"error": "Email ou senha incorretos",
-			"email": req.Email,
+			"error":    "Email ou senha incorretos",
+			"email":    req.Email,
+			"redirect": req.Redirect,
 		})
 	}
 
-	// Set cookies
+	// Set cookies with proper security flags
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   isProduction(),
 		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(services.AccessTokenDuration.Seconds()),
 	})
 
 	c.SetCookie(&http.Cookie{
@@ -137,11 +168,20 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		Value:    refreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   isProduction(),
 		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(services.RefreshTokenDuration.Seconds()),
 	})
 
-	return c.Redirect(http.StatusSeeOther, "/")
+	// Redirect to specified URL or home (with open redirect protection)
+	redirectURL := "/"
+	if req.Redirect != "" &&
+		strings.HasPrefix(req.Redirect, "/") &&
+		!strings.HasPrefix(req.Redirect, "//") &&
+		!strings.Contains(req.Redirect, "://") {
+		redirectURL = req.Redirect
+	}
+	return c.Redirect(http.StatusSeeOther, redirectURL)
 }
 
 func (h *AuthHandler) Logout(c echo.Context) error {
@@ -195,17 +235,10 @@ func (h *AuthHandler) ForgotPassword(c echo.Context) error {
 		})
 	}
 
-	// Generate reset token (we don't reveal if user exists for security)
-	token, err := h.authService.GeneratePasswordResetToken(req.Email)
-	if err == nil {
-		// In production, send email with reset link
-		// For now, we'll show the token in the success message (for testing)
-		resetLink := "/reset-password?token=" + token
-		return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
-			"success":   true,
-			"resetLink": resetLink, // Remove in production - send via email
-		})
-	}
+	// In production, this would:
+	// 1. Generate reset token: h.authService.GeneratePasswordResetToken(req.Email)
+	// 2. Send email with reset link
+	// For now, password reset is disabled until email is implemented
 
 	// Always show success message to prevent email enumeration
 	return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
@@ -259,9 +292,10 @@ func (h *AuthHandler) ResetPassword(c echo.Context) error {
 		})
 	}
 
-	if len(req.Password) < 6 {
+	// Validate password strength
+	if valid, errMsg := isValidPassword(req.Password); !valid {
 		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
-			"error": "A senha deve ter pelo menos 6 caracteres",
+			"error": errMsg,
 			"token": req.Token,
 		})
 	}

@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,6 +30,10 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 	}
 	if m, ok := data.(map[string]interface{}); ok {
 		m["Year"] = time.Now().Year()
+		// Add CSRF token to all templates
+		if csrf := c.Get("csrf"); csrf != nil {
+			m["csrf"] = csrf
+		}
 	}
 
 	// Para partials (HTMX), renderiza apenas o fragmento HTML
@@ -81,13 +86,16 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 	return tmpl.ExecuteTemplate(w, baseName, data)
 }
 
-func (t *TemplateRegistry) renderPartialFile(w io.Writer, filepath string, data interface{}) error {
-	tmpl, err := template.New("").Funcs(t.funcMap).ParseFiles(filepath)
+func (t *TemplateRegistry) renderPartialFile(w io.Writer, filePath string, data interface{}) error {
+	tmpl, err := template.New("").Funcs(t.funcMap).ParseFiles(filePath)
 	if err != nil {
-		log.Printf("Error parsing partial template %s: %v", filepath, err)
+		log.Printf("Error parsing partial template %s: %v", filePath, err)
 		return err
 	}
-	return tmpl.Execute(w, data)
+	// Extract template name from filepath (e.g., notification-badge.html -> notification-badge)
+	baseName := filepath.Base(filePath)
+	templateName := strings.TrimSuffix(baseName, ".html")
+	return tmpl.ExecuteTemplate(w, templateName, data)
 }
 
 func loadTemplates() *TemplateRegistry {
@@ -160,6 +168,38 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	// Security: Add body size limit (2MB)
+	e.Use(middleware.BodyLimit("2M"))
+
+	// Security: Add security headers
+	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+		XSSProtection:      "1; mode=block",
+		ContentTypeNosniff: "nosniff",
+		XFrameOptions:      "SAMEORIGIN",
+		HSTSMaxAge:         31536000,
+		ContentSecurityPolicy: "default-src 'self'; " +
+			"script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; " +
+			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " +
+			"font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
+			"connect-src 'self'; " +
+			"img-src 'self' data:",
+	}))
+
+	// Security: Add CSRF protection (header-based for HTMX compatibility)
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup:    "header:X-CSRF-Token,form:_csrf",
+		CookiePath:     "/",
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteLaxMode,
+		Skipper: func(c echo.Context) bool {
+			// Skip CSRF for logout (it's safe and needs to work even with expired tokens)
+			return c.Path() == "/logout"
+		},
+	}))
+
+	// Rate limiter for auth endpoints (5 requests per second per IP)
+	authRateLimiter := middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(5))
+
 	// Carrega templates
 	e.Renderer = loadTemplates()
 
@@ -178,14 +218,18 @@ func main() {
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
-	e.POST("/register", authHandler.Register)
+	e.POST("/register", authHandler.Register, authRateLimiter)
 	e.GET("/login", authHandler.LoginPage)
-	e.POST("/login", authHandler.Login)
+	e.POST("/login", authHandler.Login, authRateLimiter)
 	e.POST("/logout", authHandler.Logout)
 	e.GET("/forgot-password", authHandler.ForgotPasswordPage)
-	e.POST("/forgot-password", authHandler.ForgotPassword)
+	e.POST("/forgot-password", authHandler.ForgotPassword, authRateLimiter)
 	e.GET("/reset-password", authHandler.ResetPasswordPage)
-	e.POST("/reset-password", authHandler.ResetPassword)
+	e.POST("/reset-password", authHandler.ResetPassword, authRateLimiter)
+
+	// Public invite page (allows users to see invite before login/register)
+	e.GET("/groups/join/:code", groupHandler.JoinPagePublic)
+	e.POST("/groups/join/:code/register", groupHandler.RegisterAndJoin)
 
 	// Protected routes (authentication required)
 	authService := services.NewAuthService()
@@ -230,12 +274,13 @@ func main() {
 	// Grupos familiares
 	protected.GET("/groups", groupHandler.List)
 	protected.POST("/groups", groupHandler.Create)
+	protected.DELETE("/groups/:id", groupHandler.DeleteGroup)
 	protected.POST("/groups/:id/invite", groupHandler.GenerateInvite)
 	protected.GET("/groups/:id/invites", groupHandler.ListInvites)
-	protected.GET("/groups/join/:code", groupHandler.JoinPage)
 	protected.POST("/groups/join/:code", groupHandler.AcceptInvite)
 	protected.DELETE("/groups/invites/:id", groupHandler.RevokeInvite)
 	protected.POST("/groups/:id/leave", groupHandler.LeaveGroup)
+	protected.DELETE("/groups/:id/members/:userId", groupHandler.RemoveMember)
 
 	// Contas conjuntas (joint accounts)
 	protected.POST("/groups/:id/accounts", groupHandler.CreateJointAccount)

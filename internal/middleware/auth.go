@@ -2,11 +2,17 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/services"
 )
+
+// isProduction returns true if ENV is set to "production"
+func isProduction() bool {
+	return os.Getenv("ENV") == "production"
+}
 
 // Context keys for user information
 const (
@@ -73,12 +79,13 @@ func tryRefreshToken(c echo.Context, authService *services.AuthService) bool {
 		return false
 	}
 
-	// Set new access token cookie
+	// Set new access token cookie with proper security flags
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",
 		Value:    newAccessToken,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   isProduction(),
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(services.AccessTokenDuration.Seconds()),
 	})

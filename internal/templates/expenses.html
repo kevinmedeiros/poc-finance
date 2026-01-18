@@ -3,42 +3,42 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Despesas</h1>
-            <p class="text-slate-500 mt-1">Gerencie suas despesas fixas e variaveis</p>
+            <h1 class="font-display text-3xl sm:text-4xl text-white">Despesas</h1>
+            <p class="text-dark-400 mt-2">Gerencie suas despesas fixas e variaveis</p>
         </div>
-        <div class="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
+        <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3">
             <div class="text-sm text-center">
-                <p class="text-slate-500">Fixas</p>
-                <p class="font-bold text-amber-600">R$ {{printf "%.2f" .totalFixed}}</p>
+                <p class="text-dark-400">Fixas</p>
+                <p class="font-bold text-brand-400">R$ {{printf "%.2f" .totalFixed}}</p>
             </div>
-            <div class="h-8 w-px bg-slate-200"></div>
+            <div class="h-8 w-px bg-dark-600"></div>
             <div class="text-sm text-center">
-                <p class="text-slate-500">Pago</p>
-                <p class="font-bold text-emerald-600">R$ {{printf "%.2f" .totalPaid}}</p>
+                <p class="text-dark-400">Pago</p>
+                <p class="font-bold text-success-400">R$ {{printf "%.2f" .totalPaid}}</p>
             </div>
-            <div class="h-8 w-px bg-slate-200"></div>
+            <div class="h-8 w-px bg-dark-600"></div>
             <div class="text-sm text-center">
-                <p class="text-slate-500">Pendente</p>
-                <p class="font-bold text-rose-600">R$ {{printf "%.2f" .totalPending}}</p>
+                <p class="text-dark-400">Pendente</p>
+                <p class="font-bold text-danger-400">R$ {{printf "%.2f" .totalPending}}</p>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Despesas Fixas -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
-                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-dark-700/50 bg-gradient-to-r from-brand-500/10 to-brand-600/10">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     Despesas Fixas
                 </h2>
-                <p class="text-sm text-slate-500 mt-1">Custos mensais recorrentes</p>
+                <p class="text-sm text-dark-400 mt-1">Custos mensais recorrentes</p>
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses" hx-target="#fixed-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="fixed">
                     <select name="account_id" required
@@ -47,39 +47,39 @@
                         hx-target="#fixed-split-container"
                         hx-swap="innerHTML"
                         onchange="this.setAttribute('hx-get', '/accounts/' + this.value + '/members'); htmx.process(this);"
-                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
                         {{end}}
                     </select>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="name" placeholder="Nome da despesa" required
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span>
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
                             <input type="number" name="amount" step="0.01" placeholder="0.00" required
-                                class="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <select name="category" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
+                        <select name="category" class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                             {{range .categories}}
                             <option value="{{.}}">{{.}}</option>
                             {{end}}
                         </select>
                         <input type="number" name="due_day" placeholder="Dia vencimento" min="1" max="31"
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                     </div>
                     <!-- Split toggle -->
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="is_split" id="fixed-is-split"
                             onchange="document.getElementById('fixed-split-container').classList.toggle('hidden', !this.checked)"
-                            class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
-                        <label for="fixed-is-split" class="text-sm text-slate-600">Dividir despesa entre membros</label>
+                            class="w-4 h-4 text-brand-500 bg-dark-700 border-dark-600 rounded focus:ring-brand-500">
+                        <label for="fixed-is-split" class="text-sm text-dark-300">Dividir despesa entre membros</label>
                     </div>
                     <!-- Split members container -->
                     <div id="fixed-split-container" class="hidden"></div>
-                    <button type="submit" class="w-full bg-amber-500 text-white py-2.5 rounded-lg hover:bg-amber-600 text-sm font-medium btn-press flex items-center justify-center gap-2">
+                    <button type="submit" class="btn-primary w-full py-2.5 rounded-xl text-sm font-semibold text-dark-900 flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
@@ -95,19 +95,19 @@
         </div>
 
         <!-- Despesas Variaveis -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-yellow-50 to-amber-50">
-                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-dark-700/50 bg-gradient-to-r from-warning-500/10 to-warning-600/10">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-warning-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                     Despesas Variaveis
                 </h2>
-                <p class="text-sm text-slate-500 mt-1">Gastos pontuais do mes</p>
+                <p class="text-sm text-dark-400 mt-1">Gastos pontuais do mes</p>
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses" hx-target="#variable-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="variable">
                     <select name="account_id" required
@@ -116,21 +116,21 @@
                         hx-target="#variable-split-container"
                         hx-swap="innerHTML"
                         onchange="this.setAttribute('hx-get', '/accounts/' + this.value + '/members'); htmx.process(this);"
-                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
                         {{end}}
                     </select>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="name" placeholder="Nome da despesa" required
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                            class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span>
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
                             <input type="number" name="amount" step="0.01" placeholder="0.00" required
-                                class="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                                class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
-                    <select name="category" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white">
+                    <select name="category" class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                         {{range .categories}}
                         <option value="{{.}}">{{.}}</option>
                         {{end}}
@@ -139,12 +139,12 @@
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="is_split" id="variable-is-split"
                             onchange="document.getElementById('variable-split-container').classList.toggle('hidden', !this.checked)"
-                            class="w-4 h-4 text-yellow-500 border-slate-300 rounded focus:ring-yellow-500">
-                        <label for="variable-is-split" class="text-sm text-slate-600">Dividir despesa entre membros</label>
+                            class="w-4 h-4 text-warning-500 bg-dark-700 border-dark-600 rounded focus:ring-warning-500">
+                        <label for="variable-is-split" class="text-sm text-dark-300">Dividir despesa entre membros</label>
                     </div>
                     <!-- Split members container -->
                     <div id="variable-split-container" class="hidden"></div>
-                    <button type="submit" class="w-full bg-yellow-500 text-white py-2.5 rounded-lg hover:bg-yellow-600 text-sm font-medium btn-press flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full bg-warning-500 hover:bg-warning-400 text-dark-900 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
@@ -163,40 +163,40 @@
 {{end}}
 
 {{define "fixed-expense-list"}}
-<div class="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+<div class="divide-y divide-dark-700/50 max-h-[400px] overflow-y-auto">
     {{range .expenses}}
-    <div class="flex items-center justify-between p-4 table-row-hover {{if not .Active}}opacity-50{{end}} {{if .IsPaid}}bg-emerald-50/50{{end}}">
+    <div class="flex items-center justify-between p-4 hover:bg-dark-800/30 transition-colors {{if not .Active}}opacity-50{{end}} {{if .IsPaid}}bg-success-500/5{{end}}">
         <div class="flex items-center gap-3">
             <!-- Checkbox de pago -->
             {{if .Active}}
             {{if .IsPaid}}
             <button hx-post="/expenses/{{.ID}}/unpaid" hx-target="#fixed-expense-list" hx-swap="innerHTML"
-                class="w-7 h-7 rounded-lg border-2 border-emerald-500 bg-emerald-500 flex items-center justify-center text-white shadow-sm hover:bg-emerald-600 btn-press">
+                class="w-7 h-7 rounded-lg border-2 border-success-500 bg-success-500 flex items-center justify-center text-dark-900 shadow-sm hover:bg-success-400 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
             </button>
             {{else}}
             <button hx-post="/expenses/{{.ID}}/paid" hx-target="#fixed-expense-list" hx-swap="innerHTML"
-                class="w-7 h-7 rounded-lg border-2 border-slate-300 hover:border-emerald-500 flex items-center justify-center bg-white btn-press">
+                class="w-7 h-7 rounded-lg border-2 border-dark-600 hover:border-success-500 flex items-center justify-center bg-dark-800 transition-colors">
             </button>
             {{end}}
             {{end}}
 
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-medium text-sm text-slate-800 {{if .IsPaid}}line-through text-slate-500{{end}}">{{.Name}}</span>
-                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{{.Category}}</span>
+                    <span class="font-medium text-sm text-white {{if .IsPaid}}line-through text-dark-400{{end}}">{{.Name}}</span>
+                    <span class="text-xs bg-dark-700/50 text-dark-300 px-2 py-0.5 rounded-full">{{.Category}}</span>
                     {{if .IsPaid}}
-                    <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Pago</span>
+                    <span class="text-xs bg-success-500/20 text-success-400 px-2 py-0.5 rounded-full font-medium">Pago</span>
                     {{end}}
                     {{if .IsSplit}}
-                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Dividida</span>
+                    <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">Dividida</span>
                     {{end}}
                 </div>
-                <span class="text-xs text-slate-500">Vencimento dia {{.DueDay}}</span>
+                <span class="text-xs text-dark-500">Vencimento dia {{.DueDay}}</span>
                 {{if .IsSplit}}
-                <div class="text-xs text-blue-600 mt-1">
+                <div class="text-xs text-blue-400 mt-1">
                     {{range .Splits}}
                     <span class="inline-block mr-2">{{.User.Name}}: {{printf "%.0f" .Percentage}}% (R$ {{printf "%.2f" .Amount}})</span>
                     {{end}}
@@ -205,10 +205,10 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <span class="font-bold text-sm {{if .IsPaid}}text-emerald-600{{else}}text-amber-600{{end}}">R$ {{printf "%.2f" .Amount}}</span>
+            <span class="font-bold text-sm {{if .IsPaid}}text-success-400{{else}}text-brand-400{{end}}">R$ {{printf "%.2f" .Amount}}</span>
             <div class="flex items-center gap-1">
                 <button hx-post="/expenses/{{.ID}}/toggle" hx-target="#fixed-expense-list" hx-swap="innerHTML"
-                    class="p-1.5 rounded-lg {{if .Active}}text-slate-400 hover:text-slate-600 hover:bg-slate-100{{else}}text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50{{end}}">
+                    class="p-1.5 rounded-lg {{if .Active}}text-dark-500 hover:text-dark-300 hover:bg-dark-700{{else}}text-success-400 hover:text-success-300 hover:bg-success-500/10{{end}} transition-colors">
                     {{if .Active}}
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
@@ -221,7 +221,7 @@
                 </button>
                 <button hx-delete="/expenses/{{.ID}}" hx-target="#fixed-expense-list" hx-swap="innerHTML"
                     hx-confirm="Excluir despesa?"
-                    class="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50">
+                    class="p-1.5 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
@@ -231,32 +231,32 @@
     </div>
     {{else}}
     <div class="p-8 text-center">
-        <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-12 h-12 bg-dark-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
         </div>
-        <p class="text-slate-500 font-medium">Nenhuma despesa fixa</p>
-        <p class="text-sm text-slate-400 mt-1">Adicione suas despesas recorrentes</p>
+        <p class="text-dark-300 font-medium">Nenhuma despesa fixa</p>
+        <p class="text-sm text-dark-500 mt-1">Adicione suas despesas recorrentes</p>
     </div>
     {{end}}
 </div>
 {{end}}
 
 {{define "variable-expense-list"}}
-<div class="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+<div class="divide-y divide-dark-700/50 max-h-[400px] overflow-y-auto">
     {{range .expenses}}
-    <div class="flex items-center justify-between p-4 table-row-hover {{if not .Active}}opacity-50{{end}}">
+    <div class="flex items-center justify-between p-4 hover:bg-dark-800/30 transition-colors {{if not .Active}}opacity-50{{end}}">
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium text-sm text-slate-800">{{.Name}}</span>
-                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{{.Category}}</span>
+                <span class="font-medium text-sm text-white">{{.Name}}</span>
+                <span class="text-xs bg-dark-700/50 text-dark-300 px-2 py-0.5 rounded-full">{{.Category}}</span>
                 {{if .IsSplit}}
-                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Dividida</span>
+                <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">Dividida</span>
                 {{end}}
             </div>
             {{if .IsSplit}}
-            <div class="text-xs text-blue-600 mt-1">
+            <div class="text-xs text-blue-400 mt-1">
                 {{range .Splits}}
                 <span class="inline-block mr-2">{{.User.Name}}: {{printf "%.0f" .Percentage}}% (R$ {{printf "%.2f" .Amount}})</span>
                 {{end}}
@@ -264,10 +264,10 @@
             {{end}}
         </div>
         <div class="flex items-center gap-3">
-            <span class="font-bold text-sm text-yellow-600">R$ {{printf "%.2f" .Amount}}</span>
+            <span class="font-bold text-sm text-warning-400">R$ {{printf "%.2f" .Amount}}</span>
             <button hx-delete="/expenses/{{.ID}}" hx-target="#variable-expense-list" hx-swap="innerHTML"
                 hx-confirm="Excluir despesa?"
-                class="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50">
+                class="p-1.5 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
@@ -276,13 +276,13 @@
     </div>
     {{else}}
     <div class="p-8 text-center">
-        <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-12 h-12 bg-dark-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
         </div>
-        <p class="text-slate-500 font-medium">Nenhuma despesa variavel</p>
-        <p class="text-sm text-slate-400 mt-1">Adicione gastos pontuais do mes</p>
+        <p class="text-dark-300 font-medium">Nenhuma despesa variavel</p>
+        <p class="text-sm text-dark-500 mt-1">Adicione gastos pontuais do mes</p>
     </div>
     {{end}}
 </div>

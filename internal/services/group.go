@@ -248,3 +248,44 @@ func (s *GroupService) LeaveGroup(groupID, userID uint) error {
 	// Soft delete the membership
 	return database.DB.Delete(&member).Error
 }
+
+// DeleteGroup deletes a group and all its related data (only admin can delete)
+func (s *GroupService) DeleteGroup(groupID, userID uint) error {
+	// Verify user is admin of the group
+	var member models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ? AND role = ?", groupID, userID, "admin").First(&member).Error; err != nil {
+		return ErrNotGroupAdmin
+	}
+
+	// Delete all memberships
+	database.DB.Where("group_id = ?", groupID).Delete(&models.GroupMember{})
+
+	// Delete all invites
+	database.DB.Where("group_id = ?", groupID).Delete(&models.GroupInvite{})
+
+	// Delete the group
+	return database.DB.Delete(&models.FamilyGroup{}, groupID).Error
+}
+
+// RemoveMember removes a member from a group (only admin can remove)
+func (s *GroupService) RemoveMember(groupID, memberUserID, adminUserID uint) error {
+	// Cannot remove yourself (use LeaveGroup instead)
+	if memberUserID == adminUserID {
+		return ErrNotGroupMember
+	}
+
+	// Verify requester is admin of the group
+	var adminMember models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ? AND role = ?", groupID, adminUserID, "admin").First(&adminMember).Error; err != nil {
+		return ErrNotGroupAdmin
+	}
+
+	// Find the member to remove
+	var member models.GroupMember
+	if err := database.DB.Where("group_id = ? AND user_id = ?", groupID, memberUserID).First(&member).Error; err != nil {
+		return ErrNotGroupMember
+	}
+
+	// Delete the membership
+	return database.DB.Delete(&member).Error
+}

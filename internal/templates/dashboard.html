@@ -1,17 +1,17 @@
 {{define "content"}}
 <div class="space-y-8">
-    <!-- Header com Info Fiscal -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Dashboard</h1>
-            <p class="text-slate-500 mt-1">Visao geral das suas financas</p>
+            <p class="text-brand-400 text-sm font-medium tracking-wide uppercase mb-2">Visao Geral</p>
+            <h1 class="font-display text-4xl sm:text-5xl text-white tracking-tight">Dashboard</h1>
         </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <!-- Account Filter -->
-            <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
+            <div class="glass-light rounded-xl px-4 py-3">
                 <label for="account_filter" class="sr-only">Filtrar por conta</label>
                 <select id="account_filter" name="account_id"
-                    class="w-full sm:w-auto text-sm font-medium text-slate-700 bg-transparent border-none focus:ring-0 cursor-pointer"
+                    class="w-full sm:w-auto text-sm font-medium text-dark-200 bg-transparent border-none focus:ring-0 cursor-pointer"
                     onchange="window.location.href='/?account_id=' + this.value">
                     <option value="all" {{if eq .selectedAccountID 0}}selected{{end}}>Todas as Contas</option>
                     {{range .accounts}}
@@ -21,296 +21,310 @@
                     {{end}}
                 </select>
             </div>
-            <div class="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
-            <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                </svg>
-            </div>
-            <div class="text-sm">
-                <p class="text-slate-500">Faturamento 12 meses</p>
-                <p class="font-bold text-slate-800">R$ {{printf "%.2f" .revenue12m}}</p>
-            </div>
-            <div class="h-8 w-px bg-slate-200"></div>
-            <div class="text-sm">
-                <p class="text-slate-500">Faixa {{.currentBracket}}</p>
-                <p class="font-bold text-primary-600">{{printf "%.2f" .effectiveRate}}%</p>
-            </div>
+            <!-- Fiscal Info -->
+            <div class="flex items-center gap-4 glass-light rounded-xl px-5 py-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-dark-400 uppercase tracking-wide">12 meses</p>
+                        <p class="font-semibold text-white">R$ {{printf "%.2f" .revenue12m}}</p>
+                    </div>
+                </div>
+                <div class="h-10 w-px bg-white/10"></div>
+                <div>
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Faixa {{.currentBracket}}</p>
+                    <p class="font-semibold text-brand-400">{{printf "%.2f" .effectiveRate}}%</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Cards de Resumo Rapido -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <!-- Receita -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
-            <div class="flex items-center justify-between">
-                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Entrada</span>
+                <span class="badge-success text-xs font-medium px-2.5 py-1 rounded-full">Entrada</span>
             </div>
-            <p class="text-2xl font-bold text-slate-800 mt-4">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
-            <p class="text-sm text-slate-500 mt-1">Receita Bruta</p>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
+            <p class="text-sm text-dark-400">Receita Bruta</p>
         </div>
 
         <!-- Impostos -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
-            <div class="flex items-center justify-between">
-                <div class="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-danger-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
                     </svg>
                 </div>
-                <span class="text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full">Impostos</span>
+                <span class="badge-danger text-xs font-medium px-2.5 py-1 rounded-full">Impostos</span>
             </div>
-            <p class="text-2xl font-bold text-slate-800 mt-4">R$ {{printf "%.2f" .totalImpostos}}</p>
-            <p class="text-sm text-slate-500 mt-1">Simples + INSS</p>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .totalImpostos}}</p>
+            <p class="text-sm text-dark-400">Simples + INSS</p>
         </div>
 
         <!-- Despesas -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-hover">
-            <div class="flex items-center justify-between">
-                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-brand-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
                     </svg>
                 </div>
-                <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Saida</span>
+                <span class="badge-warning text-xs font-medium px-2.5 py-1 rounded-full">Saida</span>
             </div>
-            <p class="text-2xl font-bold text-slate-800 mt-4">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
-            <p class="text-sm text-slate-500 mt-1">Total Despesas</p>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
+            <p class="text-sm text-dark-400">Total Despesas</p>
         </div>
 
-        <!-- Sobra -->
-        <div class="bg-gradient-to-br {{if gt .saldoFinal 0.0}}from-emerald-500 to-emerald-600{{else}}from-rose-500 to-rose-600{{end}} rounded-xl shadow-sm p-5 card-hover">
-            <div class="flex items-center justify-between">
-                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
+        <!-- Saldo Final -->
+        <div class="relative overflow-hidden rounded-2xl p-6 {{if gt .saldoFinal 0.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}} group">
+            <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+            <div class="relative">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-white/90 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">Saldo</span>
                 </div>
-                <span class="text-xs font-medium text-white/90 bg-white/20 px-2 py-1 rounded-full">Saldo</span>
+                <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .saldoFinal}}</p>
+                <p class="text-sm text-white/70">Sobra do Mes</p>
             </div>
-            <p class="text-2xl font-bold text-white mt-4">R$ {{printf "%.2f" .saldoFinal}}</p>
-            <p class="text-sm text-white/80 mt-1">Sobra do Mes</p>
         </div>
     </div>
 
-    <!-- Grid Principal -->
+    <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Resumo Financeiro Detalhado (2 colunas) -->
-        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        <!-- Financial Summary (2 columns) -->
+        <div class="lg:col-span-2 card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
-                    Resumo do Mes
-                </h2>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Resumo do Mes</h2>
             </div>
 
             <div class="p-6 space-y-4">
                 <!-- Receita -->
-                <div class="flex items-center justify-between py-3 border-b border-slate-100">
+                <div class="flex items-center justify-between py-4 border-b border-white/5">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        <div class="w-10 h-10 bg-success-500/15 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
                             </svg>
                         </div>
-                        <span class="text-slate-700 font-medium">Receita Bruta (USD convertido)</span>
+                        <span class="text-dark-200 font-medium">Receita Bruta (USD convertido)</span>
                     </div>
-                    <span class="text-xl font-bold text-emerald-600">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</span>
+                    <span class="text-2xl font-bold text-success-400">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</span>
                 </div>
 
                 <!-- Impostos -->
-                <div class="space-y-3 py-2">
+                <div class="space-y-3 py-3">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-danger-500/15 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
-                            <span class="text-slate-600">Simples Nacional ({{printf "%.1f" .effectiveRate}}%)</span>
+                            <span class="text-dark-300">Simples Nacional ({{printf "%.1f" .effectiveRate}}%)</span>
                         </div>
-                        <span class="font-semibold text-rose-500">R$ {{printf "%.2f" .currentMonth.TotalTax}}</span>
+                        <span class="font-semibold text-danger-400">R$ {{printf "%.2f" .currentMonth.TotalTax}}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-danger-500/10 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-danger-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
                             <div>
-                                <span class="text-slate-600">INSS Pro-labore (11%)</span>
+                                <span class="text-dark-300">INSS Pro-labore (11%)</span>
                                 {{if gt .proLabore 0.0}}
-                                <span class="text-xs text-slate-400 ml-2">s/ R$ {{printf "%.0f" .proLabore}}</span>
+                                <span class="text-xs text-dark-500 ml-2">s/ R$ {{printf "%.0f" .proLabore}}</span>
                                 {{else}}
-                                <a href="/settings" class="text-xs text-primary-500 ml-2 hover:underline">Configurar</a>
+                                <a href="/settings" class="text-xs text-brand-400 ml-2 hover:text-brand-300 transition-colors">Configurar</a>
                                 {{end}}
                             </div>
                         </div>
-                        <span class="font-semibold text-rose-400">R$ {{printf "%.2f" .inssAmount}}</span>
+                        <span class="font-semibold text-danger-400/70">R$ {{printf "%.2f" .inssAmount}}</span>
                     </div>
                 </div>
 
-                <!-- Subtotal apos impostos -->
-                <div class="flex items-center justify-between py-3 bg-slate-50 px-4 rounded-xl border border-slate-100">
-                    <span class="font-semibold text-slate-700">= Liquido apos impostos</span>
-                    <span class="text-xl font-bold text-slate-700">R$ {{printf "%.2f" .liquidoAposImpostos}}</span>
+                <!-- Subtotal -->
+                <div class="flex items-center justify-between py-4 px-5 bg-dark-800/50 rounded-xl border border-white/5">
+                    <span class="font-semibold text-dark-200">= Liquido apos impostos</span>
+                    <span class="text-xl font-bold text-white">R$ {{printf "%.2f" .liquidoAposImpostos}}</span>
                 </div>
 
                 <!-- Despesas -->
-                <div class="space-y-3 py-2">
+                <div class="space-y-3 py-3">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-brand-500/15 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
-                            <span class="text-slate-600">Despesas Fixas</span>
+                            <span class="text-dark-300">Despesas Fixas</span>
                         </div>
-                        <span class="font-semibold text-amber-600">R$ {{printf "%.2f" .currentMonth.TotalFixed}}</span>
+                        <span class="font-semibold text-brand-400">R$ {{printf "%.2f" .currentMonth.TotalFixed}}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-brand-500/10 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-brand-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
-                            <span class="text-slate-600">Despesas Variaveis</span>
+                            <span class="text-dark-300">Despesas Variaveis</span>
                         </div>
-                        <span class="font-semibold text-amber-400">R$ {{printf "%.2f" .currentMonth.TotalVariable}}</span>
+                        <span class="font-semibold text-brand-400/70">R$ {{printf "%.2f" .currentMonth.TotalVariable}}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-violet-500/15 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
-                            <span class="text-slate-600">Cartoes de Credito</span>
+                            <span class="text-dark-300">Cartoes de Credito</span>
                         </div>
-                        <span class="font-semibold text-violet-500">R$ {{printf "%.2f" .currentMonth.TotalCards}}</span>
+                        <span class="font-semibold text-violet-400">R$ {{printf "%.2f" .currentMonth.TotalCards}}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <div class="w-10 h-10 bg-sky-500/15 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
                                 </svg>
                             </div>
-                            <span class="text-slate-600">Contas a Pagar</span>
+                            <span class="text-dark-300">Contas a Pagar</span>
                         </div>
-                        <span class="font-semibold text-sky-500">R$ {{printf "%.2f" .currentMonth.TotalBills}}</span>
+                        <span class="font-semibold text-sky-400">R$ {{printf "%.2f" .currentMonth.TotalBills}}</span>
                     </div>
                 </div>
 
-                <!-- Total de Saidas -->
-                <div class="flex items-center justify-between py-3 bg-rose-50 px-4 rounded-xl border border-rose-100">
-                    <span class="font-semibold text-rose-700">Total de Saidas</span>
-                    <span class="text-xl font-bold text-rose-600">R$ {{printf "%.2f" .totalSaidas}}</span>
+                <!-- Total Saidas -->
+                <div class="flex items-center justify-between py-4 px-5 bg-danger-500/10 rounded-xl border border-danger-500/20">
+                    <span class="font-semibold text-danger-400">Total de Saidas</span>
+                    <span class="text-xl font-bold text-danger-400">R$ {{printf "%.2f" .totalSaidas}}</span>
                 </div>
 
-                <!-- SALDO FINAL -->
-                <div class="flex items-center justify-between py-4 px-5 rounded-xl {{if gt .saldoFinal 0.0}}bg-gradient-to-r from-emerald-500 to-emerald-600{{else}}bg-gradient-to-r from-rose-500 to-rose-600{{end}} mt-4">
-                    <div>
+                <!-- Final Balance -->
+                <div class="relative overflow-hidden flex items-center justify-between py-5 px-6 rounded-2xl {{if gt .saldoFinal 0.0}}bg-gradient-to-r from-success-600 to-emerald-600{{else}}bg-gradient-to-r from-danger-600 to-rose-600{{end}} mt-2">
+                    <div class="absolute inset-0 opacity-50" style="background-image: url('data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M10 0v20M0 10h20%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+                    <div class="relative">
                         <span class="text-lg font-bold text-white">SOBRA DO MES</span>
-                        <p class="text-xs text-white/70">Receita - Impostos - Despesas</p>
+                        <p class="text-xs text-white/60">Receita - Impostos - Despesas</p>
                     </div>
-                    <span class="text-3xl font-bold text-white">R$ {{printf "%.2f" .saldoFinal}}</span>
+                    <span class="relative text-4xl font-bold text-white">R$ {{printf "%.2f" .saldoFinal}}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Proximos Vencimentos (1 coluna) -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        <!-- Upcoming Bills -->
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    Proximos Vencimentos
-                </h2>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Proximos Vencimentos</h2>
             </div>
 
             <div class="p-4">
                 {{if .upcomingBills}}
-                <div class="space-y-2 max-h-[500px] overflow-y-auto">
+                <div class="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
                     {{range .upcomingBills}}
-                    <div class="flex items-center justify-between p-3 rounded-lg {{if le .DueIn 3}}bg-rose-50 border border-rose-100{{else if le .DueIn 7}}bg-amber-50 border border-amber-100{{else}}bg-slate-50 border border-slate-100{{end}}">
+                    <div class="flex items-center justify-between p-4 rounded-xl transition-all duration-200
+                        {{if le .DueIn 3}}bg-danger-500/10 border border-danger-500/20 hover:bg-danger-500/15
+                        {{else if le .DueIn 7}}bg-brand-500/10 border border-brand-500/20 hover:bg-brand-500/15
+                        {{else}}bg-dark-800/50 border border-white/5 hover:bg-dark-800{{end}}">
                         <div class="flex-1 min-w-0">
-                            <p class="font-medium text-slate-800 truncate">{{.Name}}</p>
-                            <p class="text-xs text-slate-500">{{.DueDate.Format "02/01/2006"}}</p>
+                            <p class="font-medium text-white truncate">{{.Name}}</p>
+                            <p class="text-xs text-dark-400">{{.DueDate.Format "02/01/2006"}}</p>
                         </div>
                         <div class="flex items-center gap-3 ml-3">
-                            <span class="text-xs font-medium px-2 py-1 rounded-full {{if le .DueIn 3}}bg-rose-100 text-rose-700{{else if le .DueIn 7}}bg-amber-100 text-amber-700{{else}}bg-slate-200 text-slate-600{{end}}">
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+                                {{if le .DueIn 3}}bg-danger-500/20 text-danger-400
+                                {{else if le .DueIn 7}}bg-brand-500/20 text-brand-400
+                                {{else}}bg-dark-700 text-dark-300{{end}}">
                                 {{if eq .DueIn 0}}Hoje{{else if eq .DueIn 1}}Amanha{{else}}{{.DueIn}}d{{end}}
                             </span>
-                            <span class="font-bold text-slate-800 whitespace-nowrap">R$ {{printf "%.2f" .Amount}}</span>
+                            <span class="font-bold text-white whitespace-nowrap">R$ {{printf "%.2f" .Amount}}</span>
                         </div>
                     </div>
                     {{end}}
                 </div>
                 {{else}}
-                <div class="text-center py-8">
-                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-success-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </div>
-                    <p class="text-slate-500">Nenhum vencimento proximo</p>
+                    <p class="text-dark-400 font-medium">Nenhum vencimento proximo</p>
+                    <p class="text-dark-500 text-sm mt-1">Suas contas estao em dia!</p>
                 </div>
                 {{end}}
             </div>
         </div>
     </div>
 
-    <!-- Projecao 6 meses -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+    <!-- 6-Month Projection -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
-                Projecao - Proximos 6 Meses
-            </h2>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Projecao - Proximos 6 Meses</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead>
-                    <tr class="bg-slate-50">
-                        <th class="text-left py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mes</th>
-                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Receita</th>
-                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Impostos</th>
-                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Despesas</th>
-                        <th class="text-right py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sobra</th>
+                    <tr class="border-b border-white/5">
+                        <th class="text-left py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Mes</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Receita</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Impostos</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Despesas</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Sobra</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-white/5">
                     {{range .monthSummaries}}
-                    <tr class="table-row-hover">
+                    <tr class="table-row-premium transition-colors duration-150">
                         <td class="py-4 px-6">
-                            <span class="font-medium text-slate-800">{{.Month.Format "Jan/2006"}}</span>
+                            <span class="font-medium text-white">{{.Month.Format "Jan/2006"}}</span>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <span class="text-emerald-600 font-semibold">R$ {{printf "%.2f" .TotalIncomeGross}}</span>
+                            <span class="text-success-400 font-semibold">R$ {{printf "%.2f" .TotalIncomeGross}}</span>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <span class="text-rose-500 font-semibold">R$ {{printf "%.2f" .TotalTax}}</span>
+                            <span class="text-danger-400 font-semibold">R$ {{printf "%.2f" .TotalTax}}</span>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <span class="text-amber-500 font-semibold">R$ {{printf "%.2f" .TotalExpenses}}</span>
+                            <span class="text-brand-400 font-semibold">R$ {{printf "%.2f" .TotalExpenses}}</span>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <span class="font-bold {{if gt .Balance 0.0}}text-emerald-600{{else}}text-rose-600{{end}}">
+                            <span class="font-bold {{if gt .Balance 0.0}}text-success-400{{else}}text-danger-400{{end}}">
                                 R$ {{printf "%.2f" .Balance}}
                             </span>
                         </td>
@@ -321,4 +335,16 @@
         </div>
     </div>
 </div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.2);
+    }
+</style>
 {{end}}

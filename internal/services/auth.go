@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -21,8 +23,18 @@ var (
 	ErrTokenInvalid       = errors.New("token inválido")
 )
 
-// JWTSecret should be set via environment variable in production
-var JWTSecret = []byte("your-super-secret-key-change-in-production")
+// JWTSecret is loaded from environment variable
+var JWTSecret []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		// Default for development only - log warning
+		secret = "dev-secret-change-in-production"
+		log.Println("WARNING: JWT_SECRET environment variable not set, using insecure default. Set JWT_SECRET in production!")
+	}
+	JWTSecret = []byte(secret)
+}
 
 const (
 	AccessTokenDuration        = 15 * time.Minute
