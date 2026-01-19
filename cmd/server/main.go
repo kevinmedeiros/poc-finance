@@ -249,7 +249,11 @@ func main() {
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
 	settingsHandler := handlers.NewSettingsHandler()
-	groupHandler := handlers.NewGroupHandler()
+	groupCrudHandler := handlers.NewGroupCrudHandler()
+	groupInviteHandler := handlers.NewGroupInviteHandler()
+	groupJointAccountHandler := handlers.NewGroupJointAccountHandler()
+	groupDashboardHandler := handlers.NewGroupDashboardHandler()
+	groupSummaryHandler := handlers.NewGroupSummaryHandler()
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
@@ -267,8 +271,8 @@ func main() {
 	e.POST("/reset-password", authHandler.ResetPassword, authRateLimiter)
 
 	// Public invite page (allows users to see invite before login/register)
-	e.GET("/groups/join/:code", groupHandler.JoinPagePublic)
-	e.POST("/groups/join/:code/register", groupHandler.RegisterAndJoin)
+	e.GET("/groups/join/:code", groupInviteHandler.JoinPagePublic)
+	e.POST("/groups/join/:code/register", groupInviteHandler.RegisterAndJoin)
 
 	// Protected routes (authentication required)
 	authService := services.NewAuthService()
@@ -311,26 +315,26 @@ func main() {
 	protected.POST("/settings", settingsHandler.Update)
 
 	// Grupos familiares
-	protected.GET("/groups", groupHandler.List)
-	protected.POST("/groups", groupHandler.Create)
-	protected.DELETE("/groups/:id", groupHandler.DeleteGroup)
-	protected.POST("/groups/:id/invite", groupHandler.GenerateInvite)
-	protected.GET("/groups/:id/invites", groupHandler.ListInvites)
-	protected.POST("/groups/join/:code", groupHandler.AcceptInvite)
-	protected.DELETE("/groups/invites/:id", groupHandler.RevokeInvite)
-	protected.POST("/groups/:id/leave", groupHandler.LeaveGroup)
-	protected.DELETE("/groups/:id/members/:userId", groupHandler.RemoveMember)
+	protected.GET("/groups", groupCrudHandler.List)
+	protected.POST("/groups", groupCrudHandler.Create)
+	protected.DELETE("/groups/:id", groupCrudHandler.DeleteGroup)
+	protected.POST("/groups/:id/invite", groupInviteHandler.GenerateInvite)
+	protected.GET("/groups/:id/invites", groupInviteHandler.ListInvites)
+	protected.POST("/groups/join/:code", groupInviteHandler.AcceptInvite)
+	protected.DELETE("/groups/invites/:id", groupInviteHandler.RevokeInvite)
+	protected.POST("/groups/:id/leave", groupCrudHandler.LeaveGroup)
+	protected.DELETE("/groups/:id/members/:userId", groupCrudHandler.RemoveMember)
 
 	// Contas conjuntas (joint accounts)
-	protected.POST("/groups/:id/accounts", groupHandler.CreateJointAccount)
-	protected.DELETE("/groups/:id/accounts/:accountId", groupHandler.DeleteJointAccount)
+	protected.POST("/groups/:id/accounts", groupJointAccountHandler.CreateJointAccount)
+	protected.DELETE("/groups/:id/accounts/:accountId", groupJointAccountHandler.DeleteJointAccount)
 
 	// Dashboard do grupo
-	protected.GET("/groups/:id/dashboard", groupHandler.Dashboard)
+	protected.GET("/groups/:id/dashboard", groupDashboardHandler.Dashboard)
 
 	// Resumo periódico do grupo
-	protected.POST("/groups/:id/summary/weekly", groupHandler.GenerateWeeklySummary)
-	protected.POST("/groups/:id/summary/monthly", groupHandler.GenerateMonthlySummary)
+	protected.POST("/groups/:id/summary/weekly", groupSummaryHandler.GenerateWeeklySummary)
+	protected.POST("/groups/:id/summary/monthly", groupSummaryHandler.GenerateMonthlySummary)
 
 	// Metas do grupo
 	protected.GET("/groups/:id/goals", goalHandler.GoalsPage)
