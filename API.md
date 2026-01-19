@@ -924,3 +924,500 @@ All income endpoints enforce the following security measures:
 6. Client updates form fields with preview values in real-time
 
 ---
+
+## Expense Endpoints
+
+This document section describes the expense management endpoints for the POC Finance application.
+
+### Overview
+
+All expense endpoints require authentication (valid JWT token). They support both fixed and variable expenses, with features for:
+- Split expenses across multiple users (joint account expenses)
+- Payment tracking for fixed recurring expenses
+- Budget limit monitoring with notifications
+- Active/inactive status toggling
+
+Security features:
+- JWT authentication required for all endpoints
+- Account-level access control
+- CSRF protection for state-changing operations
+- Automatic notifications for split expenses and budget alerts
+
+---
+
+### 1. List Expenses
+
+Retrieve all expenses (fixed and variable) for user's accessible accounts.
+
+**Endpoint:** `GET /expenses`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**Request Parameters:** None (query parameters from URL are ignored)
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered expenses.html page with expense data
+
+**Response Data Structure:**
+```go
+{
+  "fixedExpenses": []ExpenseWithStatus,    // Fixed expenses with payment status
+  "variableExpenses": []Expense,            // Variable expenses
+  "accounts": []Account,                    // User's accessible accounts
+  "totalFixed": float64,                    // Sum of active fixed expenses
+  "totalVariable": float64,                 // Sum of active variable expenses
+  "totalPaid": float64,                     // Sum of paid fixed expenses (current month)
+  "totalPending": float64,                  // Sum of unpaid fixed expenses (current month)
+  "categories": []string,                   // Available expense categories
+  "currentMonth": int,                      // Current month (1-12)
+  "currentYear": int                        // Current year
+}
+```
+
+**ExpenseWithStatus Structure:**
+- All fields from Expense model
+- `IsPaid`: boolean indicating if expense is paid for current month
+
+**Expense Categories:**
+- Moradia (Housing)
+- Alimentação (Food)
+- Transporte (Transportation)
+- Saúde (Health)
+- Educação (Education)
+- Lazer (Leisure)
+- Serviços (Services)
+- Impostos (Taxes)
+- Outros (Others)
+
+**Example Request:**
+```http
+GET /expenses HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Error Responses:**
+
+| Status Code | Description |
+|------------|-------------|
+| 401 | Authentication required (no valid token) |
+
+---
+
+### 2. Create Expense
+
+Create a new expense (fixed or variable) with optional split configuration.
+
+**Endpoint:** `POST /expenses`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Required
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| account_id | uint | No | Target account ID (defaults to user's individual account) |
+| name | string | Yes | Expense name/description |
+| amount | float64 | Yes | Expense amount |
+| type | string | Yes | Expense type: "fixed" or "variable" |
+| due_day | int | Conditional | Day of month expense is due (1-31, required for fixed expenses) |
+| category | string | Yes | Expense category (see categories list above) |
+| is_split | bool | No | Whether this is a split expense (default: false) |
+| split_user_ids | []uint | Conditional | User IDs for split (required if is_split=true) |
+| split_percentages | []float64 | Conditional | Split percentages (required if is_split=true, must sum to 100) |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Split Expense Rules:**
+- Only available for joint accounts
+- User IDs must be members of the selected account
+- Percentages must sum to exactly 100% (tolerance: ±0.01)
+- Each split amount is calculated as: `expense.amount × percentage / 100`
+- All group members receive notifications for split expenses
+
+**Example Request (Simple Fixed Expense):**
+```http
+POST /expenses HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...
+X-CSRF-Token: ...
+
+account_id=1&name=Aluguel&amount=2000.00&type=fixed&due_day=5&category=Moradia
+```
+
+**Example Request (Split Variable Expense):**
+```http
+POST /expenses HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...
+X-CSRF-Token: ...
+
+account_id=2&name=Supermercado&amount=500.00&type=variable&category=Alimentação&is_split=true&split_user_ids=1&split_user_ids=2&split_percentages=60&split_percentages=40
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partial template with updated expense list
+  - Fixed expenses: `partials/fixed-expense-list.html`
+  - Variable expenses: `partials/variable-expense-list.html`
+
+**Side Effects:**
+- Creates expense record in database
+- Creates split records if `is_split=true`
+- Sends notifications to group members (joint accounts only)
+- Checks budget limit and sends alert if exceeded
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Dados inválidos" | 400 | Invalid request format or data binding error |
+| "Conta não encontrada" | 500 | User's individual account not found (fallback failed) |
+| "Acesso negado à conta selecionada" | 403 | User doesn't have access to specified account |
+| "A soma dos percentuais deve ser 100%" | 400 | Split percentages don't sum to 100% |
+| "Erro ao criar despesa" | 500 | Database error creating expense |
+| "Erro ao criar divisão" | 500 | Database error creating split record |
+
+---
+
+### 3. Toggle Expense Status
+
+Toggle the active/inactive status of an expense.
+
+**Endpoint:** `POST /expenses/:id/toggle`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Required
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | uint | Yes | Expense ID to toggle |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+POST /expenses/123/toggle HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partial template with updated expense list
+- **Side Effects:** Toggles `expense.active` field (true ↔ false)
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Despesa não encontrada" | 404 | Expense not found or user doesn't have access |
+
+---
+
+### 4. Mark Expense as Paid
+
+Mark a fixed expense as paid for the current month.
+
+**Endpoint:** `POST /expenses/:id/paid`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Required
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | uint | Yes | Expense ID to mark as paid |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+POST /expenses/123/paid HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partial template with updated expense list
+
+**Payment Record Details:**
+- Month: Current month (1-12)
+- Year: Current year
+- PaidAt: Current timestamp
+- Amount: Expense amount at time of payment
+
+**Side Effects:**
+- Creates `ExpensePayment` record for current month/year
+- If payment already exists for current month/year, no duplicate is created
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Despesa não encontrada" | 404 | Expense not found or user doesn't have access |
+
+**Notes:**
+- Idempotent operation (safe to call multiple times)
+- Only creates one payment record per expense per month/year
+- Payment tracking is independent for each month
+
+---
+
+### 5. Mark Expense as Unpaid
+
+Remove the payment record for an expense in the current month.
+
+**Endpoint:** `POST /expenses/:id/unpaid`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Required
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | uint | Yes | Expense ID to mark as unpaid |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+POST /expenses/123/unpaid HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partial template with updated expense list
+
+**Side Effects:**
+- Deletes `ExpensePayment` record for current month/year
+- If no payment record exists, operation succeeds silently
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Despesa não encontrada" | 404 | Expense not found or user doesn't have access |
+
+**Notes:**
+- Idempotent operation (safe to call multiple times)
+- Only affects payment for current month/year
+- Does not delete the expense itself
+
+---
+
+### 6. Delete Expense
+
+Delete an expense and all associated records.
+
+**Endpoint:** `DELETE /expenses/:id`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Required
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | uint | Yes | Expense ID to delete |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+DELETE /expenses/123 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partial template with updated expense list
+
+**Side Effects:**
+- Deletes expense record
+- Cascading deletes:
+  - All associated `ExpensePayment` records
+  - All associated `ExpenseSplit` records (if split expense)
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Despesa não encontrada" | 404 | Expense not found or user doesn't have access |
+
+**Notes:**
+- Permanent deletion (cannot be undone)
+- Removes all historical payment tracking for this expense
+- Removes all split configurations
+
+---
+
+### 7. Get Account Members
+
+Retrieve members of an account for split expense configuration.
+
+**Endpoint:** `GET /accounts/:accountId/members`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**CSRF Protection:** Not required (read-only operation)
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| accountId | uint | Yes | Account ID to get members for |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /accounts/2/members HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered `partials/split-members.html` with member data
+
+**Response Data Structure:**
+```go
+{
+  "members": []User,           // Account member list
+  "account": Account,          // Account details
+  "isJoint": bool              // Whether account is a joint account
+}
+```
+
+**Error Responses:**
+
+| Error Message | Status Code | Description |
+|--------------|-------------|-------------|
+| "Acesso negado" | 403 | User doesn't have access to specified account |
+| "Conta não encontrada" | 404 | Account ID not found |
+| "Erro ao buscar membros" | 500 | Database error retrieving members |
+
+**Notes:**
+- Used by frontend to populate split expense form
+- Only returns members for joint accounts
+- Individual accounts will return single member (account owner)
+
+---
+
+## Expense Endpoint Security
+
+All expense endpoints enforce the following security measures:
+
+### Authentication & Authorization
+- JWT token validation on every request
+- User can only access expenses for their own accounts
+- Account access validation for multi-user (joint) accounts
+- Automatic fallback to individual account if no account specified
+
+### CSRF Protection
+- POST and DELETE operations require CSRF token
+- Token sent via `X-CSRF-Token` header (HTMX compatible)
+- GET operations (List, GetAccountMembers) do not require CSRF tokens
+
+### Data Validation
+- Account ownership verification before any operation
+- Split percentage validation (must sum to 100%)
+- User membership verification for split expenses
+- Safe handling of zero/negative amounts
+
+### Notifications
+- Automatic notifications for split expenses (joint accounts)
+- Budget alert notifications when limit reached/exceeded
+- Notifications sent to all relevant account members
+
+### Split Expense Rules
+- Only available for joint accounts
+- All split users must be account members
+- Percentages validated server-side
+- Split amounts calculated server-side (never trusted from client)
+
+---
+
+## Expense Data Flow
+
+### Creating Fixed Expense
+1. User submits expense form → `POST /expenses`
+2. Server validates account access
+3. Server determines expense type (fixed vs variable)
+4. Server creates expense record
+5. If split expense:
+   - Server validates split users are account members
+   - Server validates percentages sum to 100%
+   - Server creates split records
+6. Server notifies group members (if joint account)
+7. Server checks budget limit and sends alert if exceeded
+8. Server returns updated expense list as HTMX partial
+9. Client-side HTMX swaps the new list into the page
+
+### Marking Expense as Paid
+1. User clicks "Mark Paid" button → `POST /expenses/:id/paid`
+2. Server verifies expense belongs to user's accounts
+3. Server creates payment record for current month/year
+4. Server returns updated expense list showing paid status
+5. Client-side HTMX updates the UI
+
+### Deleting Expense
+1. User clicks delete button → `DELETE /expenses/:id`
+2. Server verifies expense belongs to user's accounts
+3. Server deletes expense (cascades to payments and splits)
+4. Server returns updated expense list as HTMX partial
+5. Client-side HTMX swaps the new list into the page
+
+### Split Expense Configuration
+1. User selects joint account in expense form
+2. JavaScript triggers → `GET /accounts/:accountId/members`
+3. Server returns member list HTML
+4. Client-side HTMX injects split member inputs
+5. User configures split percentages
+6. User submits form with split data
+7. Server validates and creates expense with splits
+
+---
