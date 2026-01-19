@@ -1,0 +1,234 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="font-display text-3xl sm:text-4xl text-white">Transações Recorrentes</h1>
+            <p class="text-dark-400 mt-2">Gerencie suas transações recorrentes mensais</p>
+        </div>
+        <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3">
+            <div class="text-sm text-center">
+                <p class="text-dark-400">Ativas</p>
+                <p class="font-bold text-brand-400">{{len .activeRecurringTransactions}}</p>
+            </div>
+            <div class="h-8 w-px bg-dark-600"></div>
+            <div class="text-sm text-center">
+                <p class="text-dark-400">Pausadas</p>
+                <p class="font-bold text-dark-500">{{len .pausedRecurringTransactions}}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
+            <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Nova Transação Recorrente
+            </h2>
+        </div>
+        <form hx-post="/recurring" hx-target="#recurring-list" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) this.reset()" class="p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+                    <select name="account_id" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        {{range .accounts}}
+                        <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Tipo</label>
+                    <select name="transaction_type" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        {{range .transactionTypes}}
+                        <option value="{{.}}">{{if eq . "income"}}Receita{{else}}Despesa{{end}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição</label>
+                    <input type="text" name="description" required placeholder="Ex: Salário, Aluguel..."
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (R$)</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500">R$</span>
+                        <input type="number" name="amount" step="0.01" required placeholder="0.00"
+                            class="input-premium w-full rounded-xl pl-10 pr-4 py-3 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Categoria</label>
+                    <input type="text" name="category" placeholder="Ex: Moradia, Alimentação..."
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Frequência</label>
+                    <select name="frequency" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        {{range .frequencies}}
+                        <option value="{{.}}">
+                            {{if eq . "daily"}}Diário
+                            {{else if eq . "weekly"}}Semanal
+                            {{else if eq . "monthly"}}Mensal
+                            {{else}}Anual{{end}}
+                        </option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Início</label>
+                    <input type="date" name="start_date" required
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Fim (Opcional)</label>
+                    <input type="date" name="end_date"
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                </div>
+            </div>
+            <button type="submit" class="btn-primary inline-flex items-center gap-2 text-dark-900 px-6 py-3 rounded-xl font-semibold" hx-disabled-elt="this">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Adicionar Transação Recorrente
+            </button>
+        </form>
+    </div>
+
+    <!-- Lista de Transações Recorrentes -->
+    <div class="space-y-6">
+        <!-- Transações Ativas -->
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Transações Ativas
+                </h2>
+            </div>
+            <div id="recurring-list">
+                {{template "recurring-list" dict "items" .activeRecurringTransactions}}
+            </div>
+        </div>
+
+        <!-- Transações Pausadas -->
+        {{if .pausedRecurringTransactions}}
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Transações Pausadas
+                </h2>
+            </div>
+            {{template "recurring-list" dict "items" .pausedRecurringTransactions}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
+{{define "recurring-list"}}
+<div class="overflow-x-auto">
+    <table class="min-w-full">
+        <thead>
+            <tr class="bg-dark-800/50">
+                <th class="px-6 py-3 text-left text-xs font-semibold text-dark-400 uppercase tracking-wider">Descrição</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-dark-400 uppercase tracking-wider">Tipo</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-dark-400 uppercase tracking-wider">Categoria</th>
+                <th class="px-6 py-3 text-right text-xs font-semibold text-dark-400 uppercase tracking-wider">Valor</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-dark-400 uppercase tracking-wider">Frequência</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-dark-400 uppercase tracking-wider">Próxima</th>
+                <th class="px-6 py-3 text-center text-xs font-semibold text-dark-400 uppercase tracking-wider">Ações</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-dark-700/50">
+            {{range .items}}
+            <tr class="hover:bg-dark-800/30 transition-colors">
+                <td class="px-6 py-4">
+                    <span class="text-sm font-medium text-white">{{.Description}}</span>
+                </td>
+                <td class="px-6 py-4">
+                    {{if eq .TransactionType "income"}}
+                    <span class="text-xs bg-success-500/20 text-success-400 px-2 py-1 rounded-full font-medium">Receita</span>
+                    {{else}}
+                    <span class="text-xs bg-danger-500/20 text-danger-400 px-2 py-1 rounded-full font-medium">Despesa</span>
+                    {{end}}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-sm text-dark-400">{{.Category}}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    {{if eq .TransactionType "income"}}
+                    <span class="text-sm font-bold text-success-400">R$ {{printf "%.2f" .Amount}}</span>
+                    {{else}}
+                    <span class="text-sm font-bold text-danger-400">R$ {{printf "%.2f" .Amount}}</span>
+                    {{end}}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-sm text-dark-300">
+                        {{if eq .Frequency "daily"}}Diário
+                        {{else if eq .Frequency "weekly"}}Semanal
+                        {{else if eq .Frequency "monthly"}}Mensal
+                        {{else}}Anual{{end}}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-sm text-dark-300">{{.NextRunDate.Format "02/01/2006"}}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button hx-post="/recurring/{{.ID}}/toggle" hx-target="#recurring-list" hx-swap="innerHTML"
+                            class="inline-flex items-center gap-1 text-sm {{if .Active}}text-warning-400 hover:text-warning-300{{else}}text-success-400 hover:text-success-300{{end}} font-medium transition-colors">
+                            {{if .Active}}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Pausar
+                            {{else}}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Ativar
+                            {{end}}
+                        </button>
+                        <button hx-delete="/recurring/{{.ID}}" hx-target="#recurring-list" hx-swap="innerHTML"
+                            hx-confirm="Tem certeza que deseja excluir esta transação recorrente?"
+                            class="inline-flex items-center gap-1 text-sm text-danger-400 hover:text-danger-300 font-medium transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Excluir
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 bg-dark-700/50 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                        <p class="text-dark-300 font-medium">Nenhuma transação recorrente</p>
+                        <p class="text-sm text-dark-500 mt-1">Adicione sua primeira transação recorrente acima</p>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

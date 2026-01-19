@@ -71,6 +71,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/goals.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
+	case strings.Contains(baseName, "recurring"):
+		templateFile = "internal/templates/recurring.html"
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
@@ -130,6 +132,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/group-dashboard.html",
 		"internal/templates/goals.html",
 		"internal/templates/notifications.html",
+		"internal/templates/recurring.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -157,11 +160,46 @@ func loadTemplates() *TemplateRegistry {
 	return &TemplateRegistry{templates: templates, funcMap: funcMap}
 }
 
+// startRecurringScheduler runs the recurring transaction scheduler in the background
+// It checks for due transactions daily at midnight
+func startRecurringScheduler(schedulerService *services.RecurringSchedulerService) {
+	log.Println("Starting recurring transaction scheduler...")
+
+	// Run immediately on startup
+	if err := schedulerService.ProcessDueTransactions(); err != nil {
+		log.Printf("Error processing due transactions on startup: %v", err)
+	}
+
+	// Calculate time until next midnight
+	now := time.Now()
+	nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	durationUntilMidnight := nextMidnight.Sub(now)
+
+	// Wait until midnight
+	time.Sleep(durationUntilMidnight)
+
+	// Then run every 24 hours
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		log.Println("Running scheduled check for due recurring transactions...")
+		if err := schedulerService.ProcessDueTransactions(); err != nil {
+			log.Printf("Error processing due transactions: %v", err)
+		}
+		<-ticker.C
+	}
+}
+
 func main() {
 	// Inicializa banco de dados
 	if err := database.Init(); err != nil {
 		log.Fatalf("Erro ao inicializar banco de dados: %v", err)
 	}
+
+	// Start recurring transaction scheduler
+	schedulerService := services.NewRecurringSchedulerService()
+	go startRecurringScheduler(schedulerService)
 
 	// Inicializa Echo
 	e := echo.New()
@@ -215,6 +253,7 @@ func main() {
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
+	recurringHandler := handlers.NewRecurringTransactionHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -306,6 +345,13 @@ func main() {
 	protected.POST("/notifications/:id/read", notificationHandler.MarkAsRead)
 	protected.POST("/notifications/mark-all-read", notificationHandler.MarkAllAsRead)
 	protected.DELETE("/notifications/:id", notificationHandler.Delete)
+
+	// Recurring Transactions
+	protected.GET("/recurring", recurringHandler.List)
+	protected.POST("/recurring", recurringHandler.Create)
+	protected.POST("/recurring/:id", recurringHandler.Update)
+	protected.DELETE("/recurring/:id", recurringHandler.Delete)
+	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
