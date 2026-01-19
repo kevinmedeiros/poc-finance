@@ -160,11 +160,46 @@ func loadTemplates() *TemplateRegistry {
 	return &TemplateRegistry{templates: templates, funcMap: funcMap}
 }
 
+// startRecurringScheduler runs the recurring transaction scheduler in the background
+// It checks for due transactions daily at midnight
+func startRecurringScheduler(schedulerService *services.RecurringSchedulerService) {
+	log.Println("Starting recurring transaction scheduler...")
+
+	// Run immediately on startup
+	if err := schedulerService.ProcessDueTransactions(); err != nil {
+		log.Printf("Error processing due transactions on startup: %v", err)
+	}
+
+	// Calculate time until next midnight
+	now := time.Now()
+	nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	durationUntilMidnight := nextMidnight.Sub(now)
+
+	// Wait until midnight
+	time.Sleep(durationUntilMidnight)
+
+	// Then run every 24 hours
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		log.Println("Running scheduled check for due recurring transactions...")
+		if err := schedulerService.ProcessDueTransactions(); err != nil {
+			log.Printf("Error processing due transactions: %v", err)
+		}
+		<-ticker.C
+	}
+}
+
 func main() {
 	// Inicializa banco de dados
 	if err := database.Init(); err != nil {
 		log.Fatalf("Erro ao inicializar banco de dados: %v", err)
 	}
+
+	// Start recurring transaction scheduler
+	schedulerService := services.NewRecurringSchedulerService()
+	go startRecurringScheduler(schedulerService)
 
 	// Inicializa Echo
 	e := echo.New()

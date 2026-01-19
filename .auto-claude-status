@@ -3,13 +3,13 @@
   "spec": "031-recurring-transactions",
   "state": "building",
   "subtasks": {
-    "completed": 3,
+    "completed": 8,
     "total": 13,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "API Handlers",
+    "current": "Background Scheduler",
     "id": null,
     "total": 2
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 5,
+    "number": 10,
     "started_at": "2026-01-19T11:37:51.502651"
   },
-  "last_update": "2026-01-19T11:46:32.268880"
+  "last_update": "2026-01-19T11:58:08.405419"
 }
