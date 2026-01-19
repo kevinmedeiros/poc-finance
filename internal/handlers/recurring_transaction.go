@@ -137,7 +137,7 @@ func (h *RecurringTransactionHandler) Create(c echo.Context) error {
 	database.DB.Preload("Account").Where("account_id IN ? AND active = ?", accountIDs, true).Order("next_run_date ASC").Find(&activeRecurringTransactions)
 
 	return c.Render(http.StatusOK, "partials/recurring-list.html", map[string]interface{}{
-		"activeRecurringTransactions": activeRecurringTransactions,
+		"items": activeRecurringTransactions,
 	})
 }
 
@@ -226,7 +226,7 @@ func (h *RecurringTransactionHandler) Update(c echo.Context) error {
 	database.DB.Preload("Account").Where("account_id IN ? AND active = ?", accountIDs, true).Order("next_run_date ASC").Find(&activeRecurringTransactions)
 
 	return c.Render(http.StatusOK, "partials/recurring-list.html", map[string]interface{}{
-		"activeRecurringTransactions": activeRecurringTransactions,
+		"items": activeRecurringTransactions,
 	})
 }
 
@@ -251,7 +251,7 @@ func (h *RecurringTransactionHandler) Delete(c echo.Context) error {
 	database.DB.Preload("Account").Where("account_id IN ? AND active = ?", accountIDs, true).Order("next_run_date ASC").Find(&activeRecurringTransactions)
 
 	return c.Render(http.StatusOK, "partials/recurring-list.html", map[string]interface{}{
-		"activeRecurringTransactions": activeRecurringTransactions,
+		"items": activeRecurringTransactions,
 	})
 }
 
@@ -269,15 +269,11 @@ func (h *RecurringTransactionHandler) Toggle(c echo.Context) error {
 	recurringTransaction.Active = !recurringTransaction.Active
 	database.DB.Save(&recurringTransaction)
 
-	// Return updated lists (both active and paused)
+	// Return updated active list
 	var activeRecurringTransactions []models.RecurringTransaction
-	var pausedRecurringTransactions []models.RecurringTransaction
-
 	database.DB.Preload("Account").Where("account_id IN ? AND active = ?", accountIDs, true).Order("next_run_date ASC").Find(&activeRecurringTransactions)
-	database.DB.Preload("Account").Where("account_id IN ? AND active = ?", accountIDs, false).Order("next_run_date ASC").Find(&pausedRecurringTransactions)
 
 	return c.Render(http.StatusOK, "partials/recurring-list.html", map[string]interface{}{
-		"activeRecurringTransactions": activeRecurringTransactions,
-		"pausedRecurringTransactions": pausedRecurringTransactions,
+		"items": activeRecurringTransactions,
 	})
 }
