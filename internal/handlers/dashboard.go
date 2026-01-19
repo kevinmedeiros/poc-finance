@@ -16,11 +16,13 @@ import (
 
 type DashboardHandler struct {
 	accountService *services.AccountService
+	cacheService   *services.SettingsCacheService
 }
 
-func NewDashboardHandler() *DashboardHandler {
+func NewDashboardHandler(cacheService *services.SettingsCacheService) *DashboardHandler {
 	return &DashboardHandler{
 		accountService: services.NewAccountService(),
+		cacheService:   cacheService,
 	}
 }
 
@@ -106,7 +108,7 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	bracket, rate, _ := services.GetBracketInfo(revenue12M)
 
 	// Busca configurações de INSS
-	settingsData := GetSettingsData()
+	settingsData := h.cacheService.GetSettingsData()
 
 	// Calcula totais
 	totalImpostos := currentSummary.TotalTax + settingsData.INSSAmount
