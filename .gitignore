@@ -27,6 +27,7 @@ vendor/
 *.swo
 *~
 .DS_Store
+.claude_settings.json
 
 # Database files
 *.db
@@ -58,10 +59,13 @@ tasks/
 tmp/
 temp/
 *.tmp
+test_*.txt
 
 # Build artifacts
 dist/
 build/
+server
+poc-finance
 
 # OS generated files
 Thumbs.db
@@ -70,3 +74,4 @@ Desktop.ini
 
 # Auto Claude data directory
 .auto-claude/
+.auto-claude-*
