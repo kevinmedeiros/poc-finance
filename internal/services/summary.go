@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"poc-finance/internal/i18n"
 	"poc-finance/internal/models"
 )
 
@@ -22,28 +23,13 @@ type MonthlySummary struct {
 	Balance          float64   `json:"balance"`
 }
 
-var monthNames = map[time.Month]string{
-	time.January:   "Janeiro",
-	time.February:  "Fevereiro",
-	time.March:     "Março",
-	time.April:     "Abril",
-	time.May:       "Maio",
-	time.June:      "Junho",
-	time.July:      "Julho",
-	time.August:    "Agosto",
-	time.September: "Setembro",
-	time.October:   "Outubro",
-	time.November:  "Novembro",
-	time.December:  "Dezembro",
-}
-
 func GetMonthlySummary(db *gorm.DB, year int, month int) MonthlySummary {
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
 
 	summary := MonthlySummary{
 		Month:     startDate,
-		MonthName: monthNames[time.Month(month)] + " " + string(rune(year)),
+		MonthName: i18n.MonthNames[time.Month(month)] + " " + string(rune(year)),
 	}
 
 	// Total de recebimentos
@@ -389,7 +375,7 @@ func GetMonthlySummaryForAccounts(db *gorm.DB, year int, month int, accountIDs [
 
 	summary := MonthlySummary{
 		Month:     startDate,
-		MonthName: monthNames[time.Month(month)] + " " + string(rune(year)),
+		MonthName: i18n.MonthNames[time.Month(month)] + " " + string(rune(year)),
 	}
 
 	if len(accountIDs) == 0 {
