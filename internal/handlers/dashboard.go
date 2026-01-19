@@ -66,17 +66,16 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	// Resumo do mês atual
 	currentSummary := services.GetMonthlySummaryForAccounts(database.DB, year, month, accountIDs)
 
-	// Projeção dos próximos 6 meses
-	var monthSummaries []services.MonthlySummary
-	for i := 0; i < 6; i++ {
-		m := month + i
-		y := year
-		if m > 12 {
-			m -= 12
-			y++
-		}
-		monthSummaries = append(monthSummaries, services.GetMonthlySummaryForAccounts(database.DB, y, m, accountIDs))
+	// Projeção dos próximos 6 meses - usando batch query para melhor performance
+	// Calculate end month/year for 6-month range
+	endMonth := month + 5
+	endYear := year
+	if endMonth > 12 {
+		endMonth -= 12
+		endYear++
 	}
+	// Fetch all 6 months in a single batch call (5 queries total instead of 6x5=30)
+	monthSummaries := services.GetBatchMonthlySummariesForAccounts(database.DB, year, month, endYear, endMonth, accountIDs)
 
 	// Faturamento 12 meses e faixa atual
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
