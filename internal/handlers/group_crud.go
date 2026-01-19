@@ -24,6 +24,30 @@ func NewGroupCrudHandler() *GroupCrudHandler {
 	}
 }
 
+// renderGroupList is a helper method to fetch and render the updated group list
+func (h *GroupCrudHandler) renderGroupList(c echo.Context, userID uint) error {
+	var groups []models.FamilyGroup
+	database.DB.
+		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
+		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
+		Preload("Members").
+		Preload("Members.User").
+		Find(&groups)
+
+	// Get joint accounts for each group
+	groupAccounts := make(map[uint][]models.Account)
+	for _, g := range groups {
+		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
+		groupAccounts[g.ID] = accounts
+	}
+
+	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
+		"groups":        groups,
+		"userID":        userID,
+		"groupAccounts": groupAccounts,
+	})
+}
+
 type CreateGroupRequest struct {
 	Name        string `form:"name"`
 	Description string `form:"description"`
@@ -89,26 +113,7 @@ func (h *GroupCrudHandler) Create(c echo.Context) error {
 	}
 
 	// Return updated list
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	// Get joint accounts for each group
-	groupAccounts := make(map[uint][]models.Account)
-	for _, g := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
-		groupAccounts[g.ID] = accounts
-	}
-
-	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
-		"groups":        groups,
-		"userID":        userID,
-		"groupAccounts": groupAccounts,
-	})
+	return h.renderGroupList(c, userID)
 }
 
 func (h *GroupCrudHandler) LeaveGroup(c echo.Context) error {
@@ -130,26 +135,7 @@ func (h *GroupCrudHandler) LeaveGroup(c echo.Context) error {
 	}
 
 	// Return updated list
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	// Get joint accounts for each group
-	groupAccounts := make(map[uint][]models.Account)
-	for _, g := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
-		groupAccounts[g.ID] = accounts
-	}
-
-	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
-		"groups":        groups,
-		"userID":        userID,
-		"groupAccounts": groupAccounts,
-	})
+	return h.renderGroupList(c, userID)
 }
 
 // DeleteGroup deletes a group (only admin can delete)
@@ -168,25 +154,7 @@ func (h *GroupCrudHandler) DeleteGroup(c echo.Context) error {
 	}
 
 	// Return updated list
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	groupAccounts := make(map[uint][]models.Account)
-	for _, g := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
-		groupAccounts[g.ID] = accounts
-	}
-
-	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
-		"groups":        groups,
-		"userID":        userID,
-		"groupAccounts": groupAccounts,
-	})
+	return h.renderGroupList(c, userID)
 }
 
 // RemoveMember removes a member from the group (only admin can remove)
@@ -214,23 +182,5 @@ func (h *GroupCrudHandler) RemoveMember(c echo.Context) error {
 	}
 
 	// Return updated list
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	groupAccounts := make(map[uint][]models.Account)
-	for _, g := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
-		groupAccounts[g.ID] = accounts
-	}
-
-	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
-		"groups":        groups,
-		"userID":        userID,
-		"groupAccounts": groupAccounts,
-	})
+	return h.renderGroupList(c, userID)
 }
