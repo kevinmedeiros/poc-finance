@@ -145,6 +145,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	// Authenticate user
 	_, accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, services.ErrAccountLocked) {
+			return c.Render(http.StatusOK, "login.html", map[string]interface{}{
+				"error":    "Conta bloqueada temporariamente devido a múltiplas tentativas de login. Tente novamente em 15 minutos.",
+				"email":    req.Email,
+				"redirect": req.Redirect,
+			})
+		}
 		return c.Render(http.StatusOK, "login.html", map[string]interface{}{
 			"error":    "Email ou senha incorretos",
 			"email":    req.Email,
