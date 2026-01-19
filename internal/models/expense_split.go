@@ -2,7 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
-// ExpenseSplit representa a divisão de uma despesa entre membros do grupo
+// ExpenseSplit represents the division of an expense between group members
 type ExpenseSplit struct {
 	gorm.Model
 	ExpenseID  uint    `json:"expense_id" gorm:"not null;index"`
