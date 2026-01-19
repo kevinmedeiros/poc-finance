@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// User represents a registered user in the system.
+// It stores core user information including authentication credentials
+// and is the primary entity for user management and authentication.
 type User struct {
 	gorm.Model
 	Email        string `json:"email" gorm:"uniqueIndex;not null"`
@@ -17,6 +20,9 @@ func (u *User) TableName() string {
 	return "users"
 }
 
+// RefreshToken represents a long-lived token used to obtain new access tokens.
+// It enables users to maintain authenticated sessions without repeatedly
+// providing credentials, and can be revoked for security purposes.
 type RefreshToken struct {
 	gorm.Model
 	UserID    uint      `json:"user_id" gorm:"not null;index"`
@@ -29,10 +35,14 @@ func (r *RefreshToken) TableName() string {
 	return "refresh_tokens"
 }
 
+// IsExpired checks whether the refresh token has passed its expiration time.
 func (r *RefreshToken) IsExpired() bool {
 	return time.Now().After(r.ExpiresAt)
 }
 
+// PasswordResetToken represents a one-time use token for resetting user passwords.
+// It includes expiration time and usage tracking to ensure secure password recovery.
+// Once used or expired, the token becomes invalid.
 type PasswordResetToken struct {
 	gorm.Model
 	UserID    uint      `json:"user_id" gorm:"not null;index"`
@@ -46,6 +56,7 @@ func (p *PasswordResetToken) TableName() string {
 	return "password_reset_tokens"
 }
 
+// IsExpired checks whether the password reset token has passed its expiration time.
 func (p *PasswordResetToken) IsExpired() bool {
 	return time.Now().After(p.ExpiresAt)
 }
