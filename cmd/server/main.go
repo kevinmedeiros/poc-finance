@@ -197,6 +197,10 @@ func main() {
 		log.Fatalf("Erro ao inicializar banco de dados: %v", err)
 	}
 
+	// Initialize settings cache service
+	settingsCacheService := services.NewSettingsCacheService()
+	_ = settingsCacheService // Will be used when integrating with handlers
+
 	// Start recurring transaction scheduler
 	schedulerService := services.NewRecurringSchedulerService()
 	go startRecurringScheduler(schedulerService)
