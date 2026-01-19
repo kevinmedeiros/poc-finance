@@ -43,6 +43,7 @@ func Init() error {
 		&models.GroupGoal{},
 		&models.GoalContribution{},
 		&models.Notification{},
+		&models.RecurringTransaction{},
 	)
 	if err != nil {
 		return err
