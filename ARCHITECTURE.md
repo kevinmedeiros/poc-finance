@@ -521,7 +521,324 @@ func main() {
 }
 ```
 
-### 4. HTMX Partial Rendering
+### 4. Services Layer
+
+The **Services Layer** (Business Logic Layer) encapsulates complex business operations, coordinates multiple models, and implements domain logic that doesn't belong in handlers or models. Services sit between handlers and models, providing reusable business operations.
+
+#### Purpose and Responsibilities
+
+Services handle:
+- **Complex Business Logic**: Multi-step operations, calculations, validations
+- **Transaction Orchestration**: Coordinating multiple model operations atomically
+- **Cross-Cutting Concerns**: Authentication, notifications, background jobs
+- **Business Rule Enforcement**: Implementing domain-specific rules
+- **External Integrations**: Third-party APIs, email, file storage
+
+#### Service Structure Pattern
+
+All services follow this structure:
+
+```go
+// Custom error definitions for business logic
+var (
+    ErrInvalidCredentials = errors.New("credenciais inválidas")
+    ErrUserExists         = errors.New("email já cadastrado")
+    ErrUserNotFound       = errors.New("usuário não encontrado")
+)
+
+// Configuration constants
+const (
+    AccessTokenDuration  = 15 * time.Minute
+    RefreshTokenDuration = 7 * 24 * time.Hour
+    BcryptCost          = 12
+)
+
+// Service struct (may hold dependencies)
+type AuthService struct {
+    // Dependencies injected via constructor (if needed)
+    // db *gorm.DB
+    // emailService *EmailService
+}
+
+// Constructor for dependency injection
+func NewAuthService() *AuthService {
+    return &AuthService{}
+}
+```
+
+**Key Patterns:**
+1. **Custom Errors**: Define business-specific errors for meaningful error handling
+2. **Constants**: Centralize configuration values (timeouts, limits, defaults)
+3. **Struct-based Services**: Organize related operations into a service
+4. **Constructor Functions**: Use `NewXxxService()` for initialization
+
+#### Real-World Example: Authentication Service
+
+The `AuthService` demonstrates the services layer pattern with authentication and user management:
+
+**1. Password Security Operations**
+```go
+// HashPassword creates a bcrypt hash of the password
+func (s *AuthService) HashPassword(password string) (string, error) {
+    hash, err := bcrypt.GenerateFromPassword([]byte(password), BcryptCost)
+    if err != nil {
+        return "", err
+    }
+    return string(hash), nil
+}
+
+// CheckPassword compares a password with its hash
+func (s *AuthService) CheckPassword(password, hash string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
+}
+```
+
+**Business Logic**: Encapsulates password hashing algorithm and cost factor, providing a consistent interface for password operations.
+
+**2. Token Generation (JWT)**
+```go
+// GenerateAccessToken creates a new JWT access token
+func (s *AuthService) GenerateAccessToken(user *models.User) (string, error) {
+    claims := &Claims{
+        UserID: user.ID,
+        Email:  user.Email,
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenDuration)),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+            Subject:   user.Email,
+        },
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(JWTSecret)
+}
+```
+
+**Business Logic**: Handles JWT token creation with appropriate claims, expiration, and signing. Centralizes token generation logic used across authentication flows.
+
+**3. Token Validation**
+```go
+// ValidateAccessToken validates and parses a JWT access token
+func (s *AuthService) ValidateAccessToken(tokenString string) (*Claims, error) {
+    token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, ErrTokenInvalid
+        }
+        return JWTSecret, nil
+    })
+
+    if err != nil {
+        if errors.Is(err, jwt.ErrTokenExpired) {
+            return nil, ErrTokenExpired
+        }
+        return nil, ErrTokenInvalid
+    }
+
+    claims, ok := token.Claims.(*Claims)
+    if !ok || !token.Valid {
+        return nil, ErrTokenInvalid
+    }
+
+    return claims, nil
+}
+```
+
+**Business Logic**: Validates JWT signature, expiration, and format. Returns custom errors for different failure scenarios.
+
+**4. Coordinating Multiple Models (Transaction Orchestration)**
+```go
+// Register creates a new user account
+func (s *AuthService) Register(email, password, name string) (*models.User, error) {
+    // Check if user already exists
+    var existingUser models.User
+    if err := database.DB.Where("email = ?", email).First(&existingUser).Error; err == nil {
+        return nil, ErrUserExists
+    }
+
+    // Hash password
+    hash, err := s.HashPassword(password)
+    if err != nil {
+        return nil, err
+    }
+
+    // Create user
+    user := &models.User{
+        Email:        email,
+        PasswordHash: hash,
+        Name:         name,
+    }
+
+    if err := database.DB.Create(user).Error; err != nil {
+        return nil, err
+    }
+
+    // Auto-create individual account for the user (private data by default)
+    account := &models.Account{
+        Name:   "Conta Pessoal",
+        Type:   models.AccountTypeIndividual,
+        UserID: user.ID,
+    }
+
+    if err := database.DB.Create(account).Error; err != nil {
+        // Rollback user creation if account creation fails
+        database.DB.Delete(user)
+        return nil, err
+    }
+
+    return user, nil
+}
+```
+
+**Business Logic**:
+- **Multi-step Operation**: Check user existence → Hash password → Create user → Create default account
+- **Transaction Orchestration**: Coordinates User and Account models
+- **Error Handling**: Returns business-specific errors
+- **Rollback Logic**: Manually rolls back user if account creation fails
+- **Business Rule**: "Every new user gets a personal account automatically"
+
+**5. Refresh Token Management (Database Coordination)**
+```go
+// GenerateRefreshToken creates a new refresh token and stores it in database
+func (s *AuthService) GenerateRefreshToken(user *models.User) (string, error) {
+    // Generate random token
+    bytes := make([]byte, 32)
+    if _, err := rand.Read(bytes); err != nil {
+        return "", err
+    }
+    tokenString := hex.EncodeToString(bytes)
+
+    // Store in database
+    refreshToken := &models.RefreshToken{
+        UserID:    user.ID,
+        Token:     tokenString,
+        ExpiresAt: time.Now().Add(RefreshTokenDuration),
+    }
+
+    if err := database.DB.Create(refreshToken).Error; err != nil {
+        return "", err
+    }
+
+    return tokenString, nil
+}
+
+// ValidateRefreshToken validates a refresh token from database
+func (s *AuthService) ValidateRefreshToken(tokenString string) (*models.User, error) {
+    var refreshToken models.RefreshToken
+    if err := database.DB.Where("token = ?", tokenString).Preload("User").First(&refreshToken).Error; err != nil {
+        return nil, ErrTokenInvalid
+    }
+
+    if refreshToken.IsExpired() {
+        // Delete expired token
+        database.DB.Delete(&refreshToken)
+        return nil, ErrTokenExpired
+    }
+
+    return &refreshToken.User, nil
+}
+```
+
+**Business Logic**:
+- **Token Generation**: Creates cryptographically secure random tokens
+- **Database Coordination**: Stores tokens with expiration tracking
+- **Automatic Cleanup**: Deletes expired tokens on validation attempt
+- **Preloading**: Efficiently loads related User data
+
+#### Service Layer Benefits
+
+**1. Reusability**
+Services can be called from multiple handlers:
+```go
+// Used in login handler
+authService.Login(email, password)
+
+// Used in password reset handler
+authService.ResetPassword(token, newPassword)
+
+// Used in token refresh handler
+authService.RefreshTokens(refreshToken)
+```
+
+**2. Testability**
+Services can be unit tested independently of HTTP layer:
+```go
+func TestAuthService_Register(t *testing.T) {
+    service := services.NewAuthService()
+
+    user, err := service.Register("test@example.com", "password123", "Test User")
+
+    assert.NoError(t, err)
+    assert.Equal(t, "test@example.com", user.Email)
+    // Verify user and account were created...
+}
+```
+
+**3. Separation of Concerns**
+- **Handlers**: HTTP concerns (request/response, validation, rendering)
+- **Services**: Business logic (authentication, calculations, orchestration)
+- **Models**: Data persistence (CRUD, relationships, queries)
+
+**4. Business Rule Centralization**
+All business rules live in one place:
+```go
+// Business rule: Token expiration times
+const AccessTokenDuration = 15 * time.Minute
+
+// Business rule: Password requirements enforced
+func (s *AuthService) ValidatePassword(password string) error {
+    if len(password) < 8 {
+        return errors.New("senha deve ter pelo menos 8 caracteres")
+    }
+    // Additional rules...
+}
+```
+
+#### Other Service Examples in the Application
+
+**AccountService** (`internal/services/account.go`)
+- Calculates account balances
+- Aggregates income/expense data
+- Handles account ownership verification
+
+**GroupService** (`internal/services/group.go`)
+- Manages group invitations
+- Handles member operations (add, remove)
+- Coordinates expense splits
+
+**NotificationService** (`internal/services/notification.go`)
+- Creates notifications for events
+- Handles notification delivery
+- Manages notification preferences
+
+**RecurringSchedulerService** (`internal/services/recurring_scheduler.go`)
+- Background job processing
+- Generates transactions from recurring templates
+- Updates next run dates
+- Sends automated notifications
+
+**SummaryService** (`internal/services/summary.go`)
+- Generates financial summaries
+- Calculates category breakdowns
+- Produces reports and analytics
+
+#### When to Create a Service
+
+Create a service when:
+1. **Operation involves multiple models** (e.g., creating user + account)
+2. **Complex business logic** (e.g., tax calculations, balance aggregations)
+3. **Background processing** (e.g., schedulers, batch jobs)
+4. **External integrations** (e.g., email, payment gateways)
+5. **Reusable operations** (e.g., authentication used across many handlers)
+
+Don't create a service for:
+- Simple CRUD operations (use models directly)
+- Single-model operations (belongs in model)
+- Presentation logic (belongs in handlers/templates)
+
+---
+
+### 5. HTMX Partial Rendering
 
 The application uses HTMX for dynamic updates without full page reloads:
 
@@ -543,7 +860,7 @@ HTMX swaps partial into DOM
 - Server-side rendering (no complex JavaScript)
 - Progressive enhancement
 
-### 4. Background Scheduler
+### 6. Background Scheduler
 
 Recurring transactions are processed by a background goroutine:
 
