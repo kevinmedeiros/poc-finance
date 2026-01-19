@@ -242,7 +242,7 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 		key := currentDate.Format("2006-01")
 		summaryMap[key] = &MonthlySummary{
 			Month:     time.Date(currentDate.Year(), currentDate.Month(), 1, 0, 0, 0, 0, time.Local),
-			MonthName: monthNames[currentDate.Month()] + " " + string(rune(currentDate.Year())),
+			MonthName: i18n.MonthNames[currentDate.Month()] + " " + string(rune(currentDate.Year())),
 		}
 		currentDate = currentDate.AddDate(0, 1, 0)
 
