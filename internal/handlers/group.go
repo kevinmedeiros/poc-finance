@@ -112,20 +112,7 @@ func (h *GroupHandler) Create(c echo.Context) error {
 	}
 
 	// Return updated list
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	// Get joint accounts for each group
-	groupAccounts := make(map[uint][]models.Account)
-	for _, g := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(g.ID)
-		groupAccounts[g.ID] = accounts
-	}
+	groups, groupAccounts := h.getUserGroupsWithAccounts(userID)
 
 	return c.Render(http.StatusOK, "partials/group-list.html", map[string]interface{}{
 		"groups":        groups,
