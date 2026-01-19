@@ -36,6 +36,8 @@ func SetupTestDB() *gorm.DB {
 		&models.GroupInvite{},
 		&models.Income{},
 		&models.Expense{},
+		&models.ExpensePayment{},
+		&models.ExpenseSplit{},
 		&models.Bill{},
 		&models.CreditCard{},
 		&models.Installment{},
