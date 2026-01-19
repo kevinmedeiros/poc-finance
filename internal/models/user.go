@@ -15,13 +15,24 @@ import (
 // and is the primary entity for user management and authentication.
 type User struct {
 	gorm.Model
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
-	PasswordHash string `json:"-" gorm:"not null"`
-	Name         string `json:"name" gorm:"not null"`
+	Email               string     `json:"email" gorm:"uniqueIndex;not null"`
+	PasswordHash        string     `json:"-" gorm:"not null"`
+	Name                string     `json:"name" gorm:"not null"`
+	FailedLoginAttempts int        `json:"failed_login_attempts" gorm:"default:0"`
+	LockedUntil         *time.Time `json:"locked_until,omitempty"`
+	LastFailedLoginAt   *time.Time `json:"last_failed_login_at,omitempty"`
 }
 
 func (u *User) TableName() string {
 	return "users"
+}
+
+// IsLocked checks whether the user account is currently locked due to failed login attempts.
+func (u *User) IsLocked() bool {
+	if u.LockedUntil == nil {
+		return false
+	}
+	return time.Now().Before(*u.LockedUntil)
 }
 
 // RefreshToken represents a long-lived token used to obtain new access tokens.
