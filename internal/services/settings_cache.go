@@ -82,9 +82,15 @@ func (s *SettingsCacheService) InvalidateCache() {
 // fetchSettingsFromDB queries the database for all settings and calculates derived values
 func (s *SettingsCacheService) fetchSettingsFromDB() SettingsData {
 	data := SettingsData{
-		ProLabore:   getSettingFloat(models.SettingProLabore),
-		INSSCeiling: getSettingFloat(models.SettingINSSCeiling),
-		INSSRate:    getSettingFloat(models.SettingINSSRate),
+		ProLabore:              getSettingFloat(models.SettingProLabore),
+		INSSCeiling:            getSettingFloat(models.SettingINSSCeiling),
+		INSSRate:               getSettingFloat(models.SettingINSSRate),
+		BudgetWarningThreshold: getSettingFloat(models.SettingBudgetWarningThreshold),
+	}
+
+	// Default to 100% if threshold is not set or is 0
+	if data.BudgetWarningThreshold == 0 {
+		data.BudgetWarningThreshold = 100
 	}
 
 	// Calculate INSS amount

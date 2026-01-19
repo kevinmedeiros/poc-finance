@@ -14,14 +14,16 @@ import (
 )
 
 type ExpenseHandler struct {
-	accountService      *services.AccountService
-	notificationService *services.NotificationService
+	accountService       *services.AccountService
+	notificationService  *services.NotificationService
+	settingsCacheService *services.SettingsCacheService
 }
 
-func NewExpenseHandler() *ExpenseHandler {
+func NewExpenseHandler(settingsCacheService *services.SettingsCacheService) *ExpenseHandler {
 	return &ExpenseHandler{
-		accountService:      services.NewAccountService(),
-		notificationService: services.NewNotificationService(),
+		accountService:       services.NewAccountService(),
+		notificationService:  services.NewNotificationService(),
+		settingsCacheService: settingsCacheService,
 	}
 }
 
@@ -239,8 +241,12 @@ func (h *ExpenseHandler) checkBudgetLimit(accountID uint) {
 	budgetLimit := *balance.Account.BudgetLimit
 	percentage := (balance.TotalExpenses / budgetLimit) * 100
 
-	// Only notify if expenses reach or exceed 100% of budget
-	if percentage < 100 {
+	// Get configurable threshold from settings (defaults to 100%)
+	settings := h.settingsCacheService.GetSettingsData()
+	threshold := settings.BudgetWarningThreshold
+
+	// Only notify if expenses reach or exceed the configured threshold
+	if percentage < threshold {
 		return
 	}
 
