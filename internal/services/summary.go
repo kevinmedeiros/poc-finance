@@ -338,6 +338,12 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 	return result
 }
 
+// GetMonthlySummaryForAccounts retorna o resumo mensal para contas específicas.
+// Esta função executa 5 queries separadas (incomes, fixed expenses, variable expenses, credit cards, bills).
+//
+// Deprecated: Para buscar múltiplos meses, use GetBatchMonthlySummariesForAccounts que é 2-3x mais rápido
+// e reduz significativamente o número de queries (5 queries totais vs 5 queries por mês).
+// Esta função ainda é útil quando você precisa de apenas um único mês específico.
 func GetMonthlySummaryForAccounts(db *gorm.DB, year int, month int, accountIDs []uint) MonthlySummary {
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
