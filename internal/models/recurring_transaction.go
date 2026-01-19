@@ -6,22 +6,35 @@ import (
 	"gorm.io/gorm"
 )
 
+// TransactionType represents the direction of a recurring transaction
 type TransactionType string
 
 const (
+	// TransactionTypeExpense represents money flowing out of the account (bills, subscriptions, etc.)
 	TransactionTypeExpense TransactionType = "expense"
+	// TransactionTypeIncome represents money flowing into the account (salary, recurring payments, etc.)
 	TransactionTypeIncome  TransactionType = "income"
 )
 
+// Frequency represents how often a recurring transaction repeats
 type Frequency string
 
 const (
+	// FrequencyDaily represents transactions that occur every day
 	FrequencyDaily   Frequency = "daily"
+	// FrequencyWeekly represents transactions that occur every week
 	FrequencyWeekly  Frequency = "weekly"
+	// FrequencyMonthly represents transactions that occur every month
 	FrequencyMonthly Frequency = "monthly"
+	// FrequencyYearly represents transactions that occur every year
 	FrequencyYearly  Frequency = "yearly"
 )
 
+// RecurringTransaction represents an automated transaction that repeats on a regular schedule.
+// Recurring transactions are used to track predictable income (salary, rental income) and
+// expenses (subscriptions, bills, loan payments) that occur at fixed intervals. The system
+// uses NextRunDate to automatically generate transactions when they become due.
+// Transactions can be configured with optional end dates and can be activated or deactivated.
 type RecurringTransaction struct {
 	gorm.Model
 	AccountID       uint            `json:"account_id" gorm:"not null;index"`
