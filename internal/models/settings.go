@@ -23,4 +23,6 @@ const (
 	SettingINSSCeiling = "inss_ceiling"
 	// SettingINSSRate represents the INSS contribution rate (default 11%)
 	SettingINSSRate = "inss_rate"
+	// SettingBudgetWarningThreshold represents the budget warning threshold percentage for alerts
+	SettingBudgetWarningThreshold = "budget_warning_threshold"
 )
