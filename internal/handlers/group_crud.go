@@ -24,6 +24,11 @@ func NewGroupCrudHandler() *GroupCrudHandler {
 	}
 }
 
+type CreateGroupRequest struct {
+	Name        string `form:"name"`
+	Description string `form:"description"`
+}
+
 func (h *GroupCrudHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 
