@@ -6,6 +6,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// FamilyGroup represents a family or household group for shared financial management.
+// Groups allow multiple users to collaborate on budgets, expenses, and financial goals.
 type FamilyGroup struct {
 	gorm.Model
 	Name        string        `json:"name" gorm:"not null"`
@@ -19,6 +21,9 @@ func (g *FamilyGroup) TableName() string {
 	return "family_groups"
 }
 
+// GroupMember represents a user's membership in a family group.
+// Each member has a role that determines their permissions within the group.
+// Valid roles are "admin" (can manage group settings and members) or "member" (can view and contribute).
 type GroupMember struct {
 	gorm.Model
 	GroupID uint        `json:"group_id" gorm:"not null;index"`
@@ -32,6 +37,9 @@ func (m *GroupMember) TableName() string {
 	return "group_members"
 }
 
+// GroupInvite represents an invitation code for joining a family group.
+// Invites can be configured with expiration dates, usage limits, and can be revoked.
+// A MaxUses value of 0 means the invite has unlimited uses until it expires or is revoked.
 type GroupInvite struct {
 	gorm.Model
 	Code        string      `json:"code" gorm:"uniqueIndex;not null"`
@@ -49,6 +57,8 @@ func (i *GroupInvite) TableName() string {
 	return "group_invites"
 }
 
+// IsValid checks if the invite can still be used to join the group.
+// Returns false if the invite has been revoked, expired, or reached its usage limit.
 func (i *GroupInvite) IsValid() bool {
 	if i.Revoked {
 		return false
