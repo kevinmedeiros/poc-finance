@@ -23,7 +23,30 @@
                     <a href="/incomes" class="hover:bg-indigo-700 px-3 py-2 rounded">Recebimentos</a>
                     <a href="/expenses" class="hover:bg-indigo-700 px-3 py-2 rounded">Despesas</a>
                     <a href="/cards" class="hover:bg-indigo-700 px-3 py-2 rounded">Cartões</a>
-                    <a href="/export?year={{.now.Year}}" class="hover:bg-indigo-700 px-3 py-2 rounded bg-green-600">Exportar Excel</a>
+                    <div class="relative inline-block" id="export-dropdown-container">
+                        <button onclick="toggleExportDropdown()" class="hover:bg-indigo-700 px-3 py-2 rounded bg-green-600 flex items-center gap-1">
+                            Exportar
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="export-dropdown-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                            <div class="py-1">
+                                <a href="/export?year={{.now.Year}}&format=xlsx" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Excel (.xlsx)
+                                </a>
+                                <a href="/export?year={{.now.Year}}&format=csv" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    CSV (.csv)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     <form action="/logout" method="POST" class="inline">
                         <button type="submit" class="hover:bg-indigo-700 px-3 py-2 rounded text-white">Sair</button>
                     </form>
@@ -34,5 +57,20 @@
     <main class="container mx-auto px-4 py-8">
         {{template "content" .}}
     </main>
+    <script>
+        function toggleExportDropdown() {
+            const menu = document.getElementById('export-dropdown-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('export-dropdown-container');
+            const menu = document.getElementById('export-dropdown-menu');
+            if (container && !container.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
