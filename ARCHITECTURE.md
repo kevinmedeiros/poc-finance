@@ -1309,7 +1309,529 @@ for i := range tokens {
 
 ---
 
-### 6. HTMX Partial Rendering
+### 6. Middleware Patterns
+
+The application uses Echo's middleware system to implement cross-cutting concerns. Middleware functions process requests before they reach handlers and can modify requests/responses, short-circuit the chain, or perform side effects.
+
+#### Middleware Chain
+
+Requests pass through this middleware chain:
+
+```
+Request → Logger → Recover → BodyLimit → Security Headers →
+          CSRF Protection → Rate Limiter → Auth Middleware → Handler
+```
+
+**Middleware Responsibilities:**
+- **Logger**: Request/response logging with timing
+- **Recover**: Panic recovery to prevent server crashes
+- **BodyLimit**: Prevent large payloads (2MB limit)
+- **Secure**: Security headers (XSS, CSP, HSTS)
+- **CSRF**: Cross-site request forgery protection
+- **RateLimiter**: Rate limiting for auth endpoints (5 req/sec)
+- **AuthMiddleware**: JWT validation and user context injection
+
+#### Authentication Middleware Pattern
+
+The `AuthMiddleware` in `internal/middleware/auth.go` demonstrates the middleware pattern:
+
+**Structure:**
+```go
+// Middleware function returns an Echo middleware function
+func AuthMiddleware(authService *services.AuthService) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            // 1. Extract credentials (cookie, header, etc.)
+            accessCookie, err := c.Cookie("access_token")
+            if err != nil || accessCookie.Value == "" {
+                // Handle missing credentials
+                if refreshed := tryRefreshToken(c, authService); !refreshed {
+                    return redirectToLogin(c)
+                }
+                accessCookie, _ = c.Cookie("access_token")
+            }
+
+            // 2. Validate credentials
+            claims, err := authService.ValidateAccessToken(accessCookie.Value)
+            if err != nil {
+                // Handle invalid/expired tokens
+                if err == services.ErrTokenExpired {
+                    if refreshed := tryRefreshToken(c, authService); !refreshed {
+                        return redirectToLogin(c)
+                    }
+                    accessCookie, _ = c.Cookie("access_token")
+                    claims, err = authService.ValidateAccessToken(accessCookie.Value)
+                    if err != nil {
+                        return redirectToLogin(c)
+                    }
+                } else {
+                    return redirectToLogin(c)
+                }
+            }
+
+            // 3. Store user info in context for handlers
+            c.Set(UserIDKey, claims.UserID)
+            c.Set(UserEmailKey, claims.Email)
+
+            // 4. Call next handler in chain
+            return next(c)
+        }
+    }
+}
+```
+
+**Key Patterns:**
+1. **Dependency Injection**: Middleware receives `authService` to validate tokens
+2. **Context Storage**: User info stored via `c.Set()` for downstream handlers
+3. **Token Refresh**: Automatically refreshes expired access tokens using refresh tokens
+4. **HTMX Compatibility**: Detects HTMX requests and returns appropriate redirect headers
+5. **Error Handling**: Gracefully handles missing, invalid, or expired tokens
+
+#### Extracting User Info from Middleware
+
+Handlers access user info set by `AuthMiddleware`:
+
+```go
+func (h *IncomeHandler) Create(c echo.Context) error {
+    // Extract user ID from context (set by AuthMiddleware)
+    userID := middleware.GetUserID(c)
+    userEmail := middleware.GetUserEmail(c)
+
+    // Use user info in business logic
+    income := &models.Income{
+        UserID:      userID,
+        Amount:      req.Amount,
+        Description: req.Description,
+    }
+    // ...
+}
+```
+
+**Helper Functions:**
+```go
+// GetUserID extracts user ID from context (set by AuthMiddleware)
+func GetUserID(c echo.Context) uint {
+    if userID, ok := c.Get(UserIDKey).(uint); ok {
+        return userID
+    }
+    return 0
+}
+
+// GetUserEmail extracts user email from context (set by AuthMiddleware)
+func GetUserEmail(c echo.Context) string {
+    if email, ok := c.Get(UserEmailKey).(string); ok {
+        return email
+    }
+    return ""
+}
+```
+
+#### HTMX-Aware Redirects
+
+The middleware handles both traditional browser requests and HTMX requests:
+
+```go
+// redirectToLogin redirects the user to the login page
+func redirectToLogin(c echo.Context) error {
+    // For HTMX requests, return a special header to trigger full page redirect
+    if c.Request().Header.Get("HX-Request") == "true" {
+        c.Response().Header().Set("HX-Redirect", "/login")
+        return c.NoContent(http.StatusUnauthorized)
+    }
+    // For traditional requests, use standard redirect
+    return c.Redirect(http.StatusFound, "/login")
+}
+```
+
+**Pattern**: Check `HX-Request` header to detect HTMX and use `HX-Redirect` header for client-side redirects.
+
+#### Token Refresh Flow
+
+The middleware implements automatic token refresh:
+
+```go
+// tryRefreshToken attempts to refresh the access token using the refresh token
+func tryRefreshToken(c echo.Context, authService *services.AuthService) bool {
+    // 1. Get refresh token from cookie
+    refreshCookie, err := c.Cookie("refresh_token")
+    if err != nil || refreshCookie.Value == "" {
+        return false
+    }
+
+    // 2. Validate refresh token and get new access token
+    newAccessToken, err := authService.RefreshAccessToken(refreshCookie.Value)
+    if err != nil {
+        clearAuthCookies(c)
+        return false
+    }
+
+    // 3. Set new access token cookie with proper security flags
+    c.SetCookie(&http.Cookie{
+        Name:     "access_token",
+        Value:    newAccessToken,
+        Path:     "/",
+        HttpOnly: true,
+        Secure:   isProduction(),
+        SameSite: http.SameSiteLaxMode,
+        MaxAge:   int(services.AccessTokenDuration.Seconds()),
+    })
+
+    return true
+}
+```
+
+**Security Practices:**
+- `HttpOnly: true` - Prevents JavaScript access to cookies (XSS protection)
+- `Secure: isProduction()` - HTTPS only in production
+- `SameSite: http.SameSiteLaxMode` - CSRF protection
+- Proper expiration times via `MaxAge`
+
+#### Middleware Registration
+
+Middleware is registered in `cmd/server/main.go`:
+
+```go
+func main() {
+    e := echo.New()
+
+    // Global middleware (applies to all routes)
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+    e.Use(middleware.BodyLimit("2M"))
+    e.Use(middleware.Secure())
+
+    // CSRF middleware (with HTMX compatibility)
+    e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+        TokenLookup: "header:X-CSRF-Token",
+        CookieName:  "csrf_token",
+    }))
+
+    // Rate limiter (auth endpoints only)
+    rateLimiter := middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(5))
+
+    // Public routes
+    e.GET("/login", authHandler.LoginPage)
+    e.POST("/login", authHandler.Login, rateLimiter)
+
+    // Protected routes (with auth middleware)
+    protected := e.Group("")
+    protected.Use(authmw.AuthMiddleware(authService))
+    protected.GET("/", dashboardHandler.Dashboard)
+    protected.POST("/income", incomeHandler.Create)
+
+    e.Start(":8080")
+}
+```
+
+**Patterns:**
+1. **Global Middleware**: Applied to all routes via `e.Use()`
+2. **Selective Middleware**: Applied to specific routes via inline parameter
+3. **Route Groups**: Protected routes grouped with shared middleware via `e.Group()`
+4. **Custom Middleware**: Application-specific middleware (auth) alongside Echo built-ins
+
+### 7. Template Rendering System
+
+The application uses Go's `html/template` package for server-side rendering with a custom template registry that supports full pages and HTMX partials.
+
+#### Template Registry Pattern
+
+The `TemplateRegistry` in `cmd/server/main.go` manages template loading and rendering:
+
+```go
+type TemplateRegistry struct {
+    templates map[string]*template.Template
+    funcMap   template.FuncMap
+}
+
+func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+    // Add common data to all templates
+    if data == nil {
+        data = make(map[string]interface{})
+    }
+    if m, ok := data.(map[string]interface{}); ok {
+        m["Year"] = time.Now().Year()
+        // Add CSRF token to all templates
+        if csrf := c.Get("csrf"); csrf != nil {
+            m["csrf"] = csrf
+        }
+    }
+
+    // For partials (HTMX), render only the fragment
+    if strings.HasPrefix(name, "partials/") {
+        return t.renderPartial(w, name, data)
+    }
+
+    // For full pages, render with base template
+    tmpl, ok := t.templates[name]
+    if !ok {
+        return echo.ErrNotFound
+    }
+
+    return tmpl.ExecuteTemplate(w, "base", data)
+}
+```
+
+**Key Features:**
+1. **Auto-inject Common Data**: Adds `Year`, `csrf` to all templates
+2. **Dual Rendering**: Full pages vs HTMX partials
+3. **Template Caching**: Pre-loaded templates stored in memory
+4. **Custom Functions**: Template helper functions via `funcMap`
+
+#### Template Function Map
+
+Custom functions available in all templates:
+
+```go
+funcMap := template.FuncMap{
+    "dict": func(values ...interface{}) map[string]interface{} {
+        if len(values)%2 != 0 {
+            return nil
+        }
+        dict := make(map[string]interface{})
+        for i := 0; i < len(values); i += 2 {
+            key, ok := values[i].(string)
+            if !ok {
+                return nil
+            }
+            dict[key] = values[i+1]
+        }
+        return dict
+    },
+}
+```
+
+**Usage in Templates:**
+```html
+<!-- Create a map to pass to nested template -->
+{{template "income-list" (dict "incomes" .incomes "account_id" .account.ID)}}
+```
+
+#### Template Loading
+
+Templates are loaded at startup:
+
+```go
+func loadTemplates() *TemplateRegistry {
+    templates := make(map[string]*template.Template)
+
+    baseTemplate := "internal/templates/base.html"
+    pages := []string{
+        "internal/templates/dashboard.html",
+        "internal/templates/income.html",
+        "internal/templates/expenses.html",
+        // ... more pages
+    }
+
+    // Standard pages use base layout
+    for _, page := range pages {
+        name := filepath.Base(page)
+        tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(baseTemplate, page))
+        templates[name] = tmpl
+    }
+
+    // Auth pages have embedded base
+    authPages := []string{
+        "internal/templates/register.html",
+        "internal/templates/login.html",
+        // ... more auth pages
+    }
+
+    for _, page := range authPages {
+        name := filepath.Base(page)
+        tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(page))
+        templates[name] = tmpl
+    }
+
+    return &TemplateRegistry{templates: templates, funcMap: funcMap}
+}
+```
+
+**Pattern:**
+- **Base Layout**: Most pages inherit from `base.html` (nav, footer, common structure)
+- **Standalone Pages**: Auth pages define their own complete HTML (no navigation)
+- **Fail Fast**: `template.Must()` panics on parse errors (fail at startup, not runtime)
+
+#### HTMX Partial Rendering
+
+The registry dynamically renders template fragments for HTMX:
+
+```go
+func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interface{}) error {
+    // Extract the template define name
+    // partials/income-list.html -> income-list
+    baseName := strings.TrimPrefix(name, "partials/")
+    baseName = strings.TrimSuffix(baseName, ".html")
+
+    // Find the template file containing this partial
+    var templateFile string
+    switch {
+    case strings.Contains(baseName, "income"):
+        templateFile = "internal/templates/income.html"
+    case strings.Contains(baseName, "expense"):
+        templateFile = "internal/templates/expenses.html"
+    case strings.Contains(baseName, "card"):
+        templateFile = "internal/templates/cards.html"
+    // ... more mappings
+    default:
+        return echo.ErrNotFound
+    }
+
+    // Parse and execute just the named fragment
+    tmpl, err := template.New("").Funcs(t.funcMap).ParseFiles(templateFile)
+    if err != nil {
+        return err
+    }
+
+    return tmpl.ExecuteTemplate(w, baseName, data)
+}
+```
+
+**Pattern:**
+1. **Naming Convention**: Partials named `partials/feature-fragment.html`
+2. **File Mapping**: Maps partial names to source template files
+3. **Dynamic Parsing**: Parses template on-demand for partials
+4. **Fragment Execution**: Executes only the named `{{define}}` block
+
+#### Template Structure
+
+**Base Template (`base.html`):**
+```html
+{{define "base"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.Title}}</title>
+    <!-- Common CSS, meta tags -->
+</head>
+<body>
+    <nav><!-- Navigation --></nav>
+    <main>
+        {{template "content" .}}
+    </main>
+    <footer><!-- Footer --></footer>
+</body>
+</html>
+{{end}}
+```
+
+**Page Template (e.g., `income.html`):**
+```html
+{{define "content"}}
+<div class="page-content">
+    <h1>Income Management</h1>
+
+    <!-- Partial fragment for HTMX -->
+    {{template "income-list" .}}
+</div>
+{{end}}
+
+{{define "income-list"}}
+<div id="income-list">
+    {{range .incomes}}
+    <div class="income-row">
+        <span>{{.Description}}</span>
+        <span>{{.Amount}}</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+```
+
+**Benefits:**
+- **DRY**: Base layout defined once, inherited by all pages
+- **HTMX-Ready**: Partials can be rendered independently
+- **Maintainable**: Changes to layout reflected everywhere
+
+#### Rendering from Handlers
+
+Handlers use `c.Render()` to return templates:
+
+```go
+// Full page render
+func (h *IncomeHandler) Page(c echo.Context) error {
+    incomes := fetchIncomes()
+    return c.Render(http.StatusOK, "income.html", map[string]interface{}{
+        "Title":   "Income Management",
+        "incomes": incomes,
+    })
+}
+
+// HTMX partial render
+func (h *IncomeHandler) List(c echo.Context) error {
+    incomes := fetchIncomes()
+    return c.Render(http.StatusOK, "partials/income-list.html", map[string]interface{}{
+        "incomes": incomes,
+    })
+}
+```
+
+**Pattern:**
+- Full pages: Render `page.html` → triggers base template
+- Partials: Render `partials/fragment.html` → renders only fragment
+
+### 8. Background Scheduler Pattern
+
+Recurring transactions are processed by a background goroutine that runs daily:
+
+```go
+// startRecurringScheduler runs the recurring transaction scheduler in the background
+func startRecurringScheduler(schedulerService *services.RecurringSchedulerService) {
+    log.Println("Starting recurring transaction scheduler...")
+
+    // Run immediately on startup (catch up on missed runs)
+    if err := schedulerService.ProcessDueTransactions(); err != nil {
+        log.Printf("Error processing due transactions on startup: %v", err)
+    }
+
+    // Calculate time until next midnight
+    now := time.Now()
+    nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+    durationUntilMidnight := nextMidnight.Sub(now)
+
+    // Wait until midnight
+    time.Sleep(durationUntilMidnight)
+
+    // Then run every 24 hours
+    ticker := time.NewTicker(24 * time.Hour)
+    defer ticker.Stop()
+
+    for {
+        log.Println("Running scheduled check for due recurring transactions...")
+        if err := schedulerService.ProcessDueTransactions(); err != nil {
+            log.Printf("Error processing due transactions: %v", err)
+        }
+        <-ticker.C
+    }
+}
+```
+
+**Scheduler Pattern:**
+1. **Immediate Execution**: Runs on startup to catch up on missed transactions
+2. **Wait Until Midnight**: Calculates and waits for next midnight
+3. **Daily Ticker**: Runs every 24 hours after the first midnight
+4. **Graceful Errors**: Logs errors but continues running
+
+**Scheduler Operations:**
+1. Find recurring transactions where `next_run_date <= today` and `active = true`
+2. Create corresponding expense/income transactions
+3. Update `next_run_date` based on frequency (daily, weekly, monthly, yearly)
+4. Send notifications to users
+5. Deactivate if `end_date` is reached
+
+**Launching the Scheduler:**
+```go
+func main() {
+    // ... initialize database and services
+
+    // Launch scheduler in background goroutine
+    go startRecurringScheduler(schedulerService)
+
+    // Start web server
+    e.Start(":8080")
+}
+```
+
+### 9. HTMX Integration Pattern
 
 The application uses HTMX for dynamic updates without full page reloads:
 
@@ -1325,34 +1847,58 @@ Handler returns partial HTML (not full page)
 HTMX swaps partial into DOM
 ```
 
+**Example: Creating an Income**
+
+**HTML (Template):**
+```html
+<form hx-post="/income" hx-target="#income-list" hx-swap="afterbegin">
+    <input name="description" placeholder="Description" />
+    <input name="amount" type="number" placeholder="Amount" />
+    <button type="submit">Add Income</button>
+</form>
+
+<div id="income-list">
+    <!-- Existing incomes rendered here -->
+</div>
+```
+
+**Handler:**
+```go
+func (h *IncomeHandler) Create(c echo.Context) error {
+    // 1. Bind and validate
+    var req CreateIncomeRequest
+    if err := c.Bind(&req); err != nil {
+        return c.String(http.StatusBadRequest, "Invalid data")
+    }
+
+    // 2. Create income in database
+    income := &models.Income{
+        UserID:      middleware.GetUserID(c),
+        Amount:      req.Amount,
+        Description: req.Description,
+        Date:        time.Now(),
+    }
+    database.DB.Create(income)
+
+    // 3. Return partial HTML (just the new row)
+    return c.Render(http.StatusOK, "partials/income-row.html", map[string]interface{}{
+        "income": income,
+    })
+}
+```
+
+**Result:**
+- User clicks "Add Income"
+- HTMX sends POST to `/income`
+- Handler creates income and returns HTML for one row
+- HTMX inserts new row at beginning of `#income-list`
+- User sees new income appear instantly (no page reload)
+
 **Benefits:**
 - Fast, responsive UI
-- Reduced bandwidth usage
+- Reduced bandwidth usage (partial HTML vs full page)
 - Server-side rendering (no complex JavaScript)
-- Progressive enhancement
-
-### 6. Background Scheduler
-
-Recurring transactions are processed by a background goroutine:
-
-```
-Application Startup
-         ↓
-Launch scheduler goroutine
-         ↓
-Run immediately (process overdue transactions)
-         ↓
-Wait until midnight
-         ↓
-Run every 24 hours (check for due transactions)
-```
-
-**Scheduler Operations:**
-1. Find recurring transactions where `next_run_date <= today` and `active = true`
-2. Create corresponding expense/income transactions
-3. Update `next_run_date` based on frequency
-4. Send notifications to users
-5. Deactivate if `end_date` is reached
+- Progressive enhancement (works without JavaScript with standard form submit)
 
 ---
 
@@ -1548,33 +2094,614 @@ go build -o poc-finance ./cmd/server
 
 ---
 
+## Adding New Features
+
+This section provides step-by-step patterns for extending the application with new functionality. Follow these patterns to maintain consistency and architectural integrity.
+
+### Pattern 1: Adding a New Model (Data Entity)
+
+**When to Use:** Adding a new database table or entity (e.g., Budgets, Investments, etc.)
+
+**Step-by-Step:**
+
+1. **Create Model File**
+   ```bash
+   # Create new model file
+   touch internal/models/budget.go
+   ```
+
+2. **Define GORM Struct**
+   ```go
+   package models
+
+   import (
+       "gorm.io/gorm"
+   )
+
+   // Budget represents a spending budget for a category
+   type Budget struct {
+       gorm.Model
+       UserID      uint    `json:"user_id" gorm:"not null;index"`
+       Category    string  `json:"category" gorm:"not null"`
+       Amount      float64 `json:"amount" gorm:"not null"`
+       Period      string  `json:"period" gorm:"not null;default:'monthly'"` // daily, weekly, monthly
+       StartDate   string  `json:"start_date" gorm:"not null"`
+       EndDate     string  `json:"end_date"`
+   }
+
+   // TableName explicitly defines the table name
+   func (b *Budget) TableName() string {
+       return "budgets"
+   }
+   ```
+
+   **Checklist:**
+   - [ ] Embed `gorm.Model` for timestamps and soft deletes
+   - [ ] Add `json` tags for serialization
+   - [ ] Add `gorm` tags for constraints (not null, unique, index)
+   - [ ] Define `TableName()` method
+   - [ ] Index foreign keys with `gorm:"index"`
+   - [ ] Use `json:"-"` for sensitive/relational fields
+
+3. **Add to AutoMigrate**
+   ```go
+   // In internal/database/database.go
+   err = DB.AutoMigrate(
+       &models.User{},
+       &models.Budget{},  // Add new model here
+       // ... other models
+   )
+   ```
+
+4. **Write Unit Tests**
+   ```go
+   // Create internal/models/budget_test.go
+   package models
+
+   import (
+       "testing"
+       "poc-finance/internal/database"
+   )
+
+   func TestCreateBudget(t *testing.T) {
+       // Setup test database
+       database.Init()
+
+       budget := &Budget{
+           UserID:   1,
+           Category: "Food",
+           Amount:   500.00,
+           Period:   "monthly",
+       }
+
+       result := database.DB.Create(budget)
+       if result.Error != nil {
+           t.Fatalf("Failed to create budget: %v", result.Error)
+       }
+
+       if budget.ID == 0 {
+           t.Error("Budget ID should be set after creation")
+       }
+   }
+   ```
+
+### Pattern 2: Adding a New Handler (HTTP Endpoint)
+
+**When to Use:** Adding new HTTP routes and request handling (e.g., budget CRUD operations)
+
+**Step-by-Step:**
+
+1. **Create Handler File**
+   ```go
+   // Create internal/handlers/budget.go
+   package handlers
+
+   import (
+       "net/http"
+       "strconv"
+       "strings"
+       "time"
+
+       "github.com/labstack/echo/v4"
+
+       "poc-finance/internal/database"
+       "poc-finance/internal/middleware"
+       "poc-finance/internal/models"
+   )
+
+   type BudgetHandler struct{}
+
+   func NewBudgetHandler() *BudgetHandler {
+       return &BudgetHandler{}
+   }
+   ```
+
+2. **Implement Handler Methods**
+   ```go
+   // List all budgets for the current user
+   func (h *BudgetHandler) List(c echo.Context) error {
+       userID := middleware.GetUserID(c)
+
+       var budgets []models.Budget
+       if err := database.DB.Where("user_id = ?", userID).Find(&budgets).Error; err != nil {
+           return c.String(http.StatusInternalServerError, "Erro ao buscar orçamentos")
+       }
+
+       return c.Render(http.StatusOK, "budget.html", map[string]interface{}{
+           "Title":   "Orçamentos",
+           "budgets": budgets,
+       })
+   }
+
+   // Create a new budget
+   func (h *BudgetHandler) Create(c echo.Context) error {
+       userID := middleware.GetUserID(c)
+
+       // Bind request data
+       var req struct {
+           Category  string  `form:"category"`
+           Amount    float64 `form:"amount"`
+           Period    string  `form:"period"`
+           StartDate string  `form:"start_date"`
+       }
+
+       if err := c.Bind(&req); err != nil {
+           return c.String(http.StatusBadRequest, "Dados inválidos")
+       }
+
+       // Validate
+       req.Category = strings.TrimSpace(req.Category)
+       if req.Category == "" || req.Amount <= 0 {
+           return c.String(http.StatusBadRequest, "Categoria e valor são obrigatórios")
+       }
+
+       // Create budget
+       budget := &models.Budget{
+           UserID:    userID,
+           Category:  req.Category,
+           Amount:    req.Amount,
+           Period:    req.Period,
+           StartDate: req.StartDate,
+       }
+
+       if err := database.DB.Create(budget).Error; err != nil {
+           return c.String(http.StatusInternalServerError, "Erro ao criar orçamento")
+       }
+
+       // Return partial for HTMX
+       return c.Render(http.StatusOK, "partials/budget-row.html", map[string]interface{}{
+           "budget": budget,
+       })
+   }
+
+   // Delete a budget
+   func (h *BudgetHandler) Delete(c echo.Context) error {
+       userID := middleware.GetUserID(c)
+       budgetID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+
+       var budget models.Budget
+       if err := database.DB.Where("id = ? AND user_id = ?", budgetID, userID).First(&budget).Error; err != nil {
+           return c.String(http.StatusNotFound, "Orçamento não encontrado")
+       }
+
+       database.DB.Delete(&budget)
+       return c.NoContent(http.StatusOK)
+   }
+   ```
+
+   **Handler Pattern Checklist:**
+   - [ ] Extract user ID from middleware: `middleware.GetUserID(c)`
+   - [ ] Validate and sanitize input
+   - [ ] Verify ownership before updates/deletes
+   - [ ] Return full pages or HTMX partials
+   - [ ] Handle errors gracefully with user-friendly messages
+
+3. **Register Routes**
+   ```go
+   // In cmd/server/main.go
+   func main() {
+       // ...
+
+       budgetHandler := handlers.NewBudgetHandler()
+
+       // Protected routes
+       protected.GET("/budgets", budgetHandler.List)
+       protected.POST("/budgets", budgetHandler.Create)
+       protected.DELETE("/budgets/:id", budgetHandler.Delete)
+
+       // ...
+   }
+   ```
+
+4. **Create Template**
+   ```html
+   <!-- Create internal/templates/budget.html -->
+   {{define "content"}}
+   <div class="page-content">
+       <h1>Orçamentos</h1>
+
+       <form hx-post="/budgets" hx-target="#budget-list" hx-swap="afterbegin">
+           <input type="text" name="category" placeholder="Categoria" required />
+           <input type="number" name="amount" placeholder="Valor" step="0.01" required />
+           <select name="period">
+               <option value="monthly">Mensal</option>
+               <option value="weekly">Semanal</option>
+           </select>
+           <button type="submit">Criar Orçamento</button>
+       </form>
+
+       <div id="budget-list">
+           {{range .budgets}}
+           {{template "budget-row" .}}
+           {{end}}
+       </div>
+   </div>
+   {{end}}
+
+   {{define "budget-row"}}
+   <div class="budget-row">
+       <span>{{.Category}}</span>
+       <span>R$ {{.Amount}}</span>
+       <span>{{.Period}}</span>
+       <button hx-delete="/budgets/{{.ID}}" hx-target="closest .budget-row" hx-swap="outerHTML">
+           Excluir
+       </button>
+   </div>
+   {{end}}
+   ```
+
+5. **Update Template Loader**
+   ```go
+   // In cmd/server/main.go loadTemplates()
+   pages := []string{
+       "internal/templates/dashboard.html",
+       "internal/templates/budget.html",  // Add new template
+       // ... other pages
+   }
+   ```
+
+### Pattern 3: Adding a New Service (Business Logic)
+
+**When to Use:** Adding complex business operations that coordinate multiple models or implement domain logic
+
+**Step-by-Step:**
+
+1. **Create Service File**
+   ```go
+   // Create internal/services/budget.go
+   package services
+
+   import (
+       "errors"
+       "time"
+
+       "poc-finance/internal/database"
+       "poc-finance/internal/models"
+   )
+
+   var (
+       ErrBudgetExceeded = errors.New("orçamento excedido")
+       ErrBudgetNotFound = errors.New("orçamento não encontrado")
+   )
+
+   type BudgetService struct {
+       notificationService *NotificationService
+   }
+
+   func NewBudgetService() *BudgetService {
+       return &BudgetService{
+           notificationService: NewNotificationService(),
+       }
+   }
+   ```
+
+2. **Implement Business Logic**
+   ```go
+   // CheckBudgetStatus calculates spending vs budget for a category
+   func (s *BudgetService) CheckBudgetStatus(userID uint, category string, period string) (*BudgetStatus, error) {
+       // Find budget
+       var budget models.Budget
+       if err := database.DB.Where("user_id = ? AND category = ? AND period = ?", userID, category, period).First(&budget).Error; err != nil {
+           return nil, ErrBudgetNotFound
+       }
+
+       // Calculate period dates
+       startDate, endDate := s.calculatePeriodDates(budget.Period)
+
+       // Sum expenses in category during period
+       var totalSpent float64
+       database.DB.Model(&models.Expense{}).
+           Where("user_id = ? AND category = ? AND date BETWEEN ? AND ?", userID, category, startDate, endDate).
+           Select("SUM(amount)").
+           Scan(&totalSpent)
+
+       // Calculate remaining budget
+       remaining := budget.Amount - totalSpent
+       percentUsed := (totalSpent / budget.Amount) * 100
+
+       // Send notification if budget exceeded
+       if remaining < 0 {
+           s.notificationService.CreateNotification(&models.Notification{
+               UserID:  userID,
+               Type:    "budget_alert",
+               Title:   "Orçamento Excedido",
+               Message: fmt.Sprintf("Você excedeu o orçamento de %s em R$ %.2f", category, -remaining),
+           })
+       }
+
+       return &BudgetStatus{
+           Budget:      budget,
+           TotalSpent:  totalSpent,
+           Remaining:   remaining,
+           PercentUsed: percentUsed,
+       }, nil
+   }
+
+   func (s *BudgetService) calculatePeriodDates(period string) (time.Time, time.Time) {
+       now := time.Now()
+       switch period {
+       case "daily":
+           start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+           end := start.Add(24 * time.Hour)
+           return start, end
+       case "weekly":
+           // Calculate week start (Monday)
+           weekday := int(now.Weekday())
+           if weekday == 0 {
+               weekday = 7
+           }
+           start := now.AddDate(0, 0, -(weekday - 1))
+           start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+           end := start.Add(7 * 24 * time.Hour)
+           return start, end
+       case "monthly":
+           start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+           end := start.AddDate(0, 1, 0)
+           return start, end
+       default:
+           return now, now
+       }
+   }
+   ```
+
+   **Service Pattern Checklist:**
+   - [ ] Define custom errors for business logic
+   - [ ] Use constructor for dependency injection
+   - [ ] Coordinate multiple models
+   - [ ] Implement business rules
+   - [ ] Call other services as needed
+   - [ ] Handle notifications/side effects
+
+3. **Call Service from Handler**
+   ```go
+   // In budget handler
+   func (h *BudgetHandler) Status(c echo.Context) error {
+       userID := middleware.GetUserID(c)
+       category := c.QueryParam("category")
+
+       budgetService := services.NewBudgetService()
+       status, err := budgetService.CheckBudgetStatus(userID, category, "monthly")
+       if err != nil {
+           return c.String(http.StatusInternalServerError, "Erro ao verificar orçamento")
+       }
+
+       return c.Render(http.StatusOK, "partials/budget-status.html", map[string]interface{}{
+           "status": status,
+       })
+   }
+   ```
+
+### Pattern 4: Adding Middleware
+
+**When to Use:** Adding cross-cutting concerns (logging, rate limiting, etc.)
+
+**Step-by-Step:**
+
+1. **Create Middleware Function**
+   ```go
+   // In internal/middleware/logging.go
+   package middleware
+
+   import (
+       "log"
+       "time"
+
+       "github.com/labstack/echo/v4"
+   )
+
+   func RequestLogger() echo.MiddlewareFunc {
+       return func(next echo.HandlerFunc) echo.HandlerFunc {
+           return func(c echo.Context) error {
+               start := time.Now()
+
+               // Call next handler
+               err := next(c)
+
+               // Log after handler completes
+               log.Printf(
+                   "%s %s %d %s",
+                   c.Request().Method,
+                   c.Request().URL.Path,
+                   c.Response().Status,
+                   time.Since(start),
+               )
+
+               return err
+           }
+       }
+   }
+   ```
+
+2. **Register Middleware**
+   ```go
+   // In cmd/server/main.go
+   func main() {
+       e := echo.New()
+
+       // Global middleware
+       e.Use(middleware.RequestLogger())
+
+       // Or route-specific
+       protected.Use(middleware.RequestLogger())
+   }
+   ```
+
+### Pattern 5: Adding Background Jobs
+
+**When to Use:** Adding scheduled tasks or background processing
+
+**Step-by-Step:**
+
+1. **Create Scheduler Service**
+   ```go
+   // In internal/services/budget_alert_scheduler.go
+   package services
+
+   import (
+       "log"
+       "time"
+
+       "poc-finance/internal/database"
+       "poc-finance/internal/models"
+   )
+
+   type BudgetAlertScheduler struct {
+       budgetService *BudgetService
+   }
+
+   func NewBudgetAlertScheduler() *BudgetAlertScheduler {
+       return &BudgetAlertScheduler{
+           budgetService: NewBudgetService(),
+       }
+   }
+
+   func (s *BudgetAlertScheduler) CheckAllBudgets() error {
+       var users []models.User
+       database.DB.Find(&users)
+
+       for _, user := range users {
+           var budgets []models.Budget
+           database.DB.Where("user_id = ?", user.ID).Find(&budgets)
+
+           for _, budget := range budgets {
+               s.budgetService.CheckBudgetStatus(user.ID, budget.Category, budget.Period)
+           }
+       }
+
+       return nil
+   }
+   ```
+
+2. **Launch Scheduler**
+   ```go
+   // In cmd/server/main.go
+   func startBudgetAlertScheduler(scheduler *services.BudgetAlertScheduler) {
+       ticker := time.NewTicker(1 * time.Hour) // Check every hour
+       defer ticker.Stop()
+
+       for {
+           log.Println("Running budget alert check...")
+           if err := scheduler.CheckAllBudgets(); err != nil {
+               log.Printf("Error checking budgets: %v", err)
+           }
+           <-ticker.C
+       }
+   }
+
+   func main() {
+       // ...
+       scheduler := services.NewBudgetAlertScheduler()
+       go startBudgetAlertScheduler(scheduler)
+
+       e.Start(":8080")
+   }
+   ```
+
+### Common Development Patterns
+
+#### Pattern: Ownership Verification
+
+Always verify ownership before modifying data:
+
+```go
+func (h *BudgetHandler) Update(c echo.Context) error {
+    userID := middleware.GetUserID(c)
+    budgetID := c.Param("id")
+
+    var budget models.Budget
+    // Verify user owns this budget
+    if err := database.DB.Where("id = ? AND user_id = ?", budgetID, userID).First(&budget).Error; err != nil {
+        return c.String(http.StatusNotFound, "Orçamento não encontrado")
+    }
+
+    // Update budget...
+}
+```
+
+#### Pattern: Input Sanitization
+
+Always sanitize user input:
+
+```go
+func (h *BudgetHandler) Create(c echo.Context) error {
+    var req CreateBudgetRequest
+    c.Bind(&req)
+
+    // Sanitize strings
+    req.Category = strings.TrimSpace(req.Category)
+    req.Category = html.EscapeString(req.Category)
+
+    // Validate
+    if req.Category == "" {
+        return c.String(http.StatusBadRequest, "Categoria é obrigatória")
+    }
+
+    // Process...
+}
+```
+
+#### Pattern: HTMX Response Headers
+
+Use HTMX headers for dynamic behavior:
+
+```go
+// Trigger client-side event
+c.Response().Header().Set("HX-Trigger", "budgetCreated")
+
+// Redirect client
+c.Response().Header().Set("HX-Redirect", "/budgets")
+
+// Refresh page
+c.Response().Header().Set("HX-Refresh", "true")
+```
+
+#### Pattern: Transaction Management
+
+Use transactions for multi-step operations:
+
+```go
+func (s *BudgetService) CreateBudgetWithGoal(userID uint, budgetData, goalData) error {
+    return database.DB.Transaction(func(tx *gorm.DB) error {
+        // Create budget
+        budget := &models.Budget{...}
+        if err := tx.Create(budget).Error; err != nil {
+            return err // Automatic rollback
+        }
+
+        // Create related goal
+        goal := &models.Goal{BudgetID: budget.ID, ...}
+        if err := tx.Create(goal).Error; err != nil {
+            return err // Automatic rollback
+        }
+
+        return nil // Commit
+    })
+}
+```
+
+---
+
 ## Future Extensibility
-
-### Adding New Features
-
-**1. New Model (Data Entity)**
-```
-1. Create ./internal/models/new_feature.go
-2. Define GORM struct with relationships
-3. Add model to database.AutoMigrate in database.go
-4. Write unit tests in new_feature_test.go
-```
-
-**2. New Handler (HTTP Endpoint)**
-```
-1. Create handler in ./internal/handlers/new_feature.go
-2. Define routes in cmd/server/main.go
-3. Create HTML template in ./internal/templates/
-4. Write integration tests
-```
-
-**3. New Service (Business Logic)**
-```
-1. Create service in ./internal/services/new_feature.go
-2. Inject dependencies via constructor
-3. Call from handlers as needed
-4. Write service tests
-```
 
 ### Scaling Considerations
 
