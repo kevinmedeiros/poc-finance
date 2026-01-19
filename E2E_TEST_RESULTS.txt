@@ -1,0 +1,6 @@
+=== E2E Test Results ===
+Date: seg 19 jan 2026 12:12:34 -03
+
+[TEST] Test 1: Register test user
+[INFO] Registration failed, attempting login with existing test user
+[FAIL] Could not register or login
