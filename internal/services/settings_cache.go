@@ -12,10 +12,11 @@ import (
 
 // SettingsData represents cached application settings
 type SettingsData struct {
-	ProLabore   float64 `json:"pro_labore"`
-	INSSCeiling float64 `json:"inss_ceiling"`
-	INSSRate    float64 `json:"inss_rate"`
-	INSSAmount  float64 `json:"inss_amount"` // Calculated value
+	ProLabore              float64 `json:"pro_labore"`
+	INSSCeiling            float64 `json:"inss_ceiling"`
+	INSSRate               float64 `json:"inss_rate"`
+	INSSAmount             float64 `json:"inss_amount"` // Calculated value
+	BudgetWarningThreshold float64 `json:"budget_warning_threshold"`
 }
 
 // SettingsCacheService provides thread-safe caching for application settings with TTL-based expiration
