@@ -2,6 +2,7 @@
 package testutil
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,6 +43,7 @@ func SetupTestDB() *gorm.DB {
 		&models.GoalContribution{},
 		&models.Notification{},
 		&models.Settings{},
+		&models.RecurringTransaction{},
 	)
 	if err != nil {
 		panic("failed to migrate test database: " + err.Error())
@@ -135,4 +137,13 @@ func Float64Ptr(v float64) *float64 {
 // UintPtr returns a pointer to a uint value.
 func UintPtr(v uint) *uint {
 	return &v
+}
+
+// MockRenderer is a simple mock renderer for testing.
+type MockRenderer struct{}
+
+// Render renders a template with data.
+func (m *MockRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	// Write a simple response to avoid nil pointer issues
+	return nil
 }
