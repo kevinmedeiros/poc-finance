@@ -6,20 +6,35 @@
             <h1 class="font-display text-3xl sm:text-4xl text-white">Despesas</h1>
             <p class="text-dark-400 mt-2">Gerencie suas despesas fixas e variaveis</p>
         </div>
-        <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3">
-            <div class="text-sm text-center">
-                <p class="text-dark-400">Fixas</p>
-                <p class="font-bold text-brand-400">R$ {{printf "%.2f" .totalFixed}}</p>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Category Filter -->
+            <div class="glass-light rounded-xl px-4 py-3">
+                <label for="category_filter" class="sr-only">Filtrar por categoria</label>
+                <select id="category_filter" name="category"
+                    class="w-full sm:w-auto text-sm font-medium text-dark-200 bg-transparent border-none focus:ring-0 cursor-pointer"
+                    onchange="window.location.href='/expenses?category=' + this.value">
+                    <option value="all">Todas as Categorias</option>
+                    {{range .categories}}
+                    <option value="{{.}}">{{.}}</option>
+                    {{end}}
+                </select>
             </div>
-            <div class="h-8 w-px bg-dark-600"></div>
-            <div class="text-sm text-center">
-                <p class="text-dark-400">Pago</p>
-                <p class="font-bold text-success-400">R$ {{printf "%.2f" .totalPaid}}</p>
-            </div>
-            <div class="h-8 w-px bg-dark-600"></div>
-            <div class="text-sm text-center">
-                <p class="text-dark-400">Pendente</p>
-                <p class="font-bold text-danger-400">R$ {{printf "%.2f" .totalPending}}</p>
+            <!-- Summary Stats -->
+            <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3">
+                <div class="text-sm text-center">
+                    <p class="text-dark-400">Fixas</p>
+                    <p class="font-bold text-brand-400">R$ {{printf "%.2f" .totalFixed}}</p>
+                </div>
+                <div class="h-8 w-px bg-dark-600"></div>
+                <div class="text-sm text-center">
+                    <p class="text-dark-400">Pago</p>
+                    <p class="font-bold text-success-400">R$ {{printf "%.2f" .totalPaid}}</p>
+                </div>
+                <div class="h-8 w-px bg-dark-600"></div>
+                <div class="text-sm text-center">
+                    <p class="text-dark-400">Pendente</p>
+                    <p class="font-bold text-danger-400">R$ {{printf "%.2f" .totalPending}}</p>
+                </div>
             </div>
         </div>
     </div>
