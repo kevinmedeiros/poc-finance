@@ -838,7 +838,478 @@ Don't create a service for:
 
 ---
 
-### 5. HTMX Partial Rendering
+### 5. Models Layer and Database Patterns
+
+The **Models Layer** (Data Access Layer) defines the database schema, handles data persistence, and manages relationships between entities. This layer uses GORM as the ORM to abstract database operations and provide a clean, idiomatic Go interface for data access.
+
+#### Database Initialization
+
+The database is initialized in `internal/database/database.go` during application startup:
+
+```go
+package database
+
+import (
+    "log"
+
+    "gorm.io/driver/sqlite"
+    "gorm.io/gorm"
+    "gorm.io/gorm/logger"
+
+    "poc-finance/internal/models"
+)
+
+var DB *gorm.DB
+
+func Init() error {
+    var err error
+    DB, err = gorm.Open(sqlite.Open("finance.db"), &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info),
+    })
+    if err != nil {
+        return err
+    }
+
+    log.Println("Conectado ao banco de dados SQLite")
+
+    // Auto migrate all models
+    err = DB.AutoMigrate(
+        &models.User{},
+        &models.RefreshToken{},
+        &models.PasswordResetToken{},
+        &models.Account{},
+        &models.Income{},
+        &models.Expense{},
+        // ... all other models
+    )
+    if err != nil {
+        return err
+    }
+
+    // Initialize default settings
+    initDefaultSettings()
+
+    log.Println("Migrações executadas com sucesso")
+    return nil
+}
+
+func GetDB() *gorm.DB {
+    return DB
+}
+```
+
+**Key Patterns:**
+1. **Global DB Variable**: `DB` is a package-level variable accessible throughout the application
+2. **Logger Configuration**: GORM logger is set to Info mode for query logging
+3. **AutoMigrate**: Automatically creates/updates tables based on struct definitions
+4. **Default Data Initialization**: Seeds initial configuration data after migration
+5. **GetDB() Helper**: Provides access to the database connection
+
+#### Model Structure Pattern
+
+All models follow GORM conventions with consistent struct patterns:
+
+```go
+package models
+
+import (
+    "time"
+
+    "gorm.io/gorm"
+)
+
+// Example: User model with standard GORM patterns
+type User struct {
+    gorm.Model                                    // Embeds ID, CreatedAt, UpdatedAt, DeletedAt
+    Email        string `json:"email" gorm:"uniqueIndex;not null"`
+    PasswordHash string `json:"-" gorm:"not null"`
+    Name         string `json:"name" gorm:"not null"`
+}
+
+// TableName explicitly defines the table name
+func (u *User) TableName() string {
+    return "users"
+}
+```
+
+**Standard Model Components:**
+
+1. **gorm.Model Embedding**
+   - Provides: `ID uint`, `CreatedAt time.Time`, `UpdatedAt time.Time`, `DeletedAt gorm.DeletedAt`
+   - Enables soft deletes (records are marked deleted, not removed)
+   - Automatically managed by GORM
+
+2. **Struct Tags**
+   - `json:"email"` - JSON serialization field name
+   - `json:"-"` - Excludes field from JSON (e.g., password hashes)
+   - `gorm:"uniqueIndex"` - Creates unique index on column
+   - `gorm:"not null"` - Database NOT NULL constraint
+   - `gorm:"index"` - Creates standard index for faster queries
+   - `gorm:"default:false"` - Sets database default value
+   - `gorm:"foreignKey:UserID"` - Defines foreign key relationship
+
+3. **TableName() Method**
+   - Explicitly defines the database table name
+   - Overrides GORM's default pluralization
+   - Ensures consistent naming across the application
+
+#### Relationship Patterns
+
+GORM supports various relationship types. Here are the patterns used in this application:
+
+**1. Belongs To (Many-to-One)**
+
+A child model references a parent through a foreign key:
+
+```go
+type RefreshToken struct {
+    gorm.Model
+    UserID    uint      `json:"user_id" gorm:"not null;index"`
+    User      User      `json:"-" gorm:"foreignKey:UserID"`
+    Token     string    `json:"token" gorm:"uniqueIndex;not null"`
+    ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+}
+```
+
+**Pattern:**
+- `UserID uint` - Foreign key field (references User.ID)
+- `User User` - Association field (holds the related User object)
+- `gorm:"foreignKey:UserID"` - Explicitly defines the FK field
+- `gorm:"index"` - Index on FK for faster joins
+- `json:"-"` - Excludes user object from JSON (prevents circular refs)
+
+**Usage:**
+```go
+// Query with preloading
+var token RefreshToken
+db.Preload("User").First(&token, id)
+// token.User is now populated
+
+// Query without preloading
+db.First(&token, id)
+// token.User is zero value, token.UserID is populated
+```
+
+**2. Has Many (One-to-Many)**
+
+Defined implicitly through foreign keys in the child model. Example: User has many RefreshTokens.
+
+```go
+// Querying related records
+var user User
+db.Preload("RefreshTokens").First(&user, userID)
+// user has implicit collection of tokens
+
+// Alternative: Manual query
+var tokens []RefreshToken
+db.Where("user_id = ?", userID).Find(&tokens)
+```
+
+**3. Has Many Through (Many-to-Many with Join Table)**
+
+For complex relationships like expense splits:
+
+```go
+type Expense struct {
+    gorm.Model
+    AccountID   uint            `gorm:"not null;index"`
+    Amount      float64         `gorm:"not null"`
+    Description string          `gorm:"not null"`
+    Splits      []ExpenseSplit  `gorm:"foreignKey:ExpenseID"`
+}
+
+type ExpenseSplit struct {
+    gorm.Model
+    ExpenseID uint    `gorm:"not null;index"`
+    UserID    uint    `gorm:"not null;index"`
+    Amount    float64 `gorm:"not null"`
+    Settled   bool    `gorm:"default:false"`
+}
+```
+
+#### Model Helper Methods
+
+Models can include helper methods for business logic and data validation:
+
+```go
+type RefreshToken struct {
+    gorm.Model
+    UserID    uint      `json:"user_id" gorm:"not null;index"`
+    User      User      `json:"-" gorm:"foreignKey:UserID"`
+    Token     string    `json:"token" gorm:"uniqueIndex;not null"`
+    ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+}
+
+// Helper method for token expiration check
+func (r *RefreshToken) IsExpired() bool {
+    return time.Now().After(r.ExpiresAt)
+}
+```
+
+```go
+type PasswordResetToken struct {
+    gorm.Model
+    UserID    uint      `json:"user_id" gorm:"not null;index"`
+    User      User      `json:"-" gorm:"foreignKey:UserID"`
+    Token     string    `json:"token" gorm:"uniqueIndex;not null"`
+    ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+    Used      bool      `json:"used" gorm:"default:false"`
+}
+
+// Helper method combining multiple checks
+func (p *PasswordResetToken) IsExpired() bool {
+    return time.Now().After(p.ExpiresAt)
+}
+```
+
+**Helper Method Guidelines:**
+- Keep methods simple and focused on single responsibility
+- Use for data validation, state checks, and computed properties
+- Don't include database operations (belongs in services/handlers)
+- Return primitive types or simple results
+
+#### Database Query Patterns
+
+**1. Basic CRUD Operations**
+
+```go
+// Create
+user := &models.User{Email: "test@example.com", Name: "Test"}
+database.DB.Create(user)
+
+// Read by ID
+var user models.User
+database.DB.First(&user, id)
+
+// Read by condition
+var user models.User
+database.DB.Where("email = ?", email).First(&user)
+
+// Update
+database.DB.Model(&user).Update("name", "New Name")
+// or
+database.DB.Model(&user).Updates(map[string]interface{}{"name": "New Name", "email": "new@example.com"})
+
+// Delete (soft delete with gorm.Model)
+database.DB.Delete(&user, id)
+
+// Permanent delete
+database.DB.Unscoped().Delete(&user, id)
+```
+
+**2. Preloading Relationships**
+
+```go
+// Preload single relationship
+var token models.RefreshToken
+database.DB.Preload("User").First(&token, id)
+
+// Preload nested relationships
+var expense models.Expense
+database.DB.Preload("Splits").Preload("Splits.User").First(&expense, id)
+
+// Conditional preloading
+database.DB.Preload("Splits", "settled = ?", false).First(&expense, id)
+```
+
+**3. Complex Queries**
+
+```go
+// Filtering with multiple conditions
+var expenses []models.Expense
+database.DB.Where("account_id = ? AND paid = ?", accountID, true).
+    Order("date DESC").
+    Limit(10).
+    Find(&expenses)
+
+// Date range queries
+database.DB.Where("date BETWEEN ? AND ?", startDate, endDate).
+    Find(&expenses)
+
+// Aggregations
+var total float64
+database.DB.Model(&models.Expense{}).
+    Where("account_id = ?", accountID).
+    Select("SUM(amount)").
+    Scan(&total)
+
+// Counting records
+var count int64
+database.DB.Model(&models.Expense{}).
+    Where("account_id = ?", accountID).
+    Count(&count)
+```
+
+**4. Transaction Management**
+
+```go
+// Manual transaction
+tx := database.DB.Begin()
+
+user := &models.User{Email: email, Name: name}
+if err := tx.Create(user).Error; err != nil {
+    tx.Rollback()
+    return err
+}
+
+account := &models.Account{UserID: user.ID, Name: "Personal"}
+if err := tx.Create(account).Error; err != nil {
+    tx.Rollback()
+    return err
+}
+
+tx.Commit()
+
+// Automatic transaction (preferred)
+err := database.DB.Transaction(func(tx *gorm.DB) error {
+    if err := tx.Create(&user).Error; err != nil {
+        return err
+    }
+    if err := tx.Create(&account).Error; err != nil {
+        return err
+    }
+    return nil
+})
+```
+
+#### Migration Strategy
+
+The application uses **GORM AutoMigrate** for schema management:
+
+**Benefits:**
+- Automatic schema synchronization with model definitions
+- Safe migrations (adds columns/tables, doesn't drop data)
+- No separate migration files to maintain
+- Works across different databases (SQLite, PostgreSQL, MySQL)
+
+**How it Works:**
+1. On application startup, `database.Init()` is called
+2. AutoMigrate compares model structs to database schema
+3. Missing tables are created
+4. Missing columns are added
+5. Indexes are created/updated
+6. Existing data is preserved
+
+**Limitations:**
+- Won't remove columns (by design, for safety)
+- Won't modify column types automatically
+- Complex schema changes require manual SQL
+
+**For Complex Migrations:**
+```go
+// Add custom migration in database.Init() after AutoMigrate
+if !database.DB.Migrator().HasColumn(&models.Expense{}, "new_column") {
+    database.DB.Migrator().AddColumn(&models.Expense{}, "new_column")
+}
+```
+
+#### Default Data Initialization
+
+After migrations, default settings are initialized:
+
+```go
+func initDefaultSettings() {
+    defaults := map[string]string{
+        models.SettingProLabore:   "0",       // Pró-labore não configurado
+        models.SettingINSSCeiling: "7786.02", // Teto INSS 2024
+        models.SettingINSSRate:    "11",      // 11%
+    }
+
+    for key, value := range defaults {
+        var setting models.Settings
+        result := DB.Where("key = ?", key).First(&setting)
+        if result.Error != nil {
+            DB.Create(&models.Settings{Key: key, Value: value})
+        }
+    }
+}
+```
+
+**Pattern**: Check if record exists before creating (idempotent initialization)
+
+#### Model Organization
+
+Models are organized by domain in `internal/models/`:
+
+```
+internal/models/
+├── user.go                    # Authentication models (User, RefreshToken, PasswordResetToken)
+├── account.go                 # Financial accounts
+├── income.go                  # Income transactions
+├── expense.go                 # Expense transactions
+├── credit_card.go             # Credit card entities
+├── installment.go             # Installment payments
+├── recurring_transaction.go   # Recurring transaction templates
+├── group.go                   # Family groups (FamilyGroup, GroupMember, GroupInvite)
+├── expense_split.go           # Expense sharing/splits
+├── goal.go                    # Financial goals (GroupGoal, GoalContribution)
+├── bill.go                    # Bill tracking
+├── notification.go            # User notifications
+├── settings.go                # User settings (key-value store)
+└── expense_payment.go         # Expense payment records
+```
+
+**Organization Principles:**
+- One file per primary domain entity
+- Related models grouped together (e.g., User, RefreshToken, PasswordResetToken in user.go)
+- Test files colocated as `*_test.go`
+
+#### Best Practices
+
+**1. Always Use Struct Tags**
+```go
+// Good: Explicit constraints and JSON mapping
+Email string `json:"email" gorm:"uniqueIndex;not null"`
+
+// Bad: No constraints or JSON control
+Email string
+```
+
+**2. Define TableName() for Consistency**
+```go
+// Good: Explicit table name
+func (u *User) TableName() string {
+    return "users"
+}
+
+// Bad: Relying on GORM's pluralization (can be unpredictable)
+```
+
+**3. Use json:"-" for Sensitive/Relational Data**
+```go
+// Good: Hide password and prevent circular JSON
+PasswordHash string `json:"-"`
+User         User   `json:"-" gorm:"foreignKey:UserID"`
+
+// Bad: Exposes sensitive data or causes circular references
+PasswordHash string `json:"password_hash"`
+User         User   `json:"user"`
+```
+
+**4. Index Foreign Keys**
+```go
+// Good: Fast joins and queries
+UserID uint `gorm:"not null;index"`
+
+// Bad: Slow queries on large tables
+UserID uint `gorm:"not null"`
+```
+
+**5. Use Preload for Related Data**
+```go
+// Good: Single optimized query
+database.DB.Preload("User").Find(&tokens)
+
+// Bad: N+1 query problem
+database.DB.Find(&tokens)
+for i := range tokens {
+    database.DB.First(&tokens[i].User, tokens[i].UserID)
+}
+```
+
+---
+
+### 6. HTMX Partial Rendering
 
 The application uses HTMX for dynamic updates without full page reloads:
 
