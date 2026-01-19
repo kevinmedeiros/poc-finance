@@ -254,7 +254,274 @@ Request → Logger → Recover → BodyLimit → Security Headers →
 - **RateLimiter**: Rate limiting for auth endpoints (5 req/sec)
 - **AuthMiddleware**: JWT validation and user context
 
-### 3. HTMX Partial Rendering
+### 3. Handlers Layer
+
+The Handlers Layer (Presentation Layer) follows a consistent pattern using the Echo framework. Handlers are responsible for HTTP request/response handling, input validation, and template rendering.
+
+#### Handler Structure Pattern
+
+All handlers follow this structure:
+
+```go
+// Handler struct with dependencies
+type AuthHandler struct {
+    authService *services.AuthService
+}
+
+// Constructor with dependency injection
+func NewAuthHandler() *AuthHandler {
+    return &AuthHandler{
+        authService: services.NewAuthService(),
+    }
+}
+```
+
+#### Request Handling with echo.Context
+
+Each handler method accepts `echo.Context` and returns `error`:
+
+```go
+func (h *AuthHandler) LoginPage(c echo.Context) error {
+    // Extract query parameters
+    registered := c.QueryParam("registered") == "1"
+    redirect := c.QueryParam("redirect")
+
+    // Render template with data
+    return c.Render(http.StatusOK, "login.html", map[string]interface{}{
+        "registered": registered,
+        "redirect":   redirect,
+    })
+}
+```
+
+**echo.Context provides:**
+- `c.Bind()` - Bind form/JSON data to structs
+- `c.QueryParam()` - Extract query parameters
+- `c.Param()` - Extract path parameters
+- `c.Cookie()` - Read cookies
+- `c.SetCookie()` - Set cookies
+- `c.Render()` - Render templates
+- `c.Redirect()` - HTTP redirects
+- `c.Get()` - Access middleware-injected values (e.g., user from auth middleware)
+
+#### Input Validation and Binding
+
+Handlers validate and sanitize input before processing:
+
+```go
+type LoginRequest struct {
+    Email    string `form:"email"`
+    Password string `form:"password"`
+    Redirect string `form:"redirect"`
+}
+
+func (h *AuthHandler) Login(c echo.Context) error {
+    var req LoginRequest
+
+    // Bind form data
+    if err := c.Bind(&req); err != nil {
+        return c.Render(http.StatusOK, "login.html", map[string]interface{}{
+            "error": "Dados inválidos",
+            "email": req.Email,
+        })
+    }
+
+    // Sanitize input
+    req.Email = strings.TrimSpace(req.Email)
+
+    // Validate required fields
+    if req.Email == "" || req.Password == "" {
+        return c.Render(http.StatusOK, "login.html", map[string]interface{}{
+            "error": "Email e senha são obrigatórios",
+            "email": req.Email,
+        })
+    }
+
+    // Process request...
+}
+```
+
+**Validation Best Practices:**
+1. Trim whitespace from string inputs
+2. Sanitize HTML to prevent XSS (use `html.EscapeString()`)
+3. Check required fields
+4. Validate format/complexity (e.g., password requirements)
+5. Re-render form with error messages on validation failure
+6. Preserve user input in error responses
+
+#### Error Handling Pattern
+
+Handlers handle errors gracefully and provide user-friendly messages:
+
+```go
+// Authenticate user
+_, accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
+if err != nil {
+    // Generic error for security (don't reveal if user exists)
+    return c.Render(http.StatusOK, "login.html", map[string]interface{}{
+        "error":    "Email ou senha incorretos",
+        "email":    req.Email,
+        "redirect": req.Redirect,
+    })
+}
+
+// Check for specific error types
+if errors.Is(err, services.ErrUserExists) {
+    return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+        "error": "Este email já está cadastrado",
+        "email": req.Email,
+    })
+}
+```
+
+#### Cookie Management
+
+Handlers set secure cookies for authentication:
+
+```go
+// Set secure HTTP-only cookies
+c.SetCookie(&http.Cookie{
+    Name:     "access_token",
+    Value:    accessToken,
+    Path:     "/",
+    HttpOnly: true,                                    // Prevent JavaScript access
+    Secure:   isProduction(),                          // HTTPS only in production
+    SameSite: http.SameSiteLaxMode,                   // CSRF protection
+    MaxAge:   int(services.AccessTokenDuration.Seconds()),
+})
+```
+
+**Cookie Security:**
+- `HttpOnly: true` - Prevents XSS attacks
+- `Secure: true` - HTTPS only (production)
+- `SameSite: Lax` - CSRF protection
+- Proper expiration times
+
+#### Redirect with Security
+
+Handlers validate redirect URLs to prevent open redirect vulnerabilities:
+
+```go
+// Redirect to specified URL or home (with open redirect protection)
+redirectURL := "/"
+if req.Redirect != "" &&
+    strings.HasPrefix(req.Redirect, "/") &&           // Must start with /
+    !strings.HasPrefix(req.Redirect, "//") &&         // Prevent protocol-relative URLs
+    !strings.Contains(req.Redirect, "://") {          // Prevent absolute URLs
+    redirectURL = req.Redirect
+}
+return c.Redirect(http.StatusSeeOther, redirectURL)
+```
+
+#### Template Rendering
+
+**Full Page Rendering:**
+```go
+return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{
+    "user":    user,
+    "summary": summary,
+})
+```
+
+**HTMX Partial Rendering:**
+```go
+// Return only a fragment for HTMX to swap into the page
+return c.Render(http.StatusOK, "partials/income-list.html", map[string]interface{}{
+    "incomes": incomes,
+})
+```
+
+#### Complete Handler Example
+
+Here's a complete registration handler demonstrating all patterns:
+
+```go
+func (h *AuthHandler) Register(c echo.Context) error {
+    var req RegisterRequest
+
+    // 1. Bind and validate
+    if err := c.Bind(&req); err != nil {
+        return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+            "error": "Dados inválidos",
+            "email": req.Email,
+            "name":  req.Name,
+        })
+    }
+
+    // 2. Sanitize input
+    req.Email = strings.TrimSpace(req.Email)
+    req.Name = html.EscapeString(strings.TrimSpace(req.Name))
+
+    // 3. Validate required fields
+    if req.Email == "" || req.Password == "" || req.Name == "" {
+        return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+            "error": "Todos os campos são obrigatórios",
+            "email": req.Email,
+            "name":  req.Name,
+        })
+    }
+
+    // 4. Validate password strength
+    if valid, errMsg := isValidPassword(req.Password); !valid {
+        return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+            "error": errMsg,
+            "email": req.Email,
+            "name":  req.Name,
+        })
+    }
+
+    // 5. Call service layer
+    _, err := h.authService.Register(req.Email, req.Password, req.Name)
+    if err != nil {
+        if errors.Is(err, services.ErrUserExists) {
+            return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+                "error": "Este email já está cadastrado",
+                "email": req.Email,
+                "name":  req.Name,
+            })
+        }
+        return c.Render(http.StatusOK, "register.html", map[string]interface{}{
+            "error": "Erro ao criar conta. Tente novamente.",
+            "email": req.Email,
+            "name":  req.Name,
+        })
+    }
+
+    // 6. Redirect on success
+    return c.Redirect(http.StatusSeeOther, "/login?registered=1")
+}
+```
+
+#### Handler Route Registration
+
+Handlers are registered in `cmd/server/main.go`:
+
+```go
+func main() {
+    e := echo.New()
+
+    // Create handlers
+    authHandler := handlers.NewAuthHandler()
+    incomeHandler := handlers.NewIncomeHandler()
+
+    // Public routes
+    e.GET("/login", authHandler.LoginPage)
+    e.POST("/login", authHandler.Login)
+    e.GET("/register", authHandler.RegisterPage)
+    e.POST("/register", authHandler.Register)
+
+    // Protected routes (with auth middleware)
+    protected := e.Group("")
+    protected.Use(authmw.AuthMiddleware)
+    protected.GET("/", dashboardHandler.Dashboard)
+    protected.POST("/income", incomeHandler.Create)
+    protected.DELETE("/income/:id", incomeHandler.Delete)
+
+    e.Start(":8080")
+}
+```
+
+### 4. HTMX Partial Rendering
 
 The application uses HTMX for dynamic updates without full page reloads:
 
