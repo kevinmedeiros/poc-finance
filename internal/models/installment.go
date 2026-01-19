@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// Installment represents a credit card purchase that is paid over multiple billing cycles.
+// It tracks the total purchase amount, the amount paid per installment, and the current
+// installment number to manage ongoing payment schedules.
 type Installment struct {
 	gorm.Model
 	CreditCardID       uint      `json:"credit_card_id" gorm:"not null"`
