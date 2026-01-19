@@ -28,12 +28,6 @@ func NewGroupInviteHandler() *GroupInviteHandler {
 	}
 }
 
-type RegisterAndJoinRequest struct {
-	Email    string `form:"email"`
-	Password string `form:"password"`
-	Name     string `form:"name"`
-}
-
 // GenerateInvite creates a new invite code for a group
 func (h *GroupInviteHandler) GenerateInvite(c echo.Context) error {
 	userID := middleware.GetUserID(c)

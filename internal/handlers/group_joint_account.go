@@ -22,10 +22,6 @@ func NewGroupJointAccountHandler() *GroupJointAccountHandler {
 	}
 }
 
-type CreateJointAccountRequest struct {
-	Name string `form:"name"`
-}
-
 // CreateJointAccount creates a new joint account for a group
 func (h *GroupJointAccountHandler) CreateJointAccount(c echo.Context) error {
 	userID := middleware.GetUserID(c)

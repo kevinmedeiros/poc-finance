@@ -48,11 +48,6 @@ func (h *GroupCrudHandler) renderGroupList(c echo.Context, userID uint) error {
 	})
 }
 
-type CreateGroupRequest struct {
-	Name        string `form:"name"`
-	Description string `form:"description"`
-}
-
 func (h *GroupCrudHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 
