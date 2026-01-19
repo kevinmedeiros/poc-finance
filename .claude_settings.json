@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/**)",
+      "Write(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/**)",
+      "Edit(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/**)",
+      "Glob(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/**)",
+      "Grep(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/**)",
+      "Read(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/.auto-claude/specs/031-recurring-transactions/**)",
+      "Write(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/.auto-claude/specs/031-recurring-transactions/**)",
+      "Edit(/Users/kevinm/poc-finance/.auto-claude/worktrees/tasks/031-recurring-transactions/.auto-claude/specs/031-recurring-transactions/**)",
+      "Read(/Users/kevinm/poc-finance/.auto-claude/**)",
+      "Write(/Users/kevinm/poc-finance/.auto-claude/**)",
+      "Edit(/Users/kevinm/poc-finance/.auto-claude/**)",
+      "Glob(/Users/kevinm/poc-finance/.auto-claude/**)",
+      "Grep(/Users/kevinm/poc-finance/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

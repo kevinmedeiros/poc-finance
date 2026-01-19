@@ -67,3 +67,6 @@ build/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Auto Claude data directory
+.auto-claude/
