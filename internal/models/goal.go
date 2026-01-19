@@ -6,14 +6,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// GoalStatus represents the current status of a financial goal
 type GoalStatus string
 
 const (
+	// GoalStatusActive represents goals that are currently being worked towards
 	GoalStatusActive    GoalStatus = "active"
+	// GoalStatusCompleted represents goals that have reached their target amount
 	GoalStatusCompleted GoalStatus = "completed"
+	// GoalStatusCancelled represents goals that have been abandoned or cancelled
 	GoalStatusCancelled GoalStatus = "cancelled"
 )
 
+// GroupGoal represents a shared financial goal for a family group.
+// Goals allow group members to collaboratively save towards a target amount by a specific date.
+// Each goal tracks contributions from individual members, calculates progress towards the target,
+// and can optionally be linked to a specific account for automated tracking.
 type GroupGoal struct {
 	gorm.Model
 	GroupID       uint        `json:"group_id" gorm:"not null;index"`
@@ -59,6 +67,9 @@ func (g *GroupGoal) RemainingAmount() float64 {
 	return remaining
 }
 
+// GoalContribution represents an individual contribution made by a user towards a group goal.
+// Contributions track which users are actively contributing to goals and by how much,
+// enabling fair distribution tracking and contribution history for shared financial objectives.
 type GoalContribution struct {
 	gorm.Model
 	GoalID uint      `json:"goal_id" gorm:"not null;index"`
