@@ -44,10 +44,13 @@ func (g *GroupGoal) TableName() string {
 	return "group_goals"
 }
 
+// IsCompleted returns true if the current amount has reached or exceeded the target amount
 func (g *GroupGoal) IsCompleted() bool {
 	return g.CurrentAmount >= g.TargetAmount
 }
 
+// ProgressPercentage calculates the percentage of the goal completed (0-100).
+// Returns 0 if the target amount is zero, and caps at 100 even if exceeded.
 func (g *GroupGoal) ProgressPercentage() float64 {
 	if g.TargetAmount == 0 {
 		return 0
@@ -59,6 +62,8 @@ func (g *GroupGoal) ProgressPercentage() float64 {
 	return pct
 }
 
+// RemainingAmount returns the amount still needed to reach the goal target.
+// Returns 0 if the goal has already been met or exceeded.
 func (g *GroupGoal) RemainingAmount() float64 {
 	remaining := g.TargetAmount - g.CurrentAmount
 	if remaining < 0 {

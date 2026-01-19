@@ -1,3 +1,7 @@
+// Package models defines the core data structures for the personal finance application.
+// It includes database entities for users, accounts, transactions, expenses, income,
+// budgets, goals, and group management. All structs use GORM for ORM database mapping
+// and follow standard Go naming conventions and GoDoc documentation practices.
 package models
 
 import (
