@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// Income represents an income transaction with multi-currency support.
+// It tracks income amounts in both USD and BRL with exchange rate information,
+// and includes gross, tax, and net amounts for financial reporting.
 type Income struct {
 	gorm.Model
 	AccountID    uint      `json:"account_id" gorm:"not null;index"`
@@ -20,6 +23,7 @@ type Income struct {
 	Description  string    `json:"description"`
 }
 
+// TableName returns the table name for the Income model
 func (i *Income) TableName() string {
 	return "incomes"
 }
