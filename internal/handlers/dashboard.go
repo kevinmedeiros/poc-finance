@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -32,6 +33,8 @@ type UpcomingBill struct {
 }
 
 func (h *DashboardHandler) Index(c echo.Context) error {
+	log.Println("[Dashboard] Loading dashboard - query optimization enabled")
+
 	userID := middleware.GetUserID(c)
 	allAccounts, _ := h.accountService.GetUserAccounts(userID)
 	allAccountIDs, _ := h.accountService.GetUserAccountIDs(userID)
@@ -75,7 +78,9 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		endYear++
 	}
 	// Fetch all 6 months in a single batch call (5 queries total instead of 6x5=30)
+	log.Printf("[Dashboard] Fetching 6-month projections using batch query (5 queries instead of 30)")
 	monthSummaries := services.GetBatchMonthlySummariesForAccounts(database.DB, year, month, endYear, endMonth, accountIDs)
+	log.Printf("[Dashboard] Batch query completed - retrieved %d month summaries", len(monthSummaries))
 
 	// Faturamento 12 meses e faixa atual
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
@@ -91,8 +96,10 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	saldoFinal := currentSummary.TotalIncomeGross - totalSaidas
 
 	// Próximos vencimentos
+	log.Println("[Dashboard] Fetching upcoming bills")
 	upcomingBills := getUpcomingBillsForAccounts(now, accountIDs)
 
+	log.Println("[Dashboard] Dashboard data loaded successfully - rendering template")
 	data := map[string]interface{}{
 		"currentMonth":        currentSummary,
 		"monthSummaries":      monthSummaries,
