@@ -68,20 +68,7 @@ type CreateGroupRequest struct {
 func (h *GroupHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 
-	var groups []models.FamilyGroup
-	database.DB.
-		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
-		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
-		Preload("Members").
-		Preload("Members.User").
-		Find(&groups)
-
-	// Get joint accounts for each group
-	groupAccounts := make(map[uint][]models.Account)
-	for _, group := range groups {
-		accounts, _ := h.accountService.GetGroupJointAccounts(group.ID)
-		groupAccounts[group.ID] = accounts
-	}
+	groups, groupAccounts := h.getUserGroupsWithAccounts(userID)
 
 	return c.Render(http.StatusOK, "groups.html", map[string]interface{}{
 		"groups":        groups,
