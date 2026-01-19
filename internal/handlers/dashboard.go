@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -188,13 +189,9 @@ func getUpcomingBillsForAccounts(now time.Time, accountIDs []uint) []UpcomingBil
 	}
 
 	// Ordena por data de vencimento
-	for i := 0; i < len(upcoming)-1; i++ {
-		for j := i + 1; j < len(upcoming); j++ {
-			if upcoming[j].DueDate.Before(upcoming[i].DueDate) {
-				upcoming[i], upcoming[j] = upcoming[j], upcoming[i]
-			}
-		}
-	}
+	sort.Slice(upcoming, func(i, j int) bool {
+		return upcoming[i].DueDate.Before(upcoming[j].DueDate)
+	})
 
 	// Limita a 10 itens
 	if len(upcoming) > 10 {
