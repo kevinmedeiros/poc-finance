@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -38,6 +39,8 @@ func (s *SettingsCacheService) GetSettingsData() SettingsData {
 	s.mu.RLock()
 	if time.Since(s.lastFetch) < s.ttl && !s.lastFetch.IsZero() {
 		// Cache hit - return cached data
+		age := time.Since(s.lastFetch)
+		log.Printf("[SettingsCache] CACHE HIT - Serving cached data (age: %v, TTL: %v)", age.Round(time.Second), s.ttl)
 		data := s.cachedData
 		s.mu.RUnlock()
 		return data
@@ -50,12 +53,19 @@ func (s *SettingsCacheService) GetSettingsData() SettingsData {
 
 	// Double-check after acquiring write lock (another goroutine might have refreshed)
 	if time.Since(s.lastFetch) < s.ttl && !s.lastFetch.IsZero() {
+		log.Printf("[SettingsCache] CACHE HIT (double-check) - Another goroutine refreshed cache")
 		return s.cachedData
 	}
 
 	// Fetch fresh data from database
+	if s.lastFetch.IsZero() {
+		log.Printf("[SettingsCache] CACHE MISS - Initial fetch from database")
+	} else {
+		log.Printf("[SettingsCache] CACHE EXPIRED - Refreshing from database (last fetch: %v ago)", time.Since(s.lastFetch).Round(time.Second))
+	}
 	s.cachedData = s.fetchSettingsFromDB()
 	s.lastFetch = time.Now()
+	log.Printf("[SettingsCache] Cache refreshed - ProLabore: %.2f, INSS: %.2f", s.cachedData.ProLabore, s.cachedData.INSSAmount)
 
 	return s.cachedData
 }
@@ -64,6 +74,7 @@ func (s *SettingsCacheService) GetSettingsData() SettingsData {
 func (s *SettingsCacheService) InvalidateCache() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	log.Printf("[SettingsCache] CACHE INVALIDATED - Next request will fetch from database")
 	s.lastFetch = time.Time{} // Reset to zero value to force refresh
 }
 
