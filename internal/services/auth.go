@@ -21,6 +21,7 @@ var (
 	ErrUserNotFound       = errors.New("usuário não encontrado")
 	ErrTokenExpired       = errors.New("token expirado")
 	ErrTokenInvalid       = errors.New("token inválido")
+	ErrAccountLocked      = errors.New("conta bloqueada temporariamente")
 )
 
 // JWTSecret is loaded from environment variable
@@ -39,6 +40,8 @@ const (
 	RefreshTokenDuration       = 7 * 24 * time.Hour
 	PasswordResetTokenDuration = 1 * time.Hour
 	BcryptCost                 = 12
+	MaxFailedAttempts          = 5
+	LockoutDuration            = 15 * time.Minute
 )
 
 type Claims struct {
