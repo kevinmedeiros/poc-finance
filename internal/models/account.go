@@ -2,6 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
+// AccountType represents the type of account (individual or joint)
 type AccountType string
 
 const (
