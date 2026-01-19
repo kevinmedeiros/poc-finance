@@ -69,33 +69,6 @@ func (h *SettingsHandler) Update(c echo.Context) error {
 	})
 }
 
-func GetSettingsData() SettingsData {
-	data := SettingsData{
-		ProLabore:   getSettingFloat(models.SettingProLabore),
-		INSSCeiling: getSettingFloat(models.SettingINSSCeiling),
-		INSSRate:    getSettingFloat(models.SettingINSSRate),
-	}
-
-	// Calcula INSS
-	inssConfig := services.INSSConfig{
-		ProLabore: data.ProLabore,
-		Ceiling:   data.INSSCeiling,
-		Rate:      data.INSSRate / 100, // Converte % para decimal
-	}
-	data.INSSAmount = services.CalculateINSS(inssConfig)
-
-	return data
-}
-
-func getSettingFloat(key string) float64 {
-	var setting models.Settings
-	if err := database.DB.Where("key = ?", key).First(&setting).Error; err != nil {
-		return 0
-	}
-	value, _ := strconv.ParseFloat(setting.Value, 64)
-	return value
-}
-
 func updateSetting(key, value string) {
 	var setting models.Settings
 	result := database.DB.Where("key = ?", key).First(&setting)
