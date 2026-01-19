@@ -47,6 +47,14 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
 	accounts, _ := h.accountService.GetUserAccounts(userID)
 
+	// Handle category filter from query parameter
+	var selectedCategory string
+	categoryParam := c.QueryParam("category")
+
+	if categoryParam != "" && categoryParam != "all" {
+		selectedCategory = categoryParam
+	}
+
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
@@ -54,8 +62,17 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	var fixedExpenses []models.Expense
 	var variableExpenses []models.Expense
 
-	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs).Order("due_day, name").Find(&fixedExpenses)
-	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs).Order("created_at DESC").Find(&variableExpenses)
+	// Build queries with category filter if applicable
+	fixedQuery := database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs)
+	variableQuery := database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs)
+
+	if selectedCategory != "" {
+		fixedQuery = fixedQuery.Where("category = ?", selectedCategory)
+		variableQuery = variableQuery.Where("category = ?", selectedCategory)
+	}
+
+	fixedQuery.Order("due_day, name").Find(&fixedExpenses)
+	variableQuery.Order("created_at DESC").Find(&variableExpenses)
 
 	// Verifica status de pagamento para cada despesa fixa
 	fixedWithStatus := make([]ExpenseWithStatus, len(fixedExpenses))
@@ -95,6 +112,7 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 		"categories":       getExpenseCategories(),
 		"currentMonth":     month,
 		"currentYear":      year,
+		"selectedCategory": selectedCategory,
 	}
 
 	return c.Render(http.StatusOK, "expenses.html", data)
