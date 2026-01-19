@@ -9,6 +9,7 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"poc-finance/internal/database"
+	"poc-finance/internal/i18n"
 	"poc-finance/internal/models"
 	"poc-finance/internal/services"
 )
@@ -72,11 +73,10 @@ func (h *ExportHandler) createSummarySheet(f *excelize.File, year int) {
 
 	// Dados
 	summaries := services.GetYearlySummaries(database.DB, year)
-	months := []string{"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"}
 
 	for i, s := range summaries {
 		row := i + 2
-		f.SetCellValue(sheet, fmt.Sprintf("A%d", row), months[i])
+		f.SetCellValue(sheet, fmt.Sprintf("A%d", row), i18n.MonthNamesSlice[i])
 		f.SetCellValue(sheet, fmt.Sprintf("B%d", row), s.TotalIncomeGross)
 		f.SetCellValue(sheet, fmt.Sprintf("C%d", row), s.TotalTax)
 		f.SetCellValue(sheet, fmt.Sprintf("D%d", row), s.TotalIncomeNet)
