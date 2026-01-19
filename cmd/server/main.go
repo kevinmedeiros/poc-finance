@@ -251,17 +251,12 @@ func main() {
 	expenseHandler := handlers.NewExpenseHandler()
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
-<<<<<<< HEAD
-	settingsHandler := handlers.NewSettingsHandler()
+	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)
 	groupCrudHandler := handlers.NewGroupCrudHandler()
 	groupInviteHandler := handlers.NewGroupInviteHandler()
 	groupJointAccountHandler := handlers.NewGroupJointAccountHandler()
 	groupDashboardHandler := handlers.NewGroupDashboardHandler()
 	groupSummaryHandler := handlers.NewGroupSummaryHandler()
-=======
-	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)
-	groupHandler := handlers.NewGroupHandler()
->>>>>>> d4254bd (auto-claude: subtask-2-2 - Update SettingsHandler to use cache and invalidate)
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
