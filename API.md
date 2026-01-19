@@ -407,3 +407,187 @@ All POST endpoints (except /logout) require CSRF tokens:
 | `GET /reset-password?token=...` | Display reset password form (requires valid token) |
 
 These endpoints render HTML pages with forms that submit to the corresponding POST endpoints documented above.
+
+---
+
+## Dashboard and Account Endpoints
+
+This section describes the main dashboard and account management endpoints.
+
+### Overview
+
+These endpoints require authentication and return server-rendered HTML pages. They use the same CSRF protection and security headers as authentication endpoints.
+
+---
+
+### 1. Dashboard
+
+Display the main financial dashboard with monthly summaries, projections, and upcoming bills.
+
+**Endpoint:** `GET /`
+
+**Authentication Required:** Yes (JWT token in HttpOnly cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| account_id | uint | No | Filter dashboard by specific account ID. Use "all" or omit for all accounts |
+
+**Query String Examples:**
+```
+/?account_id=1         # Filter by account ID 1
+/?account_id=all       # Show all accounts (default)
+/                      # Show all accounts (default)
+```
+
+**Example Request:**
+```http
+GET /?account_id=1 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered dashboard.html template with financial data
+
+**Response Data Includes:**
+- **Current Month Summary:**
+  - Total gross income
+  - Total taxes
+  - Total expenses
+  - Net balance
+- **6-Month Financial Projections:**
+  - Monthly income/expense forecasts
+  - Uses batch query optimization (5 queries instead of 30)
+- **Tax Information:**
+  - 12-month revenue calculation
+  - Current tax bracket
+  - Effective tax rate
+  - INSS amount
+- **Upcoming Bills (next 30 days):**
+  - Fixed expenses with due dates
+  - Unpaid bills
+  - Card installments
+  - Sorted by due date, limited to 10 items
+- **Account Filter:**
+  - List of user's accounts
+  - Currently selected account
+
+**Account Validation:**
+If an invalid account_id is provided or the user doesn't have access to the specified account, the endpoint falls back to showing all accounts without returning an error.
+
+**Performance Optimization:**
+The dashboard uses batch query optimization for 6-month projections, reducing database queries from 30 to 5 for improved performance.
+
+**Error Responses:**
+
+| Error | Description |
+|-------|-------------|
+| 401 Unauthorized | Missing or invalid authentication token |
+| 404 Not Found | Template not found (server configuration error) |
+
+---
+
+### 2. List Accounts
+
+Display all user accounts with their current balances.
+
+**Endpoint:** `GET /accounts`
+
+**Authentication Required:** Yes (JWT token in HttpOnly cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /accounts HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered accounts.html template with account data
+
+**Response Data Includes:**
+- **Accounts List:**
+  - Account ID
+  - Account name
+  - Account type (personal, joint)
+  - Current balance
+  - Group information (if joint account)
+- **Total Balance:**
+  - Sum of all account balances
+
+**Balance Calculation:**
+Account balances are calculated by summing:
+- All income transactions for the account
+- Minus all expense transactions
+- Minus all credit card transactions
+- Including all bill payments
+
+**Account Types:**
+- **Personal Accounts:** Created by and owned by a single user
+- **Joint Accounts:** Shared accounts within family groups, accessible by all group members
+
+**Error Responses:**
+
+| Error | Description |
+|-------|-------------|
+| 401 Unauthorized | Missing or invalid authentication token |
+| 500 Internal Server Error | Database error fetching accounts (returns HTML error message) |
+
+**Error Response Format:**
+- **Status Code:** 500 Internal Server Error
+- **Content-Type:** text/html
+- **Body:** Plain text error message: "Erro ao buscar contas"
+
+---
+
+## Authentication Middleware
+
+Both dashboard and account endpoints are protected by authentication middleware that:
+
+1. **Validates JWT Token:**
+   - Checks for access_token in HttpOnly cookie
+   - Validates token signature and expiration
+   - Extracts user ID from token claims
+
+2. **Token Refresh:**
+   - If access token is expired but refresh token is valid
+   - Automatically generates new access token
+   - Sets new cookie transparently
+
+3. **Authorization:**
+   - Ensures user can only access their own data
+   - Validates account ownership for filtered views
+   - Blocks access to other users' accounts
+
+4. **Failed Authentication:**
+   - Returns 401 Unauthorized
+   - Redirects to login page
+   - Preserves redirect URL for return after login
+
+---
+
+## Related Endpoints
+
+### Dashboard-Related Pages
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /incomes` | Income management page |
+| `GET /expenses` | Expense management page |
+| `GET /cards` | Credit card management page |
+| `GET /settings` | User settings and tax configuration |
+| `GET /export` | Export financial data |
+
+These related endpoints follow the same authentication and security patterns as the dashboard endpoint.
