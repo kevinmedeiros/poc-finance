@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/database"
+	"poc-finance/internal/i18n"
 	"poc-finance/internal/middleware"
 	"poc-finance/internal/models"
 	"poc-finance/internal/services"
@@ -29,21 +30,6 @@ func isValidGroupPassword(password string) (bool, string) {
 		return false, "A senha deve conter letras maiúsculas, minúsculas e números"
 	}
 	return true, ""
-}
-
-var monthNames = map[time.Month]string{
-	time.January:   "Janeiro",
-	time.February:  "Fevereiro",
-	time.March:     "Março",
-	time.April:     "Abril",
-	time.May:       "Maio",
-	time.June:      "Junho",
-	time.July:      "Julho",
-	time.August:    "Agosto",
-	time.September: "Setembro",
-	time.October:   "Outubro",
-	time.November:  "Novembro",
-	time.December:  "Dezembro",
 }
 
 type GroupHandler struct {
@@ -636,7 +622,7 @@ func (h *GroupHandler) GenerateMonthlySummary(c echo.Context) error {
 		GroupName:     group.Name,
 		GroupID:       group.ID,
 		PeriodType:    "monthly",
-		PeriodLabel:   monthNames[now.Month()],
+		PeriodLabel:   i18n.MonthNames[now.Month()],
 		TotalIncome:   monthlySummary.TotalIncomeNet,
 		TotalExpenses: monthlySummary.TotalExpenses,
 		Balance:       monthlySummary.Balance,
