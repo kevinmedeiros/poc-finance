@@ -199,7 +199,6 @@ func main() {
 
 	// Initialize settings cache service
 	settingsCacheService := services.NewSettingsCacheService()
-	_ = settingsCacheService // Will be used when integrating with handlers
 
 	// Start recurring transaction scheduler
 	schedulerService := services.NewRecurringSchedulerService()
@@ -252,12 +251,17 @@ func main() {
 	expenseHandler := handlers.NewExpenseHandler()
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
+<<<<<<< HEAD
 	settingsHandler := handlers.NewSettingsHandler()
 	groupCrudHandler := handlers.NewGroupCrudHandler()
 	groupInviteHandler := handlers.NewGroupInviteHandler()
 	groupJointAccountHandler := handlers.NewGroupJointAccountHandler()
 	groupDashboardHandler := handlers.NewGroupDashboardHandler()
 	groupSummaryHandler := handlers.NewGroupSummaryHandler()
+=======
+	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)
+	groupHandler := handlers.NewGroupHandler()
+>>>>>>> d4254bd (auto-claude: subtask-2-2 - Update SettingsHandler to use cache and invalidate)
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()

@@ -11,10 +11,14 @@ import (
 	"poc-finance/internal/services"
 )
 
-type SettingsHandler struct{}
+type SettingsHandler struct{
+	cacheService *services.SettingsCacheService
+}
 
-func NewSettingsHandler() *SettingsHandler {
-	return &SettingsHandler{}
+func NewSettingsHandler(cacheService *services.SettingsCacheService) *SettingsHandler {
+	return &SettingsHandler{
+		cacheService: cacheService,
+	}
 }
 
 type SettingsData struct {
@@ -25,7 +29,14 @@ type SettingsData struct {
 }
 
 func (h *SettingsHandler) Get(c echo.Context) error {
-	data := GetSettingsData()
+	cachedData := h.cacheService.GetSettingsData()
+	// Convert services.SettingsData to handlers.SettingsData
+	data := SettingsData{
+		ProLabore:   cachedData.ProLabore,
+		INSSCeiling: cachedData.INSSCeiling,
+		INSSRate:    cachedData.INSSRate,
+		INSSAmount:  cachedData.INSSAmount,
+	}
 	return c.Render(http.StatusOK, "settings.html", map[string]interface{}{
 		"settings": data,
 	})
@@ -41,7 +52,17 @@ func (h *SettingsHandler) Update(c echo.Context) error {
 	updateSetting(models.SettingINSSCeiling, strconv.FormatFloat(inssCeiling, 'f', 2, 64))
 	updateSetting(models.SettingINSSRate, strconv.FormatFloat(inssRate, 'f', 2, 64))
 
-	data := GetSettingsData()
+	// Invalidate cache to force refresh on next request
+	h.cacheService.InvalidateCache()
+
+	cachedData := h.cacheService.GetSettingsData()
+	// Convert services.SettingsData to handlers.SettingsData
+	data := SettingsData{
+		ProLabore:   cachedData.ProLabore,
+		INSSCeiling: cachedData.INSSCeiling,
+		INSSRate:    cachedData.INSSRate,
+		INSSAmount:  cachedData.INSSAmount,
+	}
 	return c.Render(http.StatusOK, "partials/settings-form.html", map[string]interface{}{
 		"settings": data,
 		"saved":    true,
