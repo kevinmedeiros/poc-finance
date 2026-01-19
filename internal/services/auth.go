@@ -208,8 +208,47 @@ func (s *AuthService) Login(email, password string) (*models.User, string, strin
 		return nil, "", "", ErrInvalidCredentials
 	}
 
+	// Check if account is locked
+	if user.IsLocked() {
+		return nil, "", "", ErrAccountLocked
+	}
+
 	if !s.CheckPassword(password, user.PasswordHash) {
+		// Increment failed login attempts
+		user.FailedLoginAttempts++
+		now := time.Now()
+		user.LastFailedLoginAt = &now
+
+		// Lock account if max attempts reached
+		if user.FailedLoginAttempts >= MaxFailedAttempts {
+			lockUntil := now.Add(LockoutDuration)
+			user.LockedUntil = &lockUntil
+		}
+
+		// Save failed attempt tracking
+		database.DB.Model(&user).Updates(map[string]interface{}{
+			"failed_login_attempts": user.FailedLoginAttempts,
+			"last_failed_login_at":  user.LastFailedLoginAt,
+			"locked_until":          user.LockedUntil,
+		})
+
+		// Return locked error if just locked, otherwise invalid credentials
+		if user.FailedLoginAttempts >= MaxFailedAttempts {
+			return nil, "", "", ErrAccountLocked
+		}
 		return nil, "", "", ErrInvalidCredentials
+	}
+
+	// Reset failed login attempts on successful login
+	if user.FailedLoginAttempts > 0 || user.LockedUntil != nil || user.LastFailedLoginAt != nil {
+		database.DB.Model(&user).Updates(map[string]interface{}{
+			"failed_login_attempts": 0,
+			"last_failed_login_at":  nil,
+			"locked_until":          nil,
+		})
+		user.FailedLoginAttempts = 0
+		user.LockedUntil = nil
+		user.LastFailedLoginAt = nil
 	}
 
 	accessToken, err := s.GenerateAccessToken(&user)
