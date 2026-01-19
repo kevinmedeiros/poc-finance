@@ -221,9 +221,26 @@ func GetMemberContributions(db *gorm.DB, groupID uint, accountIDs []uint) []Memb
 	return contributions
 }
 
-// GetBatchMonthlySummariesForAccounts retorna resumos mensais para múltiplos meses em uma única operação batch
-// Esta função otimiza o número de queries ao banco de dados ao buscar todos os dados de uma vez
-// e distribuí-los nos meses apropriados, ao invés de fazer queries separadas por mês
+// GetBatchMonthlySummariesForAccounts retorna resumos mensais para múltiplos meses em uma única operação batch.
+//
+// BATCH OPTIMIZATION:
+// Esta função resolve o problema de N+1 queries ao consolidar múltiplas requisições em operações batch.
+// Ao invés de chamar GetMonthlySummaryForAccounts() em loop (que executa 5 queries por mês),
+// esta função executa apenas 5 queries totais para TODOS os meses do range.
+//
+// Performance:
+//   - Para 6 meses: 5 queries totais (vs 30 queries com abordagem tradicional) = 6x mais rápido
+//   - Para 12 meses: 5 queries totais (vs 60 queries com abordagem tradicional) = 12x mais rápido
+//
+// Como funciona:
+//   1. Busca TODOS os dados do range de datas em 5 queries batch
+//   2. Distribui os dados nos meses apropriados em memória
+//   3. Calcula os totais para cada mês
+//
+// Trade-offs:
+//   - Mais eficiente para múltiplos meses (2+ meses)
+//   - Para um único mês, use GetMonthlySummaryForAccounts() que é mais simples
+//   - Usa mais memória temporária, mas ganha significativo em I/O de banco de dados
 func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, endYear, endMonth int, accountIDs []uint) []MonthlySummary {
 	// Create date range
 	rangeStartDate := time.Date(startYear, time.Month(startMonth), 1, 0, 0, 0, 0, time.Local)
@@ -258,7 +275,20 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 		return result
 	}
 
-	// Batch query 1: Fetch ALL incomes for date range
+	// ============================================================================
+	// BATCH QUERY OPTIMIZATION: 5 queries totais ao invés de N*5 queries
+	// ============================================================================
+	// Ao invés de executar 5 queries por mês (incomes, fixed, variable, cards, bills),
+	// executamos apenas 1 query de cada tipo para TODO o range de meses.
+	// Os dados são então distribuídos nos meses corretos em memória.
+	//
+	// Exemplo: Para 6 meses, ao invés de 30 queries (6 meses × 5 tipos),
+	// executamos apenas 5 queries totais.
+	// ============================================================================
+
+	// Batch query 1: Fetch ALL incomes for the entire date range in a single query
+	// Instead of: SELECT * FROM incomes WHERE date BETWEEN month1 (6 queries for 6 months)
+	// We do: SELECT * FROM incomes WHERE date BETWEEN startDate AND endDate (1 query)
 	var incomes []models.Income
 	db.Where("date BETWEEN ? AND ? AND account_id IN ?", rangeStartDate, rangeEndDate, accountIDs).Find(&incomes)
 	for _, i := range incomes {
@@ -270,17 +300,19 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 		}
 	}
 
-	// Batch query 2: Fetch ALL fixed expenses for accounts
+	// Batch query 2: Fetch ALL fixed expenses once and apply to all months
+	// Fixed expenses are recurring monthly, so we fetch once and multiply across months
 	var fixedExpenses []models.Expense
 	db.Where("type = ? AND active = ? AND account_id IN ?", models.ExpenseTypeFixed, true, accountIDs).Find(&fixedExpenses)
-	// Fixed expenses apply to all months
+	// Fixed expenses apply to all months in the range
 	for key := range summaryMap {
 		for _, e := range fixedExpenses {
 			summaryMap[key].TotalFixed += e.Amount
 		}
 	}
 
-	// Batch query 3: Fetch ALL variable expenses for date range and accounts
+	// Batch query 3: Fetch ALL variable expenses for the entire date range in a single query
+	// Variable expenses are month-specific, so we distribute based on created_at
 	var variableExpenses []models.Expense
 	db.Where("type = ? AND active = ? AND created_at BETWEEN ? AND ? AND account_id IN ?",
 		models.ExpenseTypeVariable, true, rangeStartDate, rangeEndDate, accountIDs).Find(&variableExpenses)
@@ -291,12 +323,14 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 		}
 	}
 
-	// Batch query 4: Fetch ALL credit cards with installments for accounts
+	// Batch query 4: Fetch ALL credit cards with installments in a single query (with preload)
+	// Installments can span multiple months, so we calculate which months they affect
+	// and distribute the amounts accordingly
 	var creditCards []models.CreditCard
 	db.Where("account_id IN ?", accountIDs).Preload("Installments").Find(&creditCards)
 	for _, card := range creditCards {
 		for _, inst := range card.Installments {
-			// Calculate which months this installment affects
+			// Calculate which months this installment affects based on start date and duration
 			installmentMonth := inst.StartDate
 			for i := 1; i <= inst.TotalInstallments; i++ {
 				key := installmentMonth.Format("2006-01")
@@ -308,7 +342,8 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 		}
 	}
 
-	// Batch query 5: Fetch ALL bills for date range and accounts
+	// Batch query 5: Fetch ALL bills for the entire date range in a single query
+	// Bills are distributed to their respective months based on due_date
 	var bills []models.Bill
 	db.Where("due_date BETWEEN ? AND ? AND account_id IN ?", rangeStartDate, rangeEndDate, accountIDs).Find(&bills)
 	for _, b := range bills {
@@ -317,6 +352,10 @@ func GetBatchMonthlySummariesForAccounts(db *gorm.DB, startYear, startMonth, end
 			summary.TotalBills += b.Amount
 		}
 	}
+
+	// ============================================================================
+	// END OF BATCH QUERIES
+	// ============================================================================
 
 	// Calculate totals and build result slice
 	result := make([]MonthlySummary, 0, len(summaryMap))

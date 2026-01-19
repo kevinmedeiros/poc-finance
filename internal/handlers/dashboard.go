@@ -66,18 +66,37 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	year := now.Year()
 	month := int(now.Month())
 
-	// Resumo do mês atual
+	// Resumo do mês atual (single month, so we use the standard function)
 	currentSummary := services.GetMonthlySummaryForAccounts(database.DB, year, month, accountIDs)
 
-	// Projeção dos próximos 6 meses - usando batch query para melhor performance
-	// Calculate end month/year for 6-month range
+	// ============================================================================
+	// BATCH QUERY OPTIMIZATION FOR 6-MONTH PROJECTIONS
+	// ============================================================================
+	// The dashboard shows projections for the next 6 months. Without optimization,
+	// this would require 6 calls to GetMonthlySummaryForAccounts(), each making
+	// 5 database queries = 30 total queries.
+	//
+	// Using GetBatchMonthlySummariesForAccounts(), we consolidate all data fetching
+	// into just 5 queries total for ALL 6 months combined.
+	//
+	// Performance improvement:
+	//   - Old approach: 6 months × 5 queries/month = 30 database queries
+	//   - New approach: 5 database queries total (regardless of month count)
+	//   - Result: 6x faster, reduces database load, better user experience
+	//
+	// This is especially important for the dashboard since it's the most frequently
+	// accessed page and needs to load quickly.
+	// ============================================================================
+
+	// Calculate end month/year for 6-month projection range
 	endMonth := month + 5
 	endYear := year
 	if endMonth > 12 {
 		endMonth -= 12
 		endYear++
 	}
-	// Fetch all 6 months in a single batch call (5 queries total instead of 6x5=30)
+
+	// Fetch all 6 months in a single batch call (5 queries total instead of 30)
 	log.Printf("[Dashboard] Fetching 6-month projections using batch query (5 queries instead of 30)")
 	monthSummaries := services.GetBatchMonthlySummariesForAccounts(database.DB, year, month, endYear, endMonth, accountIDs)
 	log.Printf("[Dashboard] Batch query completed - retrieved %d month summaries", len(monthSummaries))
