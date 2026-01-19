@@ -66,6 +66,7 @@ dist/
 build/
 server
 poc-finance
+main
 
 # OS generated files
 Thumbs.db
