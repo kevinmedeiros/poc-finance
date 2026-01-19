@@ -10,13 +10,22 @@ import (
 type NotificationType string
 
 const (
+	// NotificationTypeGroupInvite represents notifications for group membership invitations
 	NotificationTypeGroupInvite NotificationType = "group_invite"
-	NotificationTypeExpense     NotificationType = "expense"
+	// NotificationTypeExpense represents notifications about shared expenses and payments
+	NotificationTypeExpense NotificationType = "expense"
+	// NotificationTypeGoalReached represents notifications when a financial goal is achieved
 	NotificationTypeGoalReached NotificationType = "goal_reached"
+	// NotificationTypeBudgetAlert represents notifications when budget limits are approaching or exceeded
 	NotificationTypeBudgetAlert NotificationType = "budget_alert"
-	NotificationTypeSummary     NotificationType = "summary"
+	// NotificationTypeSummary represents periodic financial summary notifications
+	NotificationTypeSummary NotificationType = "summary"
 )
 
+// Notification represents an in-app notification sent to a user.
+// Notifications inform users about important events such as group invites, expense updates,
+// budget alerts, and goal achievements. They can optionally link to related entities
+// (groups, invites) and track read status for user experience.
 type Notification struct {
 	gorm.Model
 	UserID    uint             `json:"user_id" gorm:"not null;index"`
