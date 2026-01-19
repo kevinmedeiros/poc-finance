@@ -708,3 +708,282 @@ func TestGetBatchMonthlySummariesForAccounts_MonthNameGeneration(t *testing.T) {
 		}
 	}
 }
+
+// TestCompareBatchVsLoopImplementation verifies that the new batch implementation
+// produces identical results to the old loop-based implementation
+func TestCompareBatchVsLoopImplementation(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account1 := testutil.CreateTestAccount(db, "Account 1", models.AccountTypeIndividual, user.ID, nil)
+	account2 := testutil.CreateTestAccount(db, "Account 2", models.AccountTypeIndividual, user.ID, nil)
+	accountIDs := []uint{account1.ID, account2.ID}
+
+	// Create comprehensive test data across 6 months (simulating real dashboard usage)
+
+	// Incomes for different months and accounts
+	incomeData := []struct {
+		accountID uint
+		month     int
+		gross     float64
+		tax       float64
+		net       float64
+	}{
+		{account1.ID, 1, 5000.00, 500.00, 4500.00},
+		{account2.ID, 1, 3000.00, 300.00, 2700.00},
+		{account1.ID, 2, 5200.00, 520.00, 4680.00},
+		{account2.ID, 2, 3100.00, 310.00, 2790.00},
+		{account1.ID, 3, 5400.00, 540.00, 4860.00},
+		{account1.ID, 4, 5100.00, 510.00, 4590.00},
+		{account2.ID, 5, 3200.00, 320.00, 2880.00},
+		{account1.ID, 6, 5500.00, 550.00, 4950.00},
+	}
+
+	for _, income := range incomeData {
+		db.Create(&models.Income{
+			AccountID:   income.accountID,
+			Date:        time.Date(2024, time.Month(income.month), 15, 0, 0, 0, 0, time.Local),
+			GrossAmount: income.gross,
+			TaxAmount:   income.tax,
+			NetAmount:   income.net,
+			Description: "Test Income",
+		})
+	}
+
+	// Fixed expenses (apply to all months)
+	db.Create(&models.Expense{
+		AccountID: account1.ID,
+		Name:      "Rent Account 1",
+		Amount:    1200.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+	db.Create(&models.Expense{
+		AccountID: account2.ID,
+		Name:      "Utilities Account 2",
+		Amount:    800.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+
+	// Inactive expense (should be excluded)
+	inactiveExpense := &models.Expense{
+		AccountID: account1.ID,
+		Name:      "Old Expense",
+		Amount:    500.00,
+		Type:      models.ExpenseTypeFixed,
+	}
+	db.Create(inactiveExpense)
+	db.Model(inactiveExpense).Update("active", false)
+
+	// Variable expenses for different months
+	variableExpensesData := []struct {
+		accountID uint
+		month     int
+		amount    float64
+	}{
+		{account1.ID, 1, 350.00},
+		{account2.ID, 1, 250.00},
+		{account1.ID, 2, 400.00},
+		{account1.ID, 3, 380.00},
+		{account2.ID, 4, 300.00},
+		{account1.ID, 5, 420.00},
+	}
+
+	for _, ve := range variableExpensesData {
+		expense := &models.Expense{
+			AccountID: ve.accountID,
+			Name:      "Variable Expense",
+			Amount:    ve.amount,
+			Type:      models.ExpenseTypeVariable,
+			Active:    true,
+		}
+		db.Create(expense)
+		db.Model(expense).Update("created_at", time.Date(2024, time.Month(ve.month), 20, 0, 0, 0, 0, time.Local))
+	}
+
+	// Credit card installments
+	creditCard1 := &models.CreditCard{
+		AccountID:  account1.ID,
+		Name:       "Card 1",
+		ClosingDay: 15,
+		DueDay:     25,
+	}
+	db.Create(creditCard1)
+
+	// 3 installments starting in month 2
+	db.Create(&models.Installment{
+		CreditCardID:      creditCard1.ID,
+		Description:       "Purchase 1",
+		TotalAmount:       900.00,
+		InstallmentAmount: 300.00,
+		TotalInstallments: 3,
+		StartDate:         time.Date(2024, 2, 1, 0, 0, 0, 0, time.Local),
+	})
+
+	creditCard2 := &models.CreditCard{
+		AccountID:  account2.ID,
+		Name:       "Card 2",
+		ClosingDay: 10,
+		DueDay:     20,
+	}
+	db.Create(creditCard2)
+
+	// 2 installments starting in month 4
+	db.Create(&models.Installment{
+		CreditCardID:      creditCard2.ID,
+		Description:       "Purchase 2",
+		TotalAmount:       500.00,
+		InstallmentAmount: 250.00,
+		TotalInstallments: 2,
+		StartDate:         time.Date(2024, 4, 1, 0, 0, 0, 0, time.Local),
+	})
+
+	// Bills for different months
+	billsData := []struct {
+		accountID uint
+		month     int
+		amount    float64
+	}{
+		{account1.ID, 1, 150.00},
+		{account2.ID, 1, 100.00},
+		{account1.ID, 2, 180.00},
+		{account1.ID, 3, 160.00},
+		{account2.ID, 4, 120.00},
+		{account1.ID, 5, 170.00},
+		{account2.ID, 6, 140.00},
+	}
+
+	for _, bill := range billsData {
+		db.Create(&models.Bill{
+			AccountID: bill.accountID,
+			Name:      "Test Bill",
+			Amount:    bill.amount,
+			DueDate:   time.Date(2024, time.Month(bill.month), 10, 0, 0, 0, 0, time.Local),
+		})
+	}
+
+	// OLD IMPLEMENTATION: Loop through each month calling GetMonthlySummaryForAccounts
+	loopResults := make([]MonthlySummary, 0, 6)
+	for month := 1; month <= 6; month++ {
+		summary := GetMonthlySummaryForAccounts(db, 2024, month, accountIDs)
+		loopResults = append(loopResults, summary)
+	}
+
+	// NEW IMPLEMENTATION: Single batch call
+	batchResults := GetBatchMonthlySummariesForAccounts(db, 2024, 1, 2024, 6, accountIDs)
+
+	// COMPARISON: Verify both implementations produce identical results
+	if len(loopResults) != len(batchResults) {
+		t.Fatalf("Length mismatch: loop=%d, batch=%d", len(loopResults), len(batchResults))
+	}
+
+	if len(loopResults) != 6 {
+		t.Fatalf("Expected 6 months, got %d", len(loopResults))
+	}
+
+	// Compare each month's summary
+	for i := 0; i < 6; i++ {
+		month := i + 1
+		loop := loopResults[i]
+		batch := batchResults[i]
+
+		// Compare month
+		if loop.Month.Year() != batch.Month.Year() || loop.Month.Month() != batch.Month.Month() {
+			t.Errorf("Month %d: Date mismatch - loop=%v, batch=%v", month, loop.Month, batch.Month)
+		}
+
+		// Compare month name
+		if loop.MonthName != batch.MonthName {
+			t.Errorf("Month %d: MonthName mismatch - loop=%s, batch=%s", month, loop.MonthName, batch.MonthName)
+		}
+
+		// Compare all financial fields (must match exactly)
+		if loop.TotalIncomeGross != batch.TotalIncomeGross {
+			t.Errorf("Month %d: TotalIncomeGross mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalIncomeGross, batch.TotalIncomeGross)
+		}
+
+		if loop.TotalIncomeNet != batch.TotalIncomeNet {
+			t.Errorf("Month %d: TotalIncomeNet mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalIncomeNet, batch.TotalIncomeNet)
+		}
+
+		if loop.TotalTax != batch.TotalTax {
+			t.Errorf("Month %d: TotalTax mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalTax, batch.TotalTax)
+		}
+
+		if loop.TotalFixed != batch.TotalFixed {
+			t.Errorf("Month %d: TotalFixed mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalFixed, batch.TotalFixed)
+		}
+
+		if loop.TotalVariable != batch.TotalVariable {
+			t.Errorf("Month %d: TotalVariable mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalVariable, batch.TotalVariable)
+		}
+
+		if loop.TotalCards != batch.TotalCards {
+			t.Errorf("Month %d: TotalCards mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalCards, batch.TotalCards)
+		}
+
+		if loop.TotalBills != batch.TotalBills {
+			t.Errorf("Month %d: TotalBills mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalBills, batch.TotalBills)
+		}
+
+		if loop.TotalExpenses != batch.TotalExpenses {
+			t.Errorf("Month %d: TotalExpenses mismatch - loop=%.2f, batch=%.2f",
+				month, loop.TotalExpenses, batch.TotalExpenses)
+		}
+
+		if loop.Balance != batch.Balance {
+			t.Errorf("Month %d: Balance mismatch - loop=%.2f, batch=%.2f",
+				month, loop.Balance, batch.Balance)
+		}
+	}
+
+	// Additional verification: Spot check specific expected values
+	// Month 1: Should have income from both accounts, bills from both, variable expenses from both
+	if batchResults[0].TotalIncomeGross != 8000.00 { // 5000 + 3000
+		t.Errorf("Month 1: Expected TotalIncomeGross=8000.00, got %.2f", batchResults[0].TotalIncomeGross)
+	}
+
+	if batchResults[0].TotalFixed != 2000.00 { // 1200 + 800
+		t.Errorf("Month 1: Expected TotalFixed=2000.00, got %.2f", batchResults[0].TotalFixed)
+	}
+
+	if batchResults[0].TotalVariable != 600.00 { // 350 + 250
+		t.Errorf("Month 1: Expected TotalVariable=600.00, got %.2f", batchResults[0].TotalVariable)
+	}
+
+	if batchResults[0].TotalCards != 0.00 { // No installments in month 1
+		t.Errorf("Month 1: Expected TotalCards=0.00, got %.2f", batchResults[0].TotalCards)
+	}
+
+	if batchResults[0].TotalBills != 250.00 { // 150 + 100
+		t.Errorf("Month 1: Expected TotalBills=250.00, got %.2f", batchResults[0].TotalBills)
+	}
+
+	// Month 2: Should have installments starting
+	if batchResults[1].TotalCards != 300.00 { // First installment
+		t.Errorf("Month 2: Expected TotalCards=300.00, got %.2f", batchResults[1].TotalCards)
+	}
+
+	// Month 4: Should have installments from both cards
+	if batchResults[3].TotalCards != 550.00 { // 300 (card1 3rd) + 250 (card2 1st)
+		t.Errorf("Month 4: Expected TotalCards=550.00, got %.2f", batchResults[3].TotalCards)
+	}
+
+	// Month 5: Should only have card2's second installment (card1 ended in month 4)
+	if batchResults[4].TotalCards != 250.00 { // 250 (card2 2nd, last)
+		t.Errorf("Month 5: Expected TotalCards=250.00, got %.2f", batchResults[4].TotalCards)
+	}
+
+	// Month 6: No installments (both cards finished)
+	if batchResults[5].TotalCards != 0.00 {
+		t.Errorf("Month 6: Expected TotalCards=0.00, got %.2f", batchResults[5].TotalCards)
+	}
+}
