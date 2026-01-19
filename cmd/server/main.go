@@ -71,6 +71,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/goals.html"
 	case strings.Contains(baseName, "group"):
 		templateFile = "internal/templates/groups.html"
+	case strings.Contains(baseName, "recurring"):
+		templateFile = "internal/templates/recurring.html"
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
@@ -130,6 +132,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/group-dashboard.html",
 		"internal/templates/goals.html",
 		"internal/templates/notifications.html",
+		"internal/templates/recurring.html",
 	}
 
 	// Auth pages have their own base template embedded
