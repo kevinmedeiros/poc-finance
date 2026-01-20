@@ -2661,3 +2661,403 @@ The GroupService validates:
 4. Updated group list returned
 
 ---
+
+## Group Joint Account Endpoints
+
+### Overview
+
+Joint accounts are shared bank accounts within a family group. All group members can create transactions in joint accounts, and the balances are tracked collectively. These accounts appear on the group dashboard alongside individual member accounts.
+
+**Authentication:** All endpoints require JWT authentication via cookie
+
+**Authorization:** Users must be members of the group to manage joint accounts
+
+---
+
+### 1. Create Joint Account
+
+Create a new joint account for a group.
+
+**Endpoint:** `POST /groups/:id/accounts`
+
+**Authentication Required:** Yes
+
+**Authorization:** User must be a member of the group
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Name of the joint account |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /groups/123/accounts HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...
+
+name=Family+Checking+Account
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated joint accounts list partial (partials/joint-accounts-list.html)
+
+**Response Includes:**
+- All joint accounts for the group
+- Account names and IDs
+- Group ID and user ID for client-side rendering
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Nome da conta é obrigatório" | Account name is missing |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Erro ao criar conta conjunta" | Server error during account creation |
+
+---
+
+### 2. Delete Joint Account
+
+Delete a joint account from a group.
+
+**Endpoint:** `DELETE /groups/:id/accounts/:accountId`
+
+**Authentication Required:** Yes
+
+**Authorization:** User must be a member of the group
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+| accountId | integer | Joint account ID |
+
+**Example Request:**
+```http
+DELETE /groups/123/accounts/456 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated joint accounts list partial (partials/joint-accounts-list.html)
+
+**Response Includes:**
+- Remaining joint accounts for the group (after deletion)
+- Account names and IDs
+- Group ID and user ID for client-side rendering
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "ID da conta inválido" | Invalid account ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Conta não encontrada" | Joint account does not exist |
+| "Erro ao excluir conta" | Server error during deletion |
+
+**Side Effects:**
+- Account is permanently deleted
+- All transactions associated with the account remain but are orphaned
+- Account balance data is removed
+
+---
+
+## Group Dashboard Endpoint
+
+### Overview
+
+The group dashboard provides a consolidated financial view for a family group, showing both joint account data and holistic family finances (individual + joint accounts combined).
+
+**Features:**
+- Monthly income/expense summary for joint accounts
+- 6-month financial projection for joint accounts
+- Member contribution tracking
+- Upcoming bills from joint accounts
+- Holistic view of all family finances (individual + joint accounts)
+
+**Authentication:** Requires JWT authentication via cookie
+
+**Authorization:** User must be a member of the group
+
+---
+
+### 1. View Group Dashboard
+
+Display the consolidated dashboard for a group's joint accounts and holistic family view.
+
+**Endpoint:** `GET /groups/:id/dashboard`
+
+**Authentication Required:** Yes
+
+**Authorization:** User must be a member of the group
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+GET /groups/123/dashboard HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered group-dashboard.html page with comprehensive financial data
+
+**Response Data Includes:**
+
+**Group Information:**
+- Group name and description
+- List of group members with roles
+
+**Joint Accounts Summary:**
+- Current month income and expenses for joint accounts
+- 6-month projection of income/expenses/balance
+- Individual joint account balances with transaction totals
+- Total income, expenses, and balance across all joint accounts
+
+**Member Contributions:**
+- Breakdown of each member's contributions to joint accounts
+- Income and expense amounts per member
+
+**Upcoming Bills:**
+- Fixed expenses due in the current month from joint accounts
+- Due dates and amounts
+
+**Holistic Family Summary:**
+- Combined data from all accounts (individual + joint)
+- Total family income, expenses, and balance
+- 6-month holistic projection
+- All account balances (individual and joint)
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Grupo não encontrado" | Group does not exist |
+
+**Data Calculations:**
+
+1. **Joint Account Summary:**
+   - Aggregates income and expenses from joint accounts only
+   - Calculates monthly summaries for current and next 5 months
+   - Includes recurring transactions in projections
+
+2. **Member Contributions:**
+   - Tracks income added by each member to joint accounts
+   - Tracks expenses paid by each member from joint accounts
+
+3. **Holistic Summary:**
+   - Combines data from personal accounts and joint accounts
+   - Provides complete family financial picture
+   - Useful for overall family budget planning
+
+---
+
+## Group Summary Endpoints
+
+### Overview
+
+Group summary endpoints generate periodic financial summary notifications for family groups. Summaries are sent to all group members as in-app notifications.
+
+**Types of Summaries:**
+- **Weekly:** Covers the last 7 days of financial activity
+- **Monthly:** Covers the current calendar month
+
+**Authentication:** Requires JWT authentication via cookie
+
+**Authorization:** User must be a member of the group
+
+---
+
+### 1. Generate Weekly Summary
+
+Generate and send a weekly financial summary notification to all group members.
+
+**Endpoint:** `POST /groups/:id/summary/weekly`
+
+**Authentication Required:** Yes
+
+**Authorization:** User must be a member of the group
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+POST /groups/123/summary/weekly HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/plain
+- **Body:** "Resumo semanal enviado com sucesso!"
+
+**Side Effects:**
+- Creates a notification for all group members
+- Notification includes:
+  - Period label (e.g., "Semana de 13/01 a 20/01")
+  - Total income for the week (from joint accounts)
+  - Total expenses for the week (from joint accounts)
+  - Net balance (income - expenses)
+  - Count of income and expense transactions
+
+**Data Calculation:**
+- Period: Last 7 days from current date
+- Scope: Joint accounts only
+- Income: Sum of net amounts from income records in the period
+- Expenses: Sum of amounts from active expense records in the period
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Grupo não encontrado" | Group does not exist |
+| "Erro ao buscar membros do grupo" | Server error retrieving group members |
+| "Erro ao criar notificação de resumo" | Server error creating notifications |
+
+---
+
+### 2. Generate Monthly Summary
+
+Generate and send a monthly financial summary notification to all group members.
+
+**Endpoint:** `POST /groups/:id/summary/monthly`
+
+**Authentication Required:** Yes
+
+**Authorization:** User must be a member of the group
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+POST /groups/123/summary/monthly HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/plain
+- **Body:** "Resumo mensal enviado com sucesso!"
+
+**Side Effects:**
+- Creates a notification for all group members
+- Notification includes:
+  - Period label (current month name, e.g., "Janeiro")
+  - Total income for the month (from joint accounts)
+  - Total expenses for the month (from joint accounts)
+  - Net balance (income - expenses)
+
+**Data Calculation:**
+- Period: Current calendar month (month and year)
+- Scope: Joint accounts only
+- Uses monthly summary service to aggregate income and expenses
+- Includes recurring transactions and projections
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Grupo não encontrado" | Group does not exist |
+| "Erro ao buscar membros do grupo" | Server error retrieving group members |
+| "Erro ao criar notificação de resumo" | Server error creating notifications |
+
+---
+
+## Group Features Security
+
+### Authentication & Authorization
+
+**All Group Feature Endpoints:**
+All group feature endpoints (joint accounts, dashboard, summaries) require valid JWT authentication via cookie.
+
+**Group Membership Validation:**
+- All endpoints verify user is a member of the specified group
+- Non-members receive "Você não é membro deste grupo" error
+- Authorization check performed using GroupService.IsGroupMember()
+
+**No Admin Requirement:**
+Unlike group management endpoints, group feature endpoints are accessible to all group members (both admin and regular members).
+
+### Data Access Control
+
+**Joint Accounts:**
+- Joint accounts are scoped to a specific group
+- Only group members can create/delete joint accounts
+- Account ownership is tied to the group, not individual users
+- All transactions in joint accounts are visible to all group members
+
+**Dashboard Data:**
+- Group dashboard shows financial data only from:
+  - Joint accounts (for joint summary)
+  - All accounts belonging to group members (for holistic summary)
+- Non-members cannot access group dashboard data
+
+**Summary Notifications:**
+- Summaries are sent to all active group members
+- Notification service validates group membership before sending
+- Summary data is calculated only from joint accounts
+
+### Data Validation
+
+**Joint Account Creation:**
+- Account name is required
+- Account is automatically associated with the group
+- Account type is set to "joint"
+
+**Joint Account Deletion:**
+- Validates account exists and belongs to the specified group
+- Validates user is a member of the group
+- Permanently deletes account record
+
+**Summary Generation:**
+- Validates group exists
+- Validates user is a group member
+- Calculates data only from joint accounts belonging to the group
+
+### CSRF Protection
+
+All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
+
+---
