@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"os"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -10,12 +11,24 @@ import (
 	"poc-finance/internal/models"
 )
 
+// isProduction returns true if ENV is set to "production"
+func isProduction() bool {
+	return os.Getenv("ENV") == "production"
+}
+
 var DB *gorm.DB
 
 func Init() error {
 	var err error
+	// Use error-only logging in production to avoid exposing sensitive data
+	// Use info logging in development for debugging
+	logLevel := logger.Info
+	if isProduction() {
+		logLevel = logger.Error
+	}
+
 	DB, err = gorm.Open(sqlite.Open("finance.db"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
 		return err

@@ -12,10 +12,11 @@ import (
 
 // SettingsData represents cached application settings
 type SettingsData struct {
-	ProLabore   float64 `json:"pro_labore"`
-	INSSCeiling float64 `json:"inss_ceiling"`
-	INSSRate    float64 `json:"inss_rate"`
-	INSSAmount  float64 `json:"inss_amount"` // Calculated value
+	ProLabore              float64 `json:"pro_labore"`
+	INSSCeiling            float64 `json:"inss_ceiling"`
+	INSSRate               float64 `json:"inss_rate"`
+	INSSAmount             float64 `json:"inss_amount"` // Calculated value
+	BudgetWarningThreshold float64 `json:"budget_warning_threshold"`
 }
 
 // SettingsCacheService provides thread-safe caching for application settings with TTL-based expiration
@@ -81,9 +82,15 @@ func (s *SettingsCacheService) InvalidateCache() {
 // fetchSettingsFromDB queries the database for all settings and calculates derived values
 func (s *SettingsCacheService) fetchSettingsFromDB() SettingsData {
 	data := SettingsData{
-		ProLabore:   getSettingFloat(models.SettingProLabore),
-		INSSCeiling: getSettingFloat(models.SettingINSSCeiling),
-		INSSRate:    getSettingFloat(models.SettingINSSRate),
+		ProLabore:              getSettingFloat(models.SettingProLabore),
+		INSSCeiling:            getSettingFloat(models.SettingINSSCeiling),
+		INSSRate:               getSettingFloat(models.SettingINSSRate),
+		BudgetWarningThreshold: getSettingFloat(models.SettingBudgetWarningThreshold),
+	}
+
+	// Default to 100% if threshold is not set or is 0
+	if data.BudgetWarningThreshold == 0 {
+		data.BudgetWarningThreshold = 100
 	}
 
 	// Calculate INSS amount

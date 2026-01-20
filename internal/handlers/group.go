@@ -16,7 +16,7 @@ import (
 	"poc-finance/internal/services"
 )
 
-type GroupHandler struct{
+type GroupHandler struct {
 	groupService        *services.GroupService
 	accountService      *services.AccountService
 	notificationService *services.NotificationService

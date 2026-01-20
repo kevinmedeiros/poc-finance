@@ -22,10 +22,11 @@ func NewSettingsHandler(cacheService *services.SettingsCacheService) *SettingsHa
 }
 
 type SettingsData struct {
-	ProLabore   float64 `json:"pro_labore"`
-	INSSCeiling float64 `json:"inss_ceiling"`
-	INSSRate    float64 `json:"inss_rate"`
-	INSSAmount  float64 `json:"inss_amount"` // Calculado
+	ProLabore              float64 `json:"pro_labore"`
+	INSSCeiling            float64 `json:"inss_ceiling"`
+	INSSRate               float64 `json:"inss_rate"`
+	INSSAmount             float64 `json:"inss_amount"` // Calculado
+	BudgetWarningThreshold float64 `json:"budget_warning_threshold"`
 }
 
 func (h *SettingsHandler) Get(c echo.Context) error {
