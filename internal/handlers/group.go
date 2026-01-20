@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -17,22 +16,7 @@ import (
 	"poc-finance/internal/services"
 )
 
-// isValidGroupPassword checks password complexity requirements
-func isValidGroupPassword(password string) (bool, string) {
-	if len(password) < 8 {
-		return false, "A senha deve ter pelo menos 8 caracteres"
-	}
-	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
-	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
-	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
-
-	if !hasUpper || !hasLower || !hasNumber {
-		return false, "A senha deve conter letras maiúsculas, minúsculas e números"
-	}
-	return true, ""
-}
-
-type GroupHandler struct {
+type GroupHandler struct{
 	groupService        *services.GroupService
 	accountService      *services.AccountService
 	notificationService *services.NotificationService
@@ -44,11 +28,6 @@ func NewGroupHandler() *GroupHandler {
 		accountService:      services.NewAccountService(),
 		notificationService: services.NewNotificationService(),
 	}
-}
-
-type CreateGroupRequest struct {
-	Name        string `form:"name"`
-	Description string `form:"description"`
 }
 
 func (h *GroupHandler) List(c echo.Context) error {
@@ -105,10 +84,6 @@ func (h *GroupHandler) Create(c echo.Context) error {
 		"userID":        userID,
 		"groupAccounts": groupAccounts,
 	})
-}
-
-type CreateJointAccountRequest struct {
-	Name string `form:"name"`
 }
 
 // CreateJointAccount creates a new joint account for a group
@@ -679,13 +654,6 @@ func (h *GroupHandler) JoinPagePublic(c echo.Context) error {
 		"code":       code,
 		"isLoggedIn": isLoggedIn,
 	})
-}
-
-// RegisterAndJoinRequest represents the registration form with invite code
-type RegisterAndJoinRequest struct {
-	Email    string `form:"email"`
-	Password string `form:"password"`
-	Name     string `form:"name"`
 }
 
 // RegisterAndJoin creates a new user account and adds them to the group
