@@ -87,7 +87,7 @@
                             <button hx-delete="/notifications/{{.ID}}"
                                     hx-target="#notification-{{.ID}}"
                                     hx-swap="outerHTML"
-                                    hx-confirm="Tem certeza que deseja excluir esta notificacao?"
+                                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir esta notificacao?', () => htmx.ajax('DELETE', '/notifications/{{.ID}}', {target: '#notification-{{.ID}}', swap: 'outerHTML'})); return false;"
                                     class="text-xs text-danger-400 hover:text-danger-300 transition-colors">
                                 Excluir
                             </button>
