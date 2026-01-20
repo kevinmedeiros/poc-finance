@@ -695,11 +695,21 @@
             }
             hideConfirmModal();
         }
+
+        // ESC key closes confirm modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('confirm-modal');
+                if (!modal.classList.contains('hidden')) {
+                    hideConfirmModal();
+                }
+            }
+        });
     </script>
 
     <!-- Confirm Modal -->
-    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="glass rounded-3xl shadow-2xl max-w-md w-full">
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="hideConfirmModal()">
+        <div class="glass rounded-3xl shadow-2xl max-w-md w-full" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center p-5 border-b border-dark-700/50">
                 <h3 class="text-lg font-semibold text-white">Confirmar Acao</h3>
                 <button onclick="hideConfirmModal()"
