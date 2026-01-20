@@ -53,7 +53,7 @@
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
+            <div id="fixed-expense-form" class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses{{if .selectedCategory}}?category={{.selectedCategory}}{{end}}" hx-target="#fixed-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="fixed">
                     <select name="account_id" required
@@ -122,7 +122,7 @@
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
+            <div id="variable-expense-form" class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses{{if .selectedCategory}}?category={{.selectedCategory}}{{end}}" hx-target="#variable-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="variable">
                     <select name="account_id" required
@@ -253,6 +253,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhuma despesa fixa</p>
         <p class="text-sm text-dark-500 mt-1">Adicione suas despesas recorrentes</p>
+        <button onclick="document.getElementById('fixed-expense-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Despesa
+        </button>
     </div>
     {{end}}
 </div>
@@ -298,6 +305,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhuma despesa variavel</p>
         <p class="text-sm text-dark-500 mt-1">Adicione gastos pontuais do mes</p>
+        <button onclick="document.getElementById('variable-expense-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 bg-warning-500 hover:bg-warning-400 text-dark-900 px-6 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Despesa
+        </button>
     </div>
     {{end}}
 </div>
