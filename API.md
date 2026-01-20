@@ -3061,3 +3061,371 @@ Unlike group management endpoints, group feature endpoints are accessible to all
 All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
 
 ---
+
+## Goal Endpoints
+
+This section describes the goal management endpoints for tracking financial goals within groups.
+
+### Overview
+
+Goal endpoints allow group members to create, track, and manage financial goals collaboratively. Goals can be linked to joint accounts and support multiple user contributions.
+
+**Authentication:** All endpoints require valid JWT authentication via cookie.
+
+**Authorization:** All endpoints require the user to be a member of the specified group.
+
+**HTMX Support:** List endpoints return HTML partials for dynamic UI updates.
+
+---
+
+### 1. Goals Page
+
+Get the goals page for a group, including all goals and joint accounts.
+
+**Endpoint:** `GET /groups/:id/goals`
+
+**Authentication Required:** Yes (JWT cookie)
+
+**Rate Limited:** No
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+GET /groups/123/goals HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered goals.html template with:
+  - group: Group information
+  - goals: List of all goals with progress
+  - accounts: Joint accounts for goal association
+  - groupID: Group identifier
+  - userID: Current user identifier
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Grupo não encontrado" | Group does not exist |
+| "Erro ao buscar metas" | Server error retrieving goals |
+
+---
+
+### 2. List Goals
+
+Get all goals for a group as an HTML partial (for HTMX updates).
+
+**Endpoint:** `GET /groups/:id/goals` (partial)
+
+**Authentication Required:** Yes (JWT cookie)
+
+**Rate Limited:** No
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+GET /groups/123/goals HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+HX-Request: true
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partials/goal-list.html with:
+  - goals: Array of goal objects
+  - groupID: Group identifier
+  - userID: Current user identifier
+
+**Goal Object Structure:**
+- ID: Goal identifier
+- Name: Goal name
+- Description: Goal description
+- TargetAmount: Target amount to reach
+- CurrentAmount: Current amount contributed
+- TargetDate: Target completion date
+- AccountID: Optional linked joint account ID
+- GroupID: Parent group ID
+- Completed: Whether goal is completed
+- Progress: Calculated progress percentage
+- Contributions: List of user contributions
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Erro ao buscar metas" | Server error retrieving goals |
+
+---
+
+### 3. Create Goal
+
+Create a new financial goal for a group.
+
+**Endpoint:** `POST /groups/:id/goals`
+
+**Authentication Required:** Yes (JWT cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Goal name |
+| description | string | No | Goal description |
+| target_amount | float64 | Yes | Target amount (must be > 0) |
+| target_date | string | Yes | Target date (YYYY-MM-DD format) |
+| account_id | integer | No | Joint account ID to link (optional) |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /groups/123/goals HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+Content-Type: application/x-www-form-urlencoded
+
+name=Emergency+Fund&description=3+months+expenses&target_amount=15000.00&target_date=2024-12-31&account_id=5
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partials/goal-list.html with updated goals list
+
+**Side Effects:**
+- Creates new goal record in database
+- Goal is associated with the specified group
+- If account_id is provided and valid, links goal to joint account
+- Current amount is initialized to 0
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Nome e valor alvo são obrigatórios" | Name or target_amount is missing or invalid |
+| "Data alvo inválida" | target_date format is invalid |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Erro ao criar meta" | Server error creating goal |
+
+---
+
+### 4. Delete Goal
+
+Delete a financial goal.
+
+**Endpoint:** `DELETE /groups/:id/goals/:goalId`
+
+**Authentication Required:** Yes (JWT cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+| goalId | integer | Goal ID to delete |
+
+**Example Request:**
+```http
+DELETE /groups/123/goals/456 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partials/goal-list.html with updated goals list
+
+**Side Effects:**
+- Permanently deletes goal record
+- Deletes all associated contributions
+- Cannot be undone
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID da meta inválido" | Invalid goal ID parameter |
+| "Meta não encontrada" | Goal does not exist |
+| "Você não tem permissão para deletar esta meta" | User is not a member of the goal's group |
+| "Erro ao deletar meta" | Server error deleting goal |
+
+---
+
+### 5. Add Contribution
+
+Add a monetary contribution to a goal.
+
+**Endpoint:** `POST /groups/:id/goals/:goalId/contribute`
+
+**Authentication Required:** Yes (JWT cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+| goalId | integer | Goal ID to contribute to |
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| amount | float64 | Yes | Contribution amount (must be > 0) |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /groups/123/goals/456/contribute HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+Content-Type: application/x-www-form-urlencoded
+
+amount=500.00
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered partials/goal-list.html with updated goals list
+
+**Side Effects:**
+- Creates contribution record linked to user and goal
+- Updates goal's current_amount
+- Recalculates goal progress percentage
+- If contribution causes goal to reach or exceed target, marks goal as completed
+
+**Contribution Tracking:**
+- Each contribution is recorded with:
+  - User ID (contributor)
+  - Goal ID
+  - Amount
+  - Timestamp
+- Users can see their individual contributions
+- Group members can see all contributions to shared goals
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID da meta inválido" | Invalid goal ID parameter |
+| "Valor inválido" | Amount is missing, non-numeric, or <= 0 |
+| "Meta não encontrada" | Goal does not exist |
+| "Meta já foi concluída" | Goal has already been marked as completed |
+| "Você não é membro deste grupo" | User is not a member of the goal's group |
+| "Erro ao adicionar contribuição" | Server error adding contribution |
+
+---
+
+## Goal Endpoint Security
+
+### Authentication & Authorization
+
+**All Goal Endpoints:**
+All goal endpoints require valid JWT authentication via cookie.
+
+**Group Membership Validation:**
+- All endpoints verify user is a member of the goal's group
+- Non-members receive "Você não é membro deste grupo" error
+- Authorization check performed using GroupService.IsGroupMember()
+
+**No Admin Requirement:**
+All group members can create, view, and contribute to goals. Only the operations that modify goals require membership validation.
+
+### Data Access Control
+
+**Goal Visibility:**
+- Goals are scoped to a specific group
+- Only group members can view goals
+- All group members see the same goals
+- Goal data includes all contributions from all members
+
+**Goal Creation:**
+- Any group member can create goals
+- Goals are automatically associated with the group
+- Optional joint account linking (if account_id provided)
+
+**Goal Deletion:**
+- Any group member can delete goals
+- Deletion removes goal and all contributions
+- Permanent operation - cannot be undone
+
+**Contributions:**
+- Any group member can contribute to any group goal
+- Contributions are tracked per user
+- Users can see who contributed and how much
+- Cannot contribute to completed goals
+
+### Data Validation
+
+**Goal Creation:**
+- Name is required (non-empty string)
+- Target amount must be greater than 0
+- Target date must be valid YYYY-MM-DD format
+- Account ID (if provided) must be a valid joint account
+
+**Goal Contribution:**
+- Amount must be greater than 0
+- Cannot contribute to non-existent goals
+- Cannot contribute to completed goals
+- Goal membership must be validated
+
+**Goal Progress:**
+- Progress calculated as: (current_amount / target_amount) * 100
+- Goal marked completed when current_amount >= target_amount
+- Completed status prevents further contributions
+
+### Joint Account Integration
+
+**Account Linking:**
+- Goals can optionally be linked to a joint account
+- Account ID validation ensures account belongs to the group
+- Linking is for tracking purposes (doesn't automatically withdraw funds)
+- Goals can exist without linked accounts
+
+### CSRF Protection
+
+All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
+
+---
