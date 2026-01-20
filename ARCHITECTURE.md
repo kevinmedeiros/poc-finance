@@ -2820,6 +2820,7 @@ return c.Render(http.StatusOK, "partials/fragment.html", data)
 ### Documentation Files
 - **ARCHITECTURE.md** (this file) - System architecture overview
 - **TESTING_GUIDE.md** - Comprehensive testing instructions
+- **BRAZILIAN_TAX_GUIDE.md** - Brazilian Simples Nacional tax calculation documentation
 - **README.md** - Project setup and usage guide
 
 ### Key Code Files
