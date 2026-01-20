@@ -38,7 +38,7 @@
                         </div>
                         <div>
                             <label class="text-xs text-dark-400 mb-1.5 block font-medium">Limite</label>
-                            <input type="number" name="limit_amount" step="0.01" placeholder="R$"
+                            <input type="number" name="limit_amount" step="0.01" min="0.01" placeholder="Valor"
                                 class="input-premium w-full rounded-xl px-3 py-2.5 text-sm">
                         </div>
                     </div>
@@ -85,10 +85,10 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
-                            <input type="number" name="total_amount" step="0.01" placeholder="0.00" required
+                            <input type="number" name="total_amount" step="0.01" min="0.01" placeholder="Valor total" required
                                 class="input-premium w-full rounded-xl pl-10 pr-3 py-2.5 text-sm">
                         </div>
-                        <input type="number" name="total_installments" min="1" max="48" placeholder="Num. parcelas" required
+                        <input type="number" name="total_installments" min="1" max="48" placeholder="Parcelas (1-48)" required
                             class="input-premium rounded-xl px-3 py-2.5 text-sm">
                     </div>
                     <div class="grid grid-cols-2 gap-3">

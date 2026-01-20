@@ -16,6 +16,7 @@ func createTestSettings(t *testing.T) {
 		{Key: models.SettingProLabore, Value: "5000.00"},
 		{Key: models.SettingINSSCeiling, Value: "7786.02"},
 		{Key: models.SettingINSSRate, Value: "11.00"},
+		{Key: models.SettingBudgetWarningThreshold, Value: "80.00"},
 	}
 
 	for _, setting := range settings {
@@ -497,5 +498,251 @@ func TestGetSettingFloat_InvalidValue(t *testing.T) {
 	// Should return 0 for invalid values
 	if result != 0 {
 		t.Errorf("getSettingFloat(invalid) = %v, want 0", result)
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_FetchFromDatabase(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	createTestSettings(t)
+
+	service := NewSettingsCacheService()
+
+	// Fetch settings data
+	data := service.GetSettingsData()
+
+	// Verify budget threshold is loaded correctly
+	if data.BudgetWarningThreshold != 80.00 {
+		t.Errorf("BudgetWarningThreshold = %v, want %v", data.BudgetWarningThreshold, 80.00)
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_DefaultValue(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	// Create settings without budget threshold
+	settings := []models.Settings{
+		{Key: models.SettingProLabore, Value: "5000.00"},
+		{Key: models.SettingINSSCeiling, Value: "7786.02"},
+		{Key: models.SettingINSSRate, Value: "11.00"},
+		// Intentionally omitting SettingBudgetWarningThreshold
+	}
+
+	for _, setting := range settings {
+		database.DB.Create(&setting)
+	}
+
+	service := NewSettingsCacheService()
+
+	// Fetch settings data
+	data := service.GetSettingsData()
+
+	// Should default to 100
+	if data.BudgetWarningThreshold != 100.00 {
+		t.Errorf("BudgetWarningThreshold = %v, want %v (default)", data.BudgetWarningThreshold, 100.00)
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_ZeroDefaultsTo100(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	// Create settings with zero budget threshold
+	settings := []models.Settings{
+		{Key: models.SettingProLabore, Value: "5000.00"},
+		{Key: models.SettingINSSCeiling, Value: "7786.02"},
+		{Key: models.SettingINSSRate, Value: "11.00"},
+		{Key: models.SettingBudgetWarningThreshold, Value: "0"},
+	}
+
+	for _, setting := range settings {
+		database.DB.Create(&setting)
+	}
+
+	service := NewSettingsCacheService()
+
+	// Fetch settings data
+	data := service.GetSettingsData()
+
+	// Zero should default to 100
+	if data.BudgetWarningThreshold != 100.00 {
+		t.Errorf("BudgetWarningThreshold = %v, want %v (zero should default to 100)", data.BudgetWarningThreshold, 100.00)
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_VariousValues(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	tests := []struct {
+		name      string
+		value     string
+		expected  float64
+		description string
+	}{
+		{
+			name:        "50 percent",
+			value:       "50.00",
+			expected:    50.00,
+			description: "50% threshold",
+		},
+		{
+			name:        "75 percent",
+			value:       "75.00",
+			expected:    75.00,
+			description: "75% threshold",
+		},
+		{
+			name:        "90 percent",
+			value:       "90.00",
+			expected:    90.00,
+			description: "90% threshold",
+		},
+		{
+			name:        "100 percent",
+			value:       "100.00",
+			expected:    100.00,
+			description: "100% threshold (no warning)",
+		},
+		{
+			name:        "decimal value",
+			value:       "85.50",
+			expected:    85.50,
+			description: "Threshold with decimal",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear and recreate settings for each test
+			database.DB.Exec("DELETE FROM settings")
+
+			settings := []models.Settings{
+				{Key: models.SettingProLabore, Value: "5000.00"},
+				{Key: models.SettingINSSCeiling, Value: "7786.02"},
+				{Key: models.SettingINSSRate, Value: "11.00"},
+				{Key: models.SettingBudgetWarningThreshold, Value: tt.value},
+			}
+
+			for _, setting := range settings {
+				database.DB.Create(&setting)
+			}
+
+			service := NewSettingsCacheService()
+			data := service.GetSettingsData()
+
+			if data.BudgetWarningThreshold != tt.expected {
+				t.Errorf("%s: BudgetWarningThreshold = %v, want %v", tt.description, data.BudgetWarningThreshold, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_CacheInvalidation(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	createTestSettings(t)
+
+	service := NewSettingsCacheService()
+
+	// Fetch initial data
+	data1 := service.GetSettingsData()
+
+	if data1.BudgetWarningThreshold != 80.00 {
+		t.Fatalf("Initial BudgetWarningThreshold = %v, want %v", data1.BudgetWarningThreshold, 80.00)
+	}
+
+	// Update budget threshold in database
+	database.DB.Model(&models.Settings{}).
+		Where("key = ?", models.SettingBudgetWarningThreshold).
+		Update("value", "70.00")
+
+	// Invalidate cache
+	service.InvalidateCache()
+
+	// Fetch fresh data
+	data2 := service.GetSettingsData()
+
+	// Should have new value
+	if data2.BudgetWarningThreshold != 70.00 {
+		t.Errorf("After invalidation, BudgetWarningThreshold = %v, want %v", data2.BudgetWarningThreshold, 70.00)
+	}
+
+	// Should be different from initial
+	if data2.BudgetWarningThreshold == data1.BudgetWarningThreshold {
+		t.Error("After invalidation, should fetch fresh budget threshold from database")
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_CacheExpiration(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	createTestSettings(t)
+
+	service := NewSettingsCacheService()
+	service.ttl = 50 * time.Millisecond // Short TTL for testing
+
+	// First call - fetch from database
+	data1 := service.GetSettingsData()
+
+	if data1.BudgetWarningThreshold != 80.00 {
+		t.Fatalf("Initial BudgetWarningThreshold = %v, want %v", data1.BudgetWarningThreshold, 80.00)
+	}
+
+	// Wait for cache to expire
+	time.Sleep(100 * time.Millisecond)
+
+	// Update budget threshold in database
+	database.DB.Model(&models.Settings{}).
+		Where("key = ?", models.SettingBudgetWarningThreshold).
+		Update("value", "65.00")
+
+	// Second call after expiration - should fetch fresh data
+	data2 := service.GetSettingsData()
+
+	// Data should be different (new value from DB)
+	if data2.BudgetWarningThreshold == data1.BudgetWarningThreshold {
+		t.Error("Expired cache should fetch fresh budget threshold from database")
+	}
+
+	if data2.BudgetWarningThreshold != 65.00 {
+		t.Errorf("After cache expiration, BudgetWarningThreshold = %v, want %v", data2.BudgetWarningThreshold, 65.00)
+	}
+}
+
+func TestSettingsCacheService_BudgetThreshold_AllFieldsPresent(t *testing.T) {
+	db := testutil.SetupTestDB()
+	database.DB = db
+
+	createTestSettings(t)
+
+	service := NewSettingsCacheService()
+	data := service.GetSettingsData()
+
+	// Verify all fields are populated correctly
+	if data.ProLabore != 5000.00 {
+		t.Errorf("ProLabore = %v, want %v", data.ProLabore, 5000.00)
+	}
+
+	if data.INSSCeiling != 7786.02 {
+		t.Errorf("INSSCeiling = %v, want %v", data.INSSCeiling, 7786.02)
+	}
+
+	if data.INSSRate != 11.00 {
+		t.Errorf("INSSRate = %v, want %v", data.INSSRate, 11.00)
+	}
+
+	if data.BudgetWarningThreshold != 80.00 {
+		t.Errorf("BudgetWarningThreshold = %v, want %v", data.BudgetWarningThreshold, 80.00)
+	}
+
+	// Verify INSS amount is calculated correctly
+	expectedINSS := 5000.00 * 0.11
+	if data.INSSAmount != expectedINSS {
+		t.Errorf("INSSAmount = %v, want %v", data.INSSAmount, expectedINSS)
 	}
 }
