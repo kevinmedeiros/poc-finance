@@ -296,6 +296,7 @@ func main() {
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
+	analyticsHandler := handlers.NewAnalyticsHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -394,6 +395,9 @@ func main() {
 	protected.POST("/recurring/:id", recurringHandler.Update)
 	protected.DELETE("/recurring/:id", recurringHandler.Delete)
 	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
+
+	// Analytics API
+	protected.GET("/analytics/trends", analyticsHandler.GetTrends)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
