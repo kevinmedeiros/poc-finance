@@ -3750,3 +3750,447 @@ All notification endpoints require valid JWT authentication via cookie.
 All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
 
 ---
+
+## Recurring Transaction Endpoints
+
+This section describes the recurring transaction management endpoints for the POC Finance application.
+
+### Overview
+
+All recurring transaction endpoints require authentication via JWT tokens (access_token cookie). These endpoints manage recurring transactions that automatically create income or expense records at specified intervals (daily, weekly, monthly, or yearly).
+
+Key features:
+- Multi-account support (individual and joint accounts)
+- Automatic transaction generation based on schedule
+- Flexible frequency options (daily, weekly, monthly, yearly)
+- Optional end date for finite recurring transactions
+- Active/pause toggle for temporary suspension
+- HTMX partial responses for dynamic UI updates
+
+---
+
+### 1. List Recurring Transactions
+
+Retrieve all recurring transactions for accounts accessible by the authenticated user, separated by active and paused status.
+
+**Endpoint:** `GET /recurring`
+
+**Authentication Required:** Yes (JWT access_token cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /recurring HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered recurring.html page with active and paused recurring transaction lists
+
+**Response Data Includes:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| activeRecurringTransactions | []RecurringTransaction | Array of active recurring transactions ordered by next_run_date (ASC) |
+| pausedRecurringTransactions | []RecurringTransaction | Array of paused recurring transactions ordered by next_run_date (ASC) |
+| accounts | []Account | User's accessible accounts for the account selector |
+| transactionTypes | []string | Available transaction types: ["expense", "income"] |
+| frequencies | []string | Available frequencies: ["daily", "weekly", "monthly", "yearly"] |
+
+**RecurringTransaction Record Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uint | Recurring transaction record ID |
+| AccountID | uint | Associated account ID |
+| Account | Account | Preloaded account information |
+| TransactionType | string | Type of transaction: "expense" or "income" |
+| Frequency | string | Recurrence frequency: "daily", "weekly", "monthly", or "yearly" |
+| Amount | float64 | Transaction amount |
+| Description | string | Transaction description |
+| StartDate | time.Time | Date when recurring transactions begin |
+| EndDate | *time.Time | Optional date when recurring transactions end (null for indefinite) |
+| NextRunDate | time.Time | Next scheduled execution date |
+| Active | bool | Whether the recurring transaction is active (true) or paused (false) |
+| Category | string | Transaction category |
+
+**Error Responses:**
+
+| Error | Description |
+|-------|-------------|
+| 401 Unauthorized | Missing or invalid authentication token |
+| 404 Not Found | Template not found (server configuration error) |
+
+---
+
+### 2. Create Recurring Transaction
+
+Create a new recurring transaction that will automatically generate transactions at specified intervals.
+
+**Endpoint:** `POST /recurring`
+
+**Authentication Required:** Yes (JWT access_token cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes (X-CSRF-Token header required)
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| account_id | uint | No | Account ID (defaults to user's individual account if not specified) |
+| transaction_type | string | Yes | Transaction type: "expense" or "income" |
+| frequency | string | Yes | Recurrence frequency: "daily", "weekly", "monthly", or "yearly" |
+| amount | float64 | Yes | Transaction amount (must be greater than zero) |
+| description | string | Yes | Description of the recurring transaction |
+| start_date | string | Yes | Start date in YYYY-MM-DD format |
+| end_date | string | No | Optional end date in YYYY-MM-DD format |
+| category | string | No | Transaction category |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /recurring HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+Content-Type: application/x-www-form-urlencoded
+
+account_id=1&transaction_type=expense&frequency=monthly&amount=99.99&description=Netflix+Subscription&start_date=2024-01-01&category=Entertainment
+```
+
+**Automatic Initialization:**
+- `NextRunDate` is automatically set to the `start_date`
+- `Active` is automatically set to `true`
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **HX-Trigger:** Updates UI via HTMX
+- **Body:** Rendered `partials/recurring-list.html` with updated active recurring transaction list
+
+**HTMX Partial Response:**
+The response is an HTML fragment containing the updated active recurring transaction list, suitable for swapping into the page via HTMX.
+
+**Account Validation:**
+- If `account_id` is 0 or not specified, the user's individual account is used
+- If `account_id` is specified, the system validates the user has access to that account
+- Joint accounts are supported if the user is a member
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 400 | "Dados inválidos" | Invalid request format or data binding error |
+| 400 | "Tipo de transação inválido" | Transaction type is not "expense" or "income" |
+| 400 | "Frequência inválida" | Frequency is not one of: "daily", "weekly", "monthly", "yearly" |
+| 400 | "Data de início inválida" | Start date format is invalid (must be YYYY-MM-DD) |
+| 400 | "Data de término inválida" | End date format is invalid (must be YYYY-MM-DD) |
+| 400 | "Valor deve ser maior que zero" | Amount is zero or negative |
+| 403 | "Acesso negado à conta selecionada" | User doesn't have access to the specified account |
+| 500 | "Conta não encontrada" | Individual account not found for user |
+| 500 | "Erro ao criar transação recorrente" | Database error during creation |
+
+**Error Response Format:**
+- **Status Code:** As specified above
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 3. Update Recurring Transaction
+
+Update an existing recurring transaction. All fields are optional - only provided fields will be updated.
+
+**Endpoint:** `POST /recurring/:id`
+
+**Authentication Required:** Yes (JWT access_token cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes (X-CSRF-Token header required)
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | int | Yes | Recurring transaction ID to update |
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| account_id | uint | No | Account ID to change to |
+| transaction_type | string | No | Transaction type: "expense" or "income" |
+| frequency | string | No | Recurrence frequency: "daily", "weekly", "monthly", or "yearly" |
+| amount | float64 | No | Transaction amount (must be greater than zero if provided) |
+| description | string | No | Description of the recurring transaction |
+| start_date | string | No | Start date in YYYY-MM-DD format |
+| end_date | string | No | End date in YYYY-MM-DD format |
+| category | string | No | Transaction category |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /recurring/123 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+Content-Type: application/x-www-form-urlencoded
+
+amount=109.99&description=Netflix+Premium+Subscription
+```
+
+**Partial Update Behavior:**
+Only the fields provided in the request will be updated. Fields not included in the request will retain their current values.
+
+**Access Validation:**
+The system verifies that the recurring transaction belongs to one of the user's accessible accounts before allowing updates.
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **HX-Trigger:** Updates UI via HTMX
+- **Body:** Rendered `partials/recurring-list.html` with updated active recurring transaction list
+
+**HTMX Partial Response:**
+The response is an HTML fragment containing the updated active recurring transaction list with the modified record.
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 400 | "Dados inválidos" | Invalid request format or data binding error |
+| 400 | "Tipo de transação inválido" | Transaction type is not "expense" or "income" |
+| 400 | "Frequência inválida" | Frequency is not one of: "daily", "weekly", "monthly", "yearly" |
+| 400 | "Data de início inválida" | Start date format is invalid (must be YYYY-MM-DD) |
+| 400 | "Data de término inválida" | End date format is invalid (must be YYYY-MM-DD) |
+| 403 | "Acesso negado à conta selecionada" | User doesn't have access to the specified account (when changing account) |
+| 404 | "Transação recorrente não encontrada" | Recurring transaction not found or user doesn't have access |
+| 500 | "Erro ao atualizar transação recorrente" | Database error during update |
+
+**Error Response Format:**
+- **Status Code:** As specified above
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 4. Delete Recurring Transaction
+
+Delete an existing recurring transaction. This will not affect any transactions that have already been created by this recurring transaction.
+
+**Endpoint:** `DELETE /recurring/:id`
+
+**Authentication Required:** Yes (JWT access_token cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes (X-CSRF-Token header required)
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | int | Yes | Recurring transaction ID to delete |
+
+**Example Request:**
+```http
+DELETE /recurring/123 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Access Validation:**
+The system verifies that the recurring transaction belongs to one of the user's accessible accounts before allowing deletion.
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **HX-Trigger:** Updates UI via HTMX
+- **Body:** Rendered `partials/recurring-list.html` with updated active recurring transaction list (record removed)
+
+**HTMX Partial Response:**
+The response is an HTML fragment containing the updated active recurring transaction list with the deleted record removed.
+
+**Important Note:**
+Deleting a recurring transaction does NOT delete any transactions that were previously created by it. It only prevents future transactions from being automatically generated.
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 404 | "Transação recorrente não encontrada" | Recurring transaction not found or user doesn't have access |
+| 500 | "Erro ao deletar" | Database error during deletion |
+
+**Error Response Format:**
+- **Status Code:** As specified above
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 5. Toggle Recurring Transaction Active Status
+
+Toggle a recurring transaction between active and paused states. When paused, the recurring transaction will not generate new transactions until reactivated.
+
+**Endpoint:** `POST /recurring/:id/toggle`
+
+**Authentication Required:** Yes (JWT access_token cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes (X-CSRF-Token header required)
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | int | Yes | Recurring transaction ID to toggle |
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+POST /recurring/123/toggle HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Toggle Behavior:**
+- If `Active` is `true`, it will be set to `false` (paused)
+- If `Active` is `false`, it will be set to `true` (active)
+
+**Access Validation:**
+The system verifies that the recurring transaction belongs to one of the user's accessible accounts before allowing the toggle operation.
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **HX-Trigger:** Updates UI via HTMX
+- **Body:** Rendered `partials/recurring-list.html` with updated active recurring transaction list
+
+**HTMX Partial Response:**
+The response is an HTML fragment containing the updated active recurring transaction list. Transactions moved to paused status will be removed from this list and appear in the paused transactions list.
+
+**Use Cases:**
+- Temporarily pause subscriptions during vacation
+- Suspend recurring bills that are on hold
+- Disable recurring income during sabbatical
+- Reactivate paused recurring transactions
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 404 | "Transação recorrente não encontrada" | Recurring transaction not found or user doesn't have access |
+
+**Error Response Format:**
+- **Status Code:** As specified above
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+## Recurring Transaction Endpoint Security
+
+### Authentication & Authorization
+
+**All Recurring Transaction Endpoints:**
+All recurring transaction endpoints require valid JWT authentication via cookie.
+
+**User-Scoped Access:**
+- All endpoints automatically scope to the authenticated user's accessible accounts
+- Users can only access recurring transactions for their own accounts (individual or joint)
+- User ID is extracted from JWT token via middleware
+- Account IDs are fetched using AccountService.GetUserAccountIDs()
+- No cross-user recurring transaction access possible
+
+### Data Access Control
+
+**Recurring Transaction Visibility:**
+- Recurring transactions are scoped to accounts the user has access to
+- Users can view recurring transactions for:
+  - Their individual account
+  - Joint accounts they are members of
+- Query filtering: `WHERE account_id IN (user's accessible account IDs)`
+
+**Recurring Transaction Modification:**
+- Create: User can create recurring transactions for accounts they have access to
+- Update: User can only update recurring transactions for their accessible accounts
+- Delete: User can only delete recurring transactions for their accessible accounts
+- Toggle: User can only toggle recurring transactions for their accessible accounts
+- All operations validate account ownership before execution
+
+### Account Access Validation
+
+**Account Selection:**
+- If no account_id is specified, defaults to user's individual account
+- If account_id is specified, validates user has access via AccountService.CanUserAccessAccount()
+- Returns 403 Forbidden if user doesn't have access to specified account
+- Supports both individual and joint accounts
+
+### HTMX Integration
+
+**Partial Rendering:**
+- All mutation endpoints (Create, Update, Delete, Toggle) return HTML fragments
+- Enables real-time UI updates without full page reload
+- Responses render `partials/recurring-list.html` with updated active transactions list
+- Maintains consistent state between server and client
+
+### CSRF Protection
+
+All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
+
+### Data Validation
+
+**Required Field Validation:**
+- Transaction type must be "expense" or "income"
+- Frequency must be one of: "daily", "weekly", "monthly", "yearly"
+- Amount must be greater than zero
+- Start date is required and must be in YYYY-MM-DD format
+- End date is optional but must be in YYYY-MM-DD format if provided
+
+**Business Logic Validation:**
+- NextRunDate is automatically set to StartDate on creation
+- Active flag is automatically set to true on creation
+- Account access is validated before any operation
+- Transactions are ordered by next_run_date for predictable display
+
+### Automated Transaction Processing
+
+**Background Scheduler:**
+Recurring transactions are processed by a background scheduler service that:
+- Runs immediately on application startup
+- Checks for due transactions daily at midnight
+- Only processes transactions where:
+  - Active = true
+  - NextRunDate <= current date
+  - EndDate is null or >= current date
+- Automatically creates expense or income records based on TransactionType
+- Updates NextRunDate based on Frequency after creating transaction
+
+**Transaction Generation:**
+When a recurring transaction is due, the system:
+1. Checks if the recurring transaction is active
+2. Checks if NextRunDate has arrived
+3. Creates the corresponding expense or income transaction
+4. Updates NextRunDate based on frequency:
+   - Daily: Adds 1 day
+   - Weekly: Adds 7 days
+   - Monthly: Adds 1 month (preserving day of month)
+   - Yearly: Adds 1 year (preserving month and day)
+5. If EndDate is reached, may deactivate the recurring transaction
+
+---
