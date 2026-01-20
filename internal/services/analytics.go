@@ -175,3 +175,74 @@ func GetCategoryBreakdownWithPercentages(db *gorm.DB, year int, month int, accou
 
 	return breakdown
 }
+
+// IncomeVsExpenseTrendPoint represents a single data point in the income vs expense trend
+type IncomeVsExpenseTrendPoint struct {
+	Month        time.Time `json:"month"`
+	MonthName    string    `json:"month_name"`
+	TotalIncome  float64   `json:"total_income"`  // Total income (gross) for the month
+	TotalExpense float64   `json:"total_expense"` // Total expenses for the month
+	NetBalance   float64   `json:"net_balance"`   // income - expense
+}
+
+// GetIncomeVsExpenseTrend retorna dados de tendência de receitas vs despesas para múltiplos meses,
+// otimizado para uso em gráficos Chart.js de linha.
+//
+// Esta função utiliza o padrão batch de GetBatchMonthlySummariesForAccounts para buscar
+// dados de múltiplos meses de forma eficiente (5 queries batch ao invés de N*5 queries).
+//
+// Parâmetros:
+//   - db: Conexão com banco de dados
+//   - months: Número de meses anteriores a incluir (ex: 6 para últimos 6 meses)
+//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar dados zerados)
+//
+// Retorna:
+//   - Slice de IncomeVsExpenseTrendPoint ordenado cronologicamente (mais antigo para mais recente)
+//
+// Exemplo de uso:
+//
+//	trend := GetIncomeVsExpenseTrend(db, 6, []uint{1, 2}) // Últimos 6 meses para contas 1 e 2
+//	// Retorna: [{Jan 2024, 5000, 3000, 2000}, {Feb 2024, 6000, 3500, 2500}, ...]
+func GetIncomeVsExpenseTrend(db *gorm.DB, months int, accountIDs []uint) []IncomeVsExpenseTrendPoint {
+	if months <= 0 {
+		return nil
+	}
+
+	// Calculate date range: last N months from current month
+	now := time.Now()
+	endYear := now.Year()
+	endMonth := int(now.Month())
+
+	// Calculate start date (N months ago)
+	startDate := time.Date(endYear, time.Month(endMonth), 1, 0, 0, 0, 0, time.Local).AddDate(0, -(months - 1), 0)
+	startYear := startDate.Year()
+	startMonth := int(startDate.Month())
+
+	// Use batch function to fetch all months efficiently (5 queries instead of N*5)
+	summaries := GetBatchMonthlySummariesForAccounts(db, startYear, startMonth, endYear, endMonth, accountIDs)
+
+	// Convert MonthlySummary to IncomeVsExpenseTrendPoint
+	// MonthlySummary has all the fields we need, we just extract the relevant ones
+	trendPoints := make([]IncomeVsExpenseTrendPoint, 0, len(summaries))
+	for _, summary := range summaries {
+		trendPoints = append(trendPoints, IncomeVsExpenseTrendPoint{
+			Month:        summary.Month,
+			MonthName:    summary.MonthName,
+			TotalIncome:  summary.TotalIncomeGross,
+			TotalExpense: summary.TotalExpenses,
+			NetBalance:   summary.Balance,
+		})
+	}
+
+	// Sort by month (chronological order: oldest to newest)
+	// This is important for Chart.js line charts which expect data in order
+	for i := 0; i < len(trendPoints)-1; i++ {
+		for j := i + 1; j < len(trendPoints); j++ {
+			if trendPoints[i].Month.After(trendPoints[j].Month) {
+				trendPoints[i], trendPoints[j] = trendPoints[j], trendPoints[i]
+			}
+		}
+	}
+
+	return trendPoints
+}

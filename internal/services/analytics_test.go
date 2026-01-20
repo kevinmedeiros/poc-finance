@@ -643,3 +643,346 @@ func TestGetCategoryBreakdownWithPercentages_MultipleAccounts(t *testing.T) {
 		}
 	}
 }
+
+func TestGetIncomeVsExpenseTrend(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	// Create test data
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	// Get current time for test data
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
+	// Create income data for last 3 months
+	// Month 1 (2 months ago)
+	month1Date := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local).AddDate(0, -2, 0)
+	db.Create(&models.Income{
+		AccountID:   account.ID,
+		Date:        month1Date.AddDate(0, 0, 10),
+		GrossAmount: 3000.00,
+		TaxAmount:   300.00,
+		NetAmount:   2700.00,
+		Description: "Month 1 Income",
+	})
+
+	// Month 2 (1 month ago)
+	month2Date := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local).AddDate(0, -1, 0)
+	db.Create(&models.Income{
+		AccountID:   account.ID,
+		Date:        month2Date.AddDate(0, 0, 10),
+		GrossAmount: 4000.00,
+		TaxAmount:   400.00,
+		NetAmount:   3600.00,
+		Description: "Month 2 Income",
+	})
+
+	// Month 3 (current month)
+	month3Date := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local)
+	db.Create(&models.Income{
+		AccountID:   account.ID,
+		Date:        month3Date.AddDate(0, 0, 10),
+		GrossAmount: 5000.00,
+		TaxAmount:   500.00,
+		NetAmount:   4500.00,
+		Description: "Month 3 Income",
+	})
+
+	// Create fixed expense (applies to all months)
+	db.Create(&models.Expense{
+		AccountID: account.ID,
+		Name:      "Rent",
+		Amount:    1000.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+
+	// Create variable expenses for each month
+	expenseMonth1 := &models.Expense{
+		AccountID: account.ID,
+		Name:      "Groceries Month 1",
+		Amount:    500.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseMonth1)
+	db.Model(expenseMonth1).Update("created_at", month1Date.AddDate(0, 0, 15))
+
+	expenseMonth2 := &models.Expense{
+		AccountID: account.ID,
+		Name:      "Groceries Month 2",
+		Amount:    600.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseMonth2)
+	db.Model(expenseMonth2).Update("created_at", month2Date.AddDate(0, 0, 15))
+
+	expenseMonth3 := &models.Expense{
+		AccountID: account.ID,
+		Name:      "Groceries Month 3",
+		Amount:    700.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseMonth3)
+	db.Model(expenseMonth3).Update("created_at", month3Date.AddDate(0, 0, 15))
+
+	// Get trend for last 3 months
+	trend := GetIncomeVsExpenseTrend(db, 3, []uint{account.ID})
+
+	// Should have 3 data points
+	if len(trend) != 3 {
+		t.Fatalf("len(trend) = %d, want 3", len(trend))
+	}
+
+	// Verify data is sorted chronologically (oldest to newest)
+	for i := 0; i < len(trend)-1; i++ {
+		if trend[i].Month.After(trend[i+1].Month) {
+			t.Errorf("Trend not sorted chronologically: %v is after %v", trend[i].Month, trend[i+1].Month)
+		}
+	}
+
+	// Verify first month (oldest - 2 months ago)
+	// Income: 3000, Expenses: 1000 (fixed) + 500 (variable) = 1500
+	if trend[0].TotalIncome != 3000.00 {
+		t.Errorf("Month 1 TotalIncome = %.2f, want 3000.00", trend[0].TotalIncome)
+	}
+	if trend[0].TotalExpense != 1500.00 {
+		t.Errorf("Month 1 TotalExpense = %.2f, want 1500.00", trend[0].TotalExpense)
+	}
+	expectedBalance1 := 2700.00 - 1500.00 // net income - expenses
+	if trend[0].NetBalance != expectedBalance1 {
+		t.Errorf("Month 1 NetBalance = %.2f, want %.2f", trend[0].NetBalance, expectedBalance1)
+	}
+
+	// Verify second month (1 month ago)
+	// Income: 4000, Expenses: 1000 (fixed) + 600 (variable) = 1600
+	if trend[1].TotalIncome != 4000.00 {
+		t.Errorf("Month 2 TotalIncome = %.2f, want 4000.00", trend[1].TotalIncome)
+	}
+	if trend[1].TotalExpense != 1600.00 {
+		t.Errorf("Month 2 TotalExpense = %.2f, want 1600.00", trend[1].TotalExpense)
+	}
+	expectedBalance2 := 3600.00 - 1600.00
+	if trend[1].NetBalance != expectedBalance2 {
+		t.Errorf("Month 2 NetBalance = %.2f, want %.2f", trend[1].NetBalance, expectedBalance2)
+	}
+
+	// Verify third month (current month)
+	// Income: 5000, Expenses: 1000 (fixed) + 700 (variable) = 1700
+	if trend[2].TotalIncome != 5000.00 {
+		t.Errorf("Month 3 TotalIncome = %.2f, want 5000.00", trend[2].TotalIncome)
+	}
+	if trend[2].TotalExpense != 1700.00 {
+		t.Errorf("Month 3 TotalExpense = %.2f, want 1700.00", trend[2].TotalExpense)
+	}
+	expectedBalance3 := 4500.00 - 1700.00
+	if trend[2].NetBalance != expectedBalance3 {
+		t.Errorf("Month 3 NetBalance = %.2f, want %.2f", trend[2].NetBalance, expectedBalance3)
+	}
+
+	// Verify month names are set
+	for i, point := range trend {
+		if point.MonthName == "" {
+			t.Errorf("Month %d has empty MonthName", i)
+		}
+	}
+}
+
+func TestGetIncomeVsExpenseTrend_EmptyAccounts(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	trend := GetIncomeVsExpenseTrend(db, 6, []uint{})
+
+	// Should have 6 data points with zero values
+	if len(trend) != 6 {
+		t.Errorf("len(trend) = %d, want 6", len(trend))
+	}
+
+	// All values should be zero
+	for i, point := range trend {
+		if point.TotalIncome != 0 {
+			t.Errorf("Point %d TotalIncome = %.2f, want 0.00", i, point.TotalIncome)
+		}
+		if point.TotalExpense != 0 {
+			t.Errorf("Point %d TotalExpense = %.2f, want 0.00", i, point.TotalExpense)
+		}
+		if point.NetBalance != 0 {
+			t.Errorf("Point %d NetBalance = %.2f, want 0.00", i, point.NetBalance)
+		}
+	}
+}
+
+func TestGetIncomeVsExpenseTrend_ZeroMonths(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	trend := GetIncomeVsExpenseTrend(db, 0, []uint{account.ID})
+
+	// Should return nil for 0 months
+	if trend != nil {
+		t.Errorf("trend = %v, want nil for 0 months", trend)
+	}
+}
+
+func TestGetIncomeVsExpenseTrend_NegativeMonths(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	trend := GetIncomeVsExpenseTrend(db, -1, []uint{account.ID})
+
+	// Should return nil for negative months
+	if trend != nil {
+		t.Errorf("trend = %v, want nil for negative months", trend)
+	}
+}
+
+func TestGetIncomeVsExpenseTrend_MultipleAccounts(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account1 := testutil.CreateTestAccount(db, "Account 1", models.AccountTypeIndividual, user.ID, nil)
+	account2 := testutil.CreateTestAccount(db, "Account 2", models.AccountTypeIndividual, user.ID, nil)
+
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+	currentMonthDate := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local)
+
+	// Create income for both accounts in current month
+	db.Create(&models.Income{
+		AccountID:   account1.ID,
+		Date:        currentMonthDate.AddDate(0, 0, 10),
+		GrossAmount: 3000.00,
+		TaxAmount:   300.00,
+		NetAmount:   2700.00,
+	})
+	db.Create(&models.Income{
+		AccountID:   account2.ID,
+		Date:        currentMonthDate.AddDate(0, 0, 10),
+		GrossAmount: 2000.00,
+		TaxAmount:   200.00,
+		NetAmount:   1800.00,
+	})
+
+	// Create fixed expenses for both accounts
+	db.Create(&models.Expense{
+		AccountID: account1.ID,
+		Name:      "Rent 1",
+		Amount:    1000.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+	db.Create(&models.Expense{
+		AccountID: account2.ID,
+		Name:      "Rent 2",
+		Amount:    500.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+
+	// Get trend for last 2 months with both accounts
+	trend := GetIncomeVsExpenseTrend(db, 2, []uint{account1.ID, account2.ID})
+
+	if len(trend) != 2 {
+		t.Fatalf("len(trend) = %d, want 2", len(trend))
+	}
+
+	// Current month (last in the trend) should have combined totals
+	currentMonthPoint := trend[len(trend)-1]
+
+	// Total income: 3000 + 2000 = 5000
+	if currentMonthPoint.TotalIncome != 5000.00 {
+		t.Errorf("Current month TotalIncome = %.2f, want 5000.00", currentMonthPoint.TotalIncome)
+	}
+
+	// Total expenses: 1000 + 500 = 1500 (only fixed expenses)
+	if currentMonthPoint.TotalExpense != 1500.00 {
+		t.Errorf("Current month TotalExpense = %.2f, want 1500.00", currentMonthPoint.TotalExpense)
+	}
+}
+
+func TestGetIncomeVsExpenseTrend_WithCreditCardAndBills(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+	currentMonthDate := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local)
+
+	// Create income for current month
+	db.Create(&models.Income{
+		AccountID:   account.ID,
+		Date:        currentMonthDate.AddDate(0, 0, 10),
+		GrossAmount: 5000.00,
+		TaxAmount:   500.00,
+		NetAmount:   4500.00,
+	})
+
+	// Create fixed expense
+	db.Create(&models.Expense{
+		AccountID: account.ID,
+		Name:      "Rent",
+		Amount:    1000.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+
+	// Create credit card with installments
+	creditCard := &models.CreditCard{
+		AccountID:  account.ID,
+		Name:       "Test Card",
+		ClosingDay: 15,
+		DueDay:     25,
+	}
+	db.Create(creditCard)
+
+	// 3 installments of 200.00 each starting current month
+	db.Create(&models.Installment{
+		CreditCardID:      creditCard.ID,
+		Description:       "Purchase",
+		TotalAmount:       600.00,
+		InstallmentAmount: 200.00,
+		TotalInstallments: 3,
+		StartDate:         currentMonthDate,
+	})
+
+	// Create bill for current month
+	db.Create(&models.Bill{
+		AccountID: account.ID,
+		Name:      "Electric",
+		Amount:    150.00,
+		DueDate:   currentMonthDate.AddDate(0, 0, 10),
+	})
+
+	// Get trend for last 2 months
+	trend := GetIncomeVsExpenseTrend(db, 2, []uint{account.ID})
+
+	if len(trend) != 2 {
+		t.Fatalf("len(trend) = %d, want 2", len(trend))
+	}
+
+	// Current month (last in trend) should include all expense types
+	currentMonthPoint := trend[len(trend)-1]
+
+	// Expenses: 1000 (fixed) + 200 (card) + 150 (bill) = 1350
+	if currentMonthPoint.TotalExpense != 1350.00 {
+		t.Errorf("Current month TotalExpense = %.2f, want 1350.00 (fixed + card + bill)", currentMonthPoint.TotalExpense)
+	}
+
+	// Net balance: 4500 (net income) - 1350 (expenses) = 3150
+	expectedBalance := 4500.00 - 1350.00
+	if currentMonthPoint.NetBalance != expectedBalance {
+		t.Errorf("Current month NetBalance = %.2f, want %.2f", currentMonthPoint.NetBalance, expectedBalance)
+	}
+}
