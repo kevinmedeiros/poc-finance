@@ -20,6 +20,8 @@ const (
 	NotificationTypeBudgetAlert NotificationType = "budget_alert"
 	// NotificationTypeSummary represents periodic financial summary notifications
 	NotificationTypeSummary NotificationType = "summary"
+	// NotificationTypeDueDate represents notifications for upcoming expense due dates
+	NotificationTypeDueDate NotificationType = "due_date"
 )
 
 // Notification represents an in-app notification sent to a user.
