@@ -260,3 +260,24 @@ func (s *NotificationService) NotifyBudgetLimitReached(alertData BudgetAlertData
 	}
 	return nil
 }
+
+// NotifyUpcomingDueDate creates a notification for an upcoming expense due date
+func (s *NotificationService) NotifyUpcomingDueDate(expense *models.Expense, userID uint, daysUntilDue int) error {
+	var message string
+	if daysUntilDue == 0 {
+		message = fmt.Sprintf("A despesa \"%s\" (R$ %.2f) vence hoje!", expense.Name, expense.Amount)
+	} else if daysUntilDue == 1 {
+		message = fmt.Sprintf("A despesa \"%s\" (R$ %.2f) vence amanhã!", expense.Name, expense.Amount)
+	} else {
+		message = fmt.Sprintf("A despesa \"%s\" (R$ %.2f) vence em %d dias", expense.Name, expense.Amount, daysUntilDue)
+	}
+
+	notification := &models.Notification{
+		UserID:  userID,
+		Type:    models.NotificationTypeDueDate,
+		Title:   "Vencimento próximo",
+		Message: message,
+		Link:    "/expenses",
+	}
+	return s.Create(notification)
+}
