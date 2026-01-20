@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-pdf/fpdf"
 	"github.com/labstack/echo/v4"
 	"github.com/xuri/excelize/v2"
 
@@ -154,7 +155,7 @@ func getAvailableYears(currentYear int) []int {
 	return years
 }
 
-// ExportTaxReport exports tax report data to Excel format
+// ExportTaxReport exports tax report data to Excel or PDF format
 func (h *TaxReportHandler) ExportTaxReport(c echo.Context) error {
 	log.Println("[TaxReport] Exporting tax report")
 
@@ -192,12 +193,23 @@ func (h *TaxReportHandler) ExportTaxReport(c echo.Context) error {
 		}
 	}
 
+	// Check format parameter (default to xlsx)
+	format := c.QueryParam("format")
+	if format == "" {
+		format = "xlsx"
+	}
+
 	// Build INSS config from settings
 	settingsData := h.cacheService.GetSettingsData()
 	inssConfig := &services.INSSConfig{
 		ProLabore: settingsData.ProLabore,
 		Ceiling:   settingsData.INSSCeiling,
 		Rate:      settingsData.INSSRate / 100,
+	}
+
+	// Export to PDF if requested
+	if format == "pdf" {
+		return h.exportTaxReportPDF(c, year, accountIDs, inssConfig, settingsData)
 	}
 
 	// Get tax projection for the selected year
@@ -556,4 +568,254 @@ func (h *TaxReportHandler) createTaxBracketInfoSheet(f *excelize.File, currentRe
 	f.SetColWidth(sheet, "C", "C", 18)
 	f.SetColWidth(sheet, "D", "D", 15)
 	f.SetColWidth(sheet, "E", "E", 15)
+}
+
+// exportTaxReportPDF exports tax report data to PDF format
+func (h *TaxReportHandler) exportTaxReportPDF(c echo.Context, year int, accountIDs []uint, inssConfig *services.INSSConfig, settings services.SettingsData) error {
+	// Get tax projection for the selected year
+	now := time.Now()
+	var projection services.TaxProjection
+	if year == now.Year() {
+		projection = services.GetTaxProjection(database.DB, accountIDs, inssConfig)
+	} else {
+		projection = services.GetTaxProjectionForYear(database.DB, year, accountIDs, inssConfig)
+	}
+
+	// Get monthly tax breakdown
+	monthlyBreakdown := services.GetMonthlyTaxBreakdown(database.DB, year, accountIDs, inssConfig)
+
+	// Get bracket info
+	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
+	bracket, effectiveRate, nextBracketAt := services.GetBracketInfo(revenue12M)
+
+	// Create PDF document
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(15, 15, 15)
+	pdf.AddPage()
+
+	// Title
+	pdf.SetFont("Arial", "B", 18)
+	pdf.SetTextColor(44, 62, 80) // Dark blue
+	pdf.CellFormat(0, 12, fmt.Sprintf("Relatorio Fiscal - %d", year), "", 1, "C", false, 0, "")
+	pdf.Ln(5)
+
+	// Generation date
+	pdf.SetFont("Arial", "", 10)
+	pdf.SetTextColor(128, 128, 128) // Gray
+	pdf.CellFormat(0, 6, fmt.Sprintf("Gerado em: %s", time.Now().Format("02/01/2006 15:04")), "", 1, "C", false, 0, "")
+	pdf.Ln(10)
+
+	// Year-to-Date Section
+	h.addPDFSectionHeader(pdf, "Acumulado no Ano (YTD)")
+
+	ytdData := [][]string{
+		{"Receita Bruta", h.formatCurrency(projection.YTDIncome)},
+		{"Imposto Pago", h.formatCurrency(projection.YTDTax)},
+		{"INSS Pago", h.formatCurrency(projection.YTDINSS)},
+		{"Receita Liquida", h.formatCurrency(projection.YTDNetIncome)},
+	}
+	h.addPDFTable(pdf, ytdData)
+	pdf.Ln(8)
+
+	// Annual Projections Section
+	h.addPDFSectionHeader(pdf, "Projecao Anual")
+
+	projectionData := [][]string{
+		{"Receita Bruta Projetada", h.formatCurrency(projection.ProjectedAnnualIncome)},
+		{"Imposto Projetado", h.formatCurrency(projection.ProjectedAnnualTax)},
+		{"INSS Projetado", h.formatCurrency(projection.ProjectedAnnualINSS)},
+		{"Receita Liquida Projetada", h.formatCurrency(projection.ProjectedNetIncome)},
+	}
+	h.addPDFTable(pdf, projectionData)
+	pdf.Ln(8)
+
+	// Bracket Info Section
+	h.addPDFSectionHeader(pdf, "Informacoes da Faixa")
+
+	amountToNext := nextBracketAt - revenue12M
+	if amountToNext < 0 {
+		amountToNext = 0
+	}
+
+	bracketData := [][]string{
+		{"Faturamento 12 Meses", h.formatCurrency(revenue12M)},
+		{"Faixa Atual", fmt.Sprintf("%d", bracket)},
+		{"Aliquota Efetiva", fmt.Sprintf("%.2f%%", effectiveRate)},
+		{"Proxima Faixa em", h.formatCurrency(nextBracketAt)},
+		{"Valor ate Proxima Faixa", h.formatCurrency(amountToNext)},
+	}
+	h.addPDFTable(pdf, bracketData)
+	pdf.Ln(8)
+
+	// INSS Config Section
+	h.addPDFSectionHeader(pdf, "Configuracao INSS")
+
+	inssData := [][]string{
+		{"Pro-Labore", h.formatCurrency(settings.ProLabore)},
+		{"Aliquota INSS", fmt.Sprintf("%.2f%%", settings.INSSRate)},
+		{"Teto INSS", h.formatCurrency(settings.INSSCeiling)},
+		{"INSS Mensal", h.formatCurrency(settings.INSSAmount)},
+	}
+	h.addPDFTable(pdf, inssData)
+
+	// Add new page for monthly breakdown
+	pdf.AddPage()
+
+	// Monthly Tax Breakdown Section
+	h.addPDFSectionHeader(pdf, "Impostos Mensais")
+
+	// Monthly table headers
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetFillColor(70, 130, 180) // Steel blue
+	pdf.SetTextColor(255, 255, 255)
+	colWidths := []float64{30, 40, 35, 35, 40}
+	headers := []string{"Mes", "Receita Bruta", "Imposto", "INSS", "Receita Liquida"}
+
+	for i, header := range headers {
+		pdf.CellFormat(colWidths[i], 8, header, "1", 0, "C", true, 0, "")
+	}
+	pdf.Ln(-1)
+
+	// Monthly table data
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(0, 0, 0)
+
+	var totalGross, totalTax, totalINSS, totalNet float64
+	fill := false
+
+	for _, m := range monthlyBreakdown {
+		monthName := i18n.MonthNamesSlice[m.Month-1]
+
+		if fill {
+			pdf.SetFillColor(240, 240, 240) // Light gray
+		} else {
+			pdf.SetFillColor(255, 255, 255) // White
+		}
+
+		pdf.CellFormat(colWidths[0], 7, monthName, "1", 0, "L", fill, 0, "")
+		pdf.CellFormat(colWidths[1], 7, h.formatCurrency(m.GrossIncome), "1", 0, "R", fill, 0, "")
+		pdf.CellFormat(colWidths[2], 7, h.formatCurrency(m.TaxPaid), "1", 0, "R", fill, 0, "")
+		pdf.CellFormat(colWidths[3], 7, h.formatCurrency(m.INSSPaid), "1", 0, "R", fill, 0, "")
+		pdf.CellFormat(colWidths[4], 7, h.formatCurrency(m.NetIncome), "1", 0, "R", fill, 0, "")
+		pdf.Ln(-1)
+
+		totalGross += m.GrossIncome
+		totalTax += m.TaxPaid
+		totalINSS += m.INSSPaid
+		totalNet += m.NetIncome
+		fill = !fill
+	}
+
+	// Totals row
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFillColor(226, 239, 218) // Light green
+	pdf.CellFormat(colWidths[0], 8, "TOTAL", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(colWidths[1], 8, h.formatCurrency(totalGross), "1", 0, "R", true, 0, "")
+	pdf.CellFormat(colWidths[2], 8, h.formatCurrency(totalTax), "1", 0, "R", true, 0, "")
+	pdf.CellFormat(colWidths[3], 8, h.formatCurrency(totalINSS), "1", 0, "R", true, 0, "")
+	pdf.CellFormat(colWidths[4], 8, h.formatCurrency(totalNet), "1", 0, "R", true, 0, "")
+	pdf.Ln(12)
+
+	// Simples Nacional Brackets Section
+	h.addPDFSectionHeader(pdf, "Faixas Simples Nacional")
+
+	// Bracket table headers
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFillColor(91, 155, 213) // Blue
+	pdf.SetTextColor(255, 255, 255)
+	bracketColWidths := []float64{20, 50, 35, 30, 45}
+	bracketHeaders := []string{"Faixa", "Receita Anual (ate)", "Aliquota", "Deducao", "Status"}
+
+	for i, header := range bracketHeaders {
+		pdf.CellFormat(bracketColWidths[i], 8, header, "1", 0, "C", true, 0, "")
+	}
+	pdf.Ln(-1)
+
+	// Bracket data
+	brackets := []struct {
+		bracket   int
+		limit     float64
+		rate      float64
+		deduction float64
+	}{
+		{1, 180000, 6.00, 0},
+		{2, 360000, 11.20, 9360},
+		{3, 720000, 13.50, 17640},
+		{4, 1800000, 16.00, 35640},
+		{5, 3600000, 21.00, 125640},
+		{6, 4800000, 33.00, 648000},
+	}
+
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(0, 0, 0)
+
+	for i, b := range brackets {
+		// Determine status and styling
+		status := ""
+		isCurrentBracket := false
+		if i == 0 && revenue12M <= b.limit {
+			status = "Faixa Atual"
+			isCurrentBracket = true
+		} else if i > 0 && revenue12M > brackets[i-1].limit && revenue12M <= b.limit {
+			status = "Faixa Atual"
+			isCurrentBracket = true
+		} else if revenue12M > b.limit {
+			status = "Ultrapassada"
+		} else {
+			status = "Proxima"
+		}
+
+		if isCurrentBracket {
+			pdf.SetFillColor(255, 242, 204) // Light yellow
+		} else {
+			pdf.SetFillColor(255, 255, 255) // White
+		}
+
+		pdf.CellFormat(bracketColWidths[0], 7, fmt.Sprintf("%d", b.bracket), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(bracketColWidths[1], 7, h.formatCurrency(b.limit), "1", 0, "R", true, 0, "")
+		pdf.CellFormat(bracketColWidths[2], 7, fmt.Sprintf("%.2f%%", b.rate), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(bracketColWidths[3], 7, h.formatCurrency(b.deduction), "1", 0, "R", true, 0, "")
+		pdf.CellFormat(bracketColWidths[4], 7, status, "1", 0, "C", true, 0, "")
+		pdf.Ln(-1)
+	}
+
+	// Set headers for download
+	c.Response().Header().Set("Content-Type", "application/pdf")
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=relatorio_fiscal_%d.pdf", year))
+
+	log.Printf("[TaxReport] Tax report PDF exported successfully for year %d", year)
+	return pdf.Output(c.Response().Writer)
+}
+
+// addPDFSectionHeader adds a styled section header to the PDF
+func (h *TaxReportHandler) addPDFSectionHeader(pdf *fpdf.Fpdf, title string) {
+	pdf.SetFont("Arial", "B", 12)
+	pdf.SetFillColor(47, 84, 150) // Dark blue
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(0, 8, title, "", 1, "L", true, 0, "")
+	pdf.SetTextColor(0, 0, 0)
+	pdf.Ln(2)
+}
+
+// addPDFTable adds a two-column table to the PDF
+func (h *TaxReportHandler) addPDFTable(pdf *fpdf.Fpdf, data [][]string) {
+	pdf.SetFont("Arial", "", 10)
+	fill := false
+
+	for _, row := range data {
+		if fill {
+			pdf.SetFillColor(240, 240, 240)
+		} else {
+			pdf.SetFillColor(255, 255, 255)
+		}
+
+		pdf.CellFormat(80, 7, row[0], "1", 0, "L", fill, 0, "")
+		pdf.CellFormat(60, 7, row[1], "1", 1, "R", fill, 0, "")
+		fill = !fill
+	}
+}
+
+// formatCurrency formats a float as Brazilian currency (R$)
+func (h *TaxReportHandler) formatCurrency(value float64) string {
+	return fmt.Sprintf("R$ %.2f", value)
 }
