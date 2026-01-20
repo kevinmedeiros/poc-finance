@@ -10,11 +10,12 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/database"
+	"poc-finance/internal/security"
 	"poc-finance/internal/services"
 	"poc-finance/internal/testutil"
 )
 
-func TestIsValidPassword(t *testing.T) {
+func TestPasswordValidation(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string
@@ -22,83 +23,143 @@ func TestIsValidPassword(t *testing.T) {
 		errMsg   string
 	}{
 		{
-			name:     "valid password",
-			password: "Password123",
+			name:     "valid password with all requirements",
+			password: "SecurePass123!",
 			valid:    true,
 			errMsg:   "",
 		},
 		{
-			name:     "too short",
-			password: "Pass1",
+			name:     "valid password minimal requirements",
+			password: "Abcd123!",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "too short - 7 characters",
+			password: "Abc12!",
 			valid:    false,
 			errMsg:   "A senha deve ter pelo menos 8 caracteres",
 		},
 		{
-			name:     "no uppercase",
-			password: "password123",
+			name:     "too short - empty string",
+			password: "",
 			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			errMsg:   "A senha deve ter pelo menos 8 caracteres",
 		},
 		{
-			name:     "no lowercase",
-			password: "PASSWORD123",
+			name:     "no uppercase letters",
+			password: "password123!",
 			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			errMsg:   "A senha deve conter letras maiúsculas",
+		},
+		{
+			name:     "no lowercase letters",
+			password: "PASSWORD123!",
+			valid:    false,
+			errMsg:   "A senha deve conter letras minúsculas",
 		},
 		{
 			name:     "no numbers",
-			password: "PasswordABC",
+			password: "PasswordABC!",
 			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			errMsg:   "A senha deve conter números",
 		},
 		{
-			name:     "only numbers",
-			password: "12345678",
+			name:     "no special characters",
+			password: "Password123",
 			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			errMsg:   "A senha deve conter pelo menos um caractere especial (!@#$%^&*)",
 		},
 		{
-			name:     "only lowercase",
-			password: "password",
-			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			name:     "all special characters allowed - exclamation",
+			password: "Password123!",
+			valid:    true,
+			errMsg:   "",
 		},
 		{
-			name:     "only uppercase",
-			password: "PASSWORD",
-			valid:    false,
-			errMsg:   "A senha deve conter letras maiúsculas, minúsculas e números",
+			name:     "all special characters allowed - at sign",
+			password: "Password123@",
+			valid:    true,
+			errMsg:   "",
 		},
 		{
-			name:     "special characters allowed",
-			password: "Password123!@#",
+			name:     "all special characters allowed - hash",
+			password: "Password123#",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "all special characters allowed - dollar",
+			password: "Password123$",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "all special characters allowed - percent",
+			password: "Password123%",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "all special characters allowed - caret",
+			password: "Password123^",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "all special characters allowed - ampersand",
+			password: "Password123&",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "all special characters allowed - asterisk",
+			password: "Password123*",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "multiple special characters",
+			password: "Pass123!@#$",
 			valid:    true,
 			errMsg:   "",
 		},
 		{
 			name:     "exactly 8 characters",
-			password: "Pass123A",
+			password: "Pass123!",
 			valid:    true,
 			errMsg:   "",
 		},
 		{
-			name:     "7 characters too short",
-			password: "Pass12A",
+			name:     "long password",
+			password: "ThisIsAVeryLongAndSecurePassword123!",
+			valid:    true,
+			errMsg:   "",
+		},
+		{
+			name:     "only numbers",
+			password: "12345678",
 			valid:    false,
-			errMsg:   "A senha deve ter pelo menos 8 caracteres",
+			errMsg:   "A senha deve conter letras maiúsculas",
+		},
+		{
+			name:     "unicode characters not counted as special",
+			password: "Password123€",
+			valid:    false,
+			errMsg:   "A senha deve conter pelo menos um caractere especial (!@#$%^&*)",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			valid, errMsg := isValidPassword(tt.password)
+			valid, errMsg := security.ValidatePassword(tt.password)
 
 			if valid != tt.valid {
-				t.Errorf("isValidPassword(%q) valid = %v, want %v", tt.password, valid, tt.valid)
+				t.Errorf("security.ValidatePassword(%q) valid = %v, want %v", tt.password, valid, tt.valid)
 			}
 
 			if errMsg != tt.errMsg {
-				t.Errorf("isValidPassword(%q) errMsg = %q, want %q", tt.password, errMsg, tt.errMsg)
+				t.Errorf("security.ValidatePassword(%q) errMsg = %q, want %q", tt.password, errMsg, tt.errMsg)
 			}
 		})
 	}
@@ -118,7 +179,7 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("email", "test@example.com")
-	form.Set("password", "Password123")
+	form.Set("password", "Password123!")
 	form.Set("name", "Test User")
 
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
@@ -147,12 +208,12 @@ func TestAuthHandler_Register_DuplicateEmail(t *testing.T) {
 
 	// Register first user
 	authService := services.NewAuthService()
-	authService.Register("duplicate@example.com", "Password123", "First User")
+	authService.Register("duplicate@example.com", "Password123!", "First User")
 
 	// Try to register with same email
 	form := url.Values{}
 	form.Set("email", "duplicate@example.com")
-	form.Set("password", "Password456")
+	form.Set("password", "Password456!")
 	form.Set("name", "Second User")
 
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
@@ -200,9 +261,9 @@ func TestAuthHandler_Register_EmptyFields(t *testing.T) {
 		password string
 		userName string
 	}{
-		{"empty email", "", "Password123", "Test User"},
+		{"empty email", "", "Password123!", "Test User"},
 		{"empty password", "test@example.com", "", "Test User"},
-		{"empty name", "test@example.com", "Password123", ""},
+		{"empty name", "test@example.com", "Password123!", ""},
 		{"all empty", "", "", ""},
 	}
 
@@ -233,11 +294,11 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 
 	// Register a user first
 	authService := services.NewAuthService()
-	authService.Register("login@example.com", "Password123", "Login User")
+	authService.Register("login@example.com", "Password123!", "Login User")
 
 	form := url.Values{}
 	form.Set("email", "login@example.com")
-	form.Set("password", "Password123")
+	form.Set("password", "Password123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -291,11 +352,11 @@ func TestAuthHandler_Login_WithRedirect(t *testing.T) {
 
 	// Register a user first
 	authService := services.NewAuthService()
-	authService.Register("redirect@example.com", "Password123", "Redirect User")
+	authService.Register("redirect@example.com", "Password123!", "Redirect User")
 
 	form := url.Values{}
 	form.Set("email", "redirect@example.com")
-	form.Set("password", "Password123")
+	form.Set("password", "Password123!")
 	form.Set("redirect", "/dashboard")
 
 	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
@@ -316,7 +377,7 @@ func TestAuthHandler_Login_OpenRedirectProtection(t *testing.T) {
 
 	// Register a user first
 	authService := services.NewAuthService()
-	authService.Register("security@example.com", "Password123", "Security User")
+	authService.Register("security@example.com", "Password123!", "Security User")
 
 	tests := []struct {
 		name        string
@@ -334,7 +395,7 @@ func TestAuthHandler_Login_OpenRedirectProtection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			form := url.Values{}
 			form.Set("email", "security@example.com")
-			form.Set("password", "Password123")
+			form.Set("password", "Password123!")
 			form.Set("redirect", tt.redirect)
 
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
@@ -357,11 +418,11 @@ func TestAuthHandler_Login_WrongCredentials(t *testing.T) {
 
 	// Register a user first
 	authService := services.NewAuthService()
-	authService.Register("wrong@example.com", "Password123", "Wrong User")
+	authService.Register("wrong@example.com", "Password123!", "Wrong User")
 
 	form := url.Values{}
 	form.Set("email", "wrong@example.com")
-	form.Set("password", "WrongPassword123")
+	form.Set("password", "WrongPassword123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -384,7 +445,7 @@ func TestAuthHandler_Login_EmptyFields(t *testing.T) {
 		email    string
 		password string
 	}{
-		{"empty email", "", "Password123"},
+		{"empty email", "", "Password123!"},
 		{"empty password", "test@example.com", ""},
 		{"both empty", "", ""},
 	}
@@ -414,8 +475,8 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 	// Login first to get tokens
 	authService := services.NewAuthService()
-	authService.Register("logout@example.com", "Password123", "Logout User")
-	_, _, refreshToken, _ := authService.Login("logout@example.com", "Password123")
+	authService.Register("logout@example.com", "Password123!", "Logout User")
+	_, _, refreshToken, _ := authService.Login("logout@example.com", "Password123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	req.AddCookie(&http.Cookie{
@@ -456,13 +517,13 @@ func TestAuthHandler_ResetPassword_Success(t *testing.T) {
 
 	// Register a user and generate reset token
 	authService := services.NewAuthService()
-	authService.Register("reset@example.com", "OldPassword123", "Reset User")
+	authService.Register("reset@example.com", "OldPassword123!", "Reset User")
 	token, _ := authService.GeneratePasswordResetToken("reset@example.com")
 
 	form := url.Values{}
 	form.Set("token", token)
-	form.Set("password", "NewPassword123")
-	form.Set("password_confirm", "NewPassword123")
+	form.Set("password", "NewPassword123!")
+	form.Set("password_confirm", "NewPassword123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -489,13 +550,13 @@ func TestAuthHandler_ResetPassword_PasswordMismatch(t *testing.T) {
 	handler, e := setupTestHandler()
 
 	authService := services.NewAuthService()
-	authService.Register("mismatch@example.com", "OldPassword123", "Mismatch User")
+	authService.Register("mismatch@example.com", "OldPassword123!", "Mismatch User")
 	token, _ := authService.GeneratePasswordResetToken("mismatch@example.com")
 
 	form := url.Values{}
 	form.Set("token", token)
-	form.Set("password", "NewPassword123")
-	form.Set("password_confirm", "DifferentPassword123")
+	form.Set("password", "NewPassword123!")
+	form.Set("password_confirm", "DifferentPassword123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -514,7 +575,7 @@ func TestAuthHandler_ResetPassword_WeakPassword(t *testing.T) {
 	handler, e := setupTestHandler()
 
 	authService := services.NewAuthService()
-	authService.Register("weakreset@example.com", "OldPassword123", "Weak Reset User")
+	authService.Register("weakreset@example.com", "OldPassword123!", "Weak Reset User")
 	token, _ := authService.GeneratePasswordResetToken("weakreset@example.com")
 
 	form := url.Values{}
@@ -539,8 +600,8 @@ func TestAuthHandler_ResetPassword_InvalidToken(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("token", "invalid-token")
-	form.Set("password", "NewPassword123")
-	form.Set("password_confirm", "NewPassword123")
+	form.Set("password", "NewPassword123!")
+	form.Set("password_confirm", "NewPassword123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -560,8 +621,8 @@ func TestAuthHandler_ResetPassword_EmptyToken(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("token", "")
-	form.Set("password", "NewPassword123")
-	form.Set("password_confirm", "NewPassword123")
+	form.Set("password", "NewPassword123!")
+	form.Set("password_confirm", "NewPassword123!")
 
 	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -586,7 +647,7 @@ func TestAuthHandler_ForgotPassword_PreventEnumeration(t *testing.T) {
 
 	// Register one user
 	authService := services.NewAuthService()
-	authService.Register("exists@example.com", "Password123", "Exists User")
+	authService.Register("exists@example.com", "Password123!", "Exists User")
 
 	tests := []struct {
 		name  string
@@ -621,7 +682,7 @@ func TestAuthHandler_Register_XSSPrevention(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("email", "xss@example.com")
-	form.Set("password", "Password123")
+	form.Set("password", "Password123!")
 	form.Set("name", "<script>alert('xss')</script>")
 
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))

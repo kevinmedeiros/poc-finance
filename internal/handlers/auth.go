@@ -5,32 +5,17 @@ import (
 	"html"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 
+	"poc-finance/internal/security"
 	"poc-finance/internal/services"
 )
 
 // isProduction returns true if ENV is set to "production"
 func isProduction() bool {
 	return os.Getenv("ENV") == "production"
-}
-
-// isValidPassword checks password complexity requirements
-func isValidPassword(password string) (bool, string) {
-	if len(password) < 8 {
-		return false, "A senha deve ter pelo menos 8 caracteres"
-	}
-	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
-	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
-	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
-
-	if !hasUpper || !hasLower || !hasNumber {
-		return false, "A senha deve conter letras maiúsculas, minúsculas e números"
-	}
-	return true, ""
 }
 
 type AuthHandler struct {
@@ -76,7 +61,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	// Validate password strength
-	if valid, errMsg := isValidPassword(req.Password); !valid {
+	if valid, errMsg := security.ValidatePassword(req.Password); !valid {
 		return c.Render(http.StatusOK, "register.html", map[string]interface{}{
 			"error": errMsg,
 			"email": req.Email,
@@ -300,7 +285,7 @@ func (h *AuthHandler) ResetPassword(c echo.Context) error {
 	}
 
 	// Validate password strength
-	if valid, errMsg := isValidPassword(req.Password); !valid {
+	if valid, errMsg := security.ValidatePassword(req.Password); !valid {
 		return c.Render(http.StatusOK, "reset-password.html", map[string]interface{}{
 			"error": errMsg,
 			"token": req.Token,
