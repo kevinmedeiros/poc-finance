@@ -1421,3 +1421,357 @@ All expense endpoints enforce the following security measures:
 7. Server validates and creates expense with splits
 
 ---
+
+## Credit Card Endpoints
+
+This document describes the credit card management endpoints for the POC Finance application.
+
+### Overview
+
+Credit card endpoints enable users to manage credit cards and installment purchases. All endpoints require authentication and are protected by CSRF validation. The system supports:
+
+- Multiple credit cards per user
+- Installment tracking with automatic monthly calculations
+- Card billing cycle management (closing day and due day)
+- Credit limit tracking
+- Category-based installment organization
+
+**Authentication Required:** Yes (all endpoints)
+**CSRF Protection:** Yes (all POST/DELETE endpoints)
+**Account Access:** Users can only access cards associated with their individual or joint accounts
+
+---
+
+### 1. List Credit Cards and Installments
+
+Retrieve all credit cards and active installments for the authenticated user's accounts.
+
+**Endpoint:** `GET /cards`
+
+**Authentication Required:** Yes
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /cards HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered cards.html page with credit cards, installments, and totals
+- **Description:** Returns the credit cards page with all user's cards and active installments
+
+**Response Data:**
+The page includes:
+- List of all credit cards with their details (name, limit, closing day, due day)
+- Current month's total for each card (sum of active installments)
+- List of active installments with current installment number
+- Available expense categories for categorization
+
+**Installment Filtering:**
+Only displays installments that are still active in the current month:
+- Calculates months passed since installment start date
+- Shows installments where `monthsPassed < totalInstallments`
+- Displays current installment number (monthsPassed + 1)
+
+**Error Responses:**
+None - authenticated users always receive a valid page (may be empty if no cards exist)
+
+---
+
+### 2. Create Credit Card
+
+Create a new credit card for the authenticated user's individual account.
+
+**Endpoint:** `POST /cards`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** Yes
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Display name for the credit card (e.g., "Visa Gold", "Mastercard Black") |
+| closing_day | integer | Yes | Day of month when billing cycle closes (1-31) |
+| due_day | integer | Yes | Day of month when payment is due (1-31) |
+| limit_amount | float | Yes | Credit limit amount (positive number) |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /cards HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...; refresh_token=...
+X-CSRF-Token: ...
+
+name=Visa+Gold&closing_day=15&due_day=25&limit_amount=5000.00
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** HTMX partial - updated card list (partials/card-list.html)
+- **Description:** Creates the card and returns updated card list for HTMX to swap into the page
+
+**Card Association:**
+- Card is automatically associated with the user's individual account
+- Account is retrieved using the authenticated user's ID
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Conta não encontrada" | User's individual account not found |
+| "Erro ao criar cartão" | Database error during card creation |
+
+**Error Response Format:**
+- **Status Code:** 400/500
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 3. Delete Credit Card
+
+Delete an existing credit card and all its associated installments.
+
+**Endpoint:** `DELETE /cards/:id`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Credit card ID to delete |
+
+**Example Request:**
+```http
+DELETE /cards/123 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** HTMX partial - updated card list (partials/card-list.html)
+- **Description:** Deletes the card and all installments, returns updated card list
+
+**Authorization Check:**
+- Verifies card belongs to one of the user's accounts before deletion
+- Returns 404 if card not found or doesn't belong to user
+
+**Cascade Deletion:**
+All installments associated with the card are automatically deleted.
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Cartão não encontrado" | Card ID not found or doesn't belong to user's accounts |
+
+**Error Response Format:**
+- **Status Code:** 404
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 4. Create Installment
+
+Create a new installment purchase on an existing credit card.
+
+**Endpoint:** `POST /installments`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** Yes
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| credit_card_id | integer | Yes | ID of the credit card for this purchase |
+| description | string | Yes | Description of the purchase |
+| total_amount | float | Yes | Total purchase amount (will be divided by installments) |
+| total_installments | integer | Yes | Number of monthly installments (e.g., 12) |
+| start_date | string | Yes | First installment date (format: YYYY-MM-DD) |
+| category | string | Yes | Expense category (e.g., "Alimentação", "Transporte") |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /installments HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...; refresh_token=...
+X-CSRF-Token: ...
+
+credit_card_id=123&description=Notebook+Dell&total_amount=3600.00&total_installments=12&start_date=2024-01-15&category=Eletrônicos
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** HTMX partial - updated installment list (partials/installment-list.html)
+- **Description:** Creates the installment and returns updated installment list
+
+**Installment Calculation:**
+- `installment_amount = total_amount / total_installments`
+- Example: $3,600 / 12 = $300 per month
+- `current_installment` starts at 1
+
+**Authorization Check:**
+- Verifies credit card belongs to one of the user's accounts
+- Returns 404 if card not found or doesn't belong to user
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Cartão não encontrado" | Credit card ID not found or doesn't belong to user's accounts |
+| "Data inválida" | start_date is not in YYYY-MM-DD format |
+| "Erro ao criar parcelamento" | Database error during installment creation |
+
+**Error Response Format:**
+- **Status Code:** 400/404/500
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+### 5. Delete Installment
+
+Delete an existing installment purchase from a credit card.
+
+**Endpoint:** `DELETE /installments/:id`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Installment ID to delete |
+
+**Example Request:**
+```http
+DELETE /installments/456 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** HTMX partial - updated installment list (partials/installment-list.html)
+- **Description:** Deletes the installment and returns updated installment list
+
+**Authorization Check:**
+- Verifies installment's credit card belongs to one of the user's accounts
+- Returns 404 if installment not found or doesn't belong to user
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Parcela não encontrada" | Installment ID not found or card doesn't belong to user's accounts |
+
+**Error Response Format:**
+- **Status Code:** 404
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+---
+
+## Credit Card Endpoint Security
+
+### Authentication & Authorization
+
+All credit card endpoints require valid JWT authentication via cookie. Authorization is enforced at two levels:
+1. **User Level:** User must be authenticated
+2. **Account Level:** Cards and installments are filtered to only those associated with user's accounts (individual or joint)
+
+The `AccountService.GetUserAccountIDs()` method is used to retrieve all account IDs the user has access to, ensuring proper data isolation.
+
+### CSRF Protection
+
+All mutating operations (POST, DELETE) are protected by CSRF tokens. Tokens must be included in the `X-CSRF-Token` header for HTMX requests.
+
+### Data Validation
+
+- **Billing Days:** closing_day and due_day should be valid day numbers (1-31)
+- **Amounts:** limit_amount and total_amount must be positive numbers
+- **Date Format:** start_date must be in YYYY-MM-DD format
+- **Installments:** total_installments must be a positive integer
+
+### Card Ownership
+
+Before any delete or create installment operation:
+1. Server verifies the card exists
+2. Server verifies the card's account_id is in the user's accessible accounts
+3. Operation is rejected if verification fails
+
+---
+
+## Credit Card Data Flow
+
+### Creating Credit Card
+1. User submits card form via HTMX POST request
+2. Server validates user has an individual account
+3. Server creates credit card record with account association
+4. Server queries all user's cards
+5. Server renders updated card list HTML partial
+6. Client-side HTMX swaps the new list into the page
+
+### Creating Installment Purchase
+1. User submits installment form via HTMX POST request
+2. Server verifies credit card belongs to user
+3. Server calculates installment_amount (total_amount / total_installments)
+4. Server creates installment record
+5. Server queries all active installments (filters by current month)
+6. Server renders updated installment list HTML partial
+7. Client-side HTMX swaps the new list into the page
+
+### Monthly Installment Calculation
+The system calculates which installments are active for the current month:
+1. For each installment, calculate months between start_date and current date
+2. If `monthsPassed < totalInstallments`, the installment is still active
+3. Current installment number = `monthsPassed + 1`
+4. Sum all active installment amounts to get card's monthly total
+
+**Example:**
+- Purchase: $1,200 in 12 installments starting Jan 2024
+- Monthly amount: $100
+- In March 2024: monthsPassed = 2, currentInstallment = 3, still active
+- In January 2025: monthsPassed = 12, installment complete (not shown)
+
+### Deleting Credit Card
+1. User clicks delete button → HTMX DELETE request
+2. Server verifies card ownership
+3. Server deletes all associated installments (cascade)
+4. Server deletes credit card record
+5. Server returns updated card list as HTMX partial
+6. Client-side HTMX swaps the new list into the page
+
+---
