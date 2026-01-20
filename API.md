@@ -3429,3 +3429,324 @@ All group members can create, view, and contribute to goals. Only the operations
 All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
 
 ---
+
+## Notification Endpoints
+
+This document describes the notification endpoints for the POC Finance application.
+
+### Overview
+
+All notification endpoints require authentication via JWT token. These endpoints provide notification management capabilities including listing notifications, checking unread counts, marking as read, and deleting notifications.
+
+Features:
+- Real-time notification badge updates via HTMX
+- Dropdown partial for navigation bar integration
+- Mark individual or all notifications as read
+- Delete notifications
+- Unread count tracking
+
+---
+
+### 1. List Notifications
+
+Get all notifications for the current user.
+
+**Endpoint:** `GET /notifications`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /notifications HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered notifications page with full notification list and unread count
+
+**Response Data:**
+```
+{
+  "notifications": [...],  // Array of notification objects
+  "unreadCount": 5         // Count of unread notifications
+}
+```
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 500 | "Erro ao buscar notificações" | Server error fetching notifications |
+
+---
+
+### 2. Get Notification Badge
+
+Get the notification badge count for display in navigation (HTMX partial).
+
+**Endpoint:** `GET /notifications/badge`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /notifications/badge HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered notification badge partial (HTML fragment)
+
+**Response Data:**
+```
+{
+  "unreadCount": 5  // Count of unread notifications
+}
+```
+
+**Usage:**
+This endpoint is designed to be called via HTMX for dynamic badge updates without full page reload.
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 500 | Server error | Error fetching unread count |
+
+---
+
+### 3. Get Notification Dropdown
+
+Get the notification dropdown content with recent notifications (HTMX partial).
+
+**Endpoint:** `GET /notifications/dropdown`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**Request Parameters:** None
+
+**Behavior:**
+Returns the 5 most recent notifications for display in navigation dropdown.
+
+**Example Request:**
+```http
+GET /notifications/dropdown HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered notification dropdown partial (HTML fragment)
+
+**Response Data:**
+```
+{
+  "notifications": [...],  // Array of up to 5 recent notifications
+  "unreadCount": 5         // Count of unread notifications
+}
+```
+
+**Usage:**
+This endpoint is designed to be called via HTMX for dynamic dropdown updates without full page reload.
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 500 | "Erro ao buscar notificações" | Server error fetching notifications |
+
+---
+
+### 4. Mark Notification as Read
+
+Mark a single notification as read.
+
+**Endpoint:** `POST /notifications/:id/read`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Notification ID |
+
+**Example Request:**
+```http
+POST /notifications/42/read HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered notification dropdown partial with updated data
+
+**Behavior:**
+After marking as read, the endpoint returns the updated dropdown partial for seamless HTMX integration.
+
+**Authorization:**
+- Only the notification owner can mark it as read
+- Attempting to mark another user's notification returns error
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 400 | "ID da notificação inválido" | Invalid notification ID format |
+| 500 | "Erro ao marcar como lida" | Server error marking notification as read |
+
+---
+
+### 5. Mark All Notifications as Read
+
+Mark all notifications as read for the current user.
+
+**Endpoint:** `POST /notifications/mark-all-read`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+POST /notifications/mark-all-read HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered notification dropdown partial with updated data
+
+**Behavior:**
+- Marks all notifications for the current user as read
+- Returns the updated dropdown partial for seamless HTMX integration
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 500 | "Erro ao marcar todas como lidas" | Server error marking all notifications as read |
+
+---
+
+### 6. Delete Notification
+
+Delete a single notification.
+
+**Endpoint:** `DELETE /notifications/:id`
+
+**Authentication Required:** Yes (JWT via cookie)
+
+**Rate Limited:** No
+
+**CSRF Protection:** Yes
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Notification ID |
+
+**Example Request:**
+```http
+DELETE /notifications/42 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+X-CSRF-Token: ...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Body:** Empty string
+
+**Behavior:**
+Permanently deletes the notification from the database.
+
+**Authorization:**
+- Only the notification owner can delete it
+- Attempting to delete another user's notification returns error
+
+**Error Responses:**
+
+| Status Code | Error Message | Description |
+|------------|---------------|-------------|
+| 400 | "ID da notificação inválido" | Invalid notification ID format |
+| 500 | "Erro ao excluir notificação" | Server error deleting notification |
+
+---
+
+## Notification Endpoint Security
+
+### Authentication & Authorization
+
+**All Notification Endpoints:**
+All notification endpoints require valid JWT authentication via cookie.
+
+**User-Scoped Access:**
+- All endpoints automatically scope to the authenticated user
+- Users can only access their own notifications
+- User ID is extracted from JWT token via middleware
+- No cross-user notification access possible
+
+### Data Access Control
+
+**Notification Visibility:**
+- Notifications are strictly scoped to the notification owner (user_id)
+- Users cannot view other users' notifications
+- Service layer enforces user_id filtering on all operations
+
+**Notification Modification:**
+- Mark as read: User can only mark their own notifications
+- Delete: User can only delete their own notifications
+- All operations validate notification ownership via user_id
+
+### HTMX Integration
+
+**Partial Rendering:**
+- Badge and dropdown endpoints return HTML fragments for HTMX
+- Enables real-time UI updates without full page reload
+- After mutation operations (mark read, delete), dropdown partial is returned
+- Maintains consistent state between server and client
+
+**Polling Support:**
+- Badge endpoint designed for periodic polling
+- Dropdown endpoint supports on-demand loading
+- Efficient queries with limit parameter for dropdown (5 notifications)
+
+### CSRF Protection
+
+All state-changing endpoints (POST/DELETE) require CSRF token validation via the header-based CSRF middleware.
+
+---
