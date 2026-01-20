@@ -4,17 +4,17 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="flex items-center gap-3 mb-2">
-                <a href="/groups" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <a href="/groups" class="text-dark-400 hover:text-dark-300 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                 </a>
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Metas do Grupo</h1>
+                <h1 class="font-display text-3xl sm:text-4xl text-white tracking-tight">Metas do Grupo</h1>
             </div>
-            <p class="text-slate-500">{{.group.Name}} - Objetivos financeiros compartilhados</p>
+            <p class="text-dark-400">{{.group.Name}} - Objetivos financeiros compartilhados</p>
         </div>
         <a href="/groups/{{.group.ID}}/dashboard"
-            class="inline-flex items-center gap-2 bg-primary-50 text-primary-700 px-4 py-2 rounded-lg hover:bg-primary-100 font-medium text-sm transition-colors">
+            class="inline-flex items-center gap-2 glass-light rounded-xl px-4 py-3 hover:bg-white/5 font-medium text-sm transition-colors text-brand-400">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
             </svg>
@@ -23,10 +23,10 @@
     </div>
 
     <!-- Create Goal Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-dark-700/50 bg-gradient-to-r from-success-500/10 to-emerald-600/10">
+            <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 Criar Nova Meta
@@ -35,26 +35,26 @@
         <form hx-post="/groups/{{.groupID}}/goals" hx-target="#goal-list" hx-swap="innerHTML" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Nome da Meta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome da Meta</label>
                     <input type="text" name="name" required placeholder="Ex: Fundo de Emergencia"
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Valor Alvo (R$)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Alvo (R$)</label>
                     <input type="number" name="target_amount" step="0.01" min="0.01" required placeholder="0,00"
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Data Alvo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Alvo</label>
                     <input type="date" name="target_date" required
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Conta (opcional)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta (opcional)</label>
                     <select name="account_id"
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                         <option value="">Todas as contas do grupo</option>
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}</option>
@@ -63,12 +63,12 @@
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Descricao (opcional)</label>
+                <label class="block text-sm font-medium text-dark-300 mb-2">Descricao (opcional)</label>
                 <textarea name="description" rows="2" placeholder="Descreva o objetivo desta meta..."
-                    class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"></textarea>
+                    class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white"></textarea>
             </div>
             <button type="submit"
-                class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 font-medium btn-press shadow-sm">
+                class="btn-primary w-full py-2.5 rounded-xl text-sm font-semibold text-dark-900 flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
@@ -78,10 +78,10 @@
     </div>
 
     <!-- Goals List -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-dark-700/50 bg-gradient-to-r from-brand-500/10 to-brand-600/10">
+            <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
                 Metas do Grupo
@@ -95,43 +95,43 @@
 {{end}}
 
 {{define "goal-list"}}
-<div class="divide-y divide-slate-100">
+<div class="divide-y divide-dark-700/50">
     {{$groupID := .groupID}}
     {{$userID := .userID}}
     {{range .goals}}
-    <div class="p-6 hover:bg-slate-50 transition-colors">
+    <div class="p-6 hover:bg-dark-800/30 transition-colors">
         <div class="flex flex-col lg:flex-row lg:items-start gap-6">
             <!-- Goal Info -->
             <div class="flex-1">
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center
-                                {{if eq .Status "completed"}}bg-emerald-100{{else if eq .Status "active"}}bg-primary-100{{else}}bg-slate-100{{end}}">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                                {{if eq .Status "completed"}}bg-success-500/20{{else if eq .Status "active"}}bg-brand-500/20{{else}}bg-dark-700/50{{end}}">
                                 {{if eq .Status "completed"}}
-                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 {{else if eq .Status "active"}}
-                                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                                 {{else}}
-                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                                 </svg>
                                 {{end}}
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-slate-800">{{.Name}}</h3>
+                                <h3 class="text-lg font-semibold text-white">{{.Name}}</h3>
                                 {{if .Description}}
-                                <p class="text-sm text-slate-500">{{.Description}}</p>
+                                <p class="text-sm text-dark-400">{{.Description}}</p>
                                 {{end}}
                             </div>
                         </div>
                     </div>
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                        {{if eq .Status "completed"}}bg-emerald-100 text-emerald-700{{else if eq .Status "active"}}bg-blue-100 text-blue-700{{else}}bg-slate-100 text-slate-700{{end}}">
+                        {{if eq .Status "completed"}}badge-success{{else if eq .Status "active"}}badge-info{{else}}bg-dark-700/50 text-dark-400{{end}}">
                         {{if eq .Status "completed"}}Concluida{{else if eq .Status "active"}}Ativa{{else}}Cancelada{{end}}
                     </span>
                 </div>
@@ -139,34 +139,34 @@
                 <!-- Progress Bar -->
                 <div class="mb-4">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-slate-600">Progresso</span>
-                        <span class="text-sm font-semibold text-slate-800">{{printf "%.1f" .ProgressPercentage}}%</span>
+                        <span class="text-sm font-medium text-dark-300">Progresso</span>
+                        <span class="text-sm font-semibold text-white">{{printf "%.1f" .ProgressPercentage}}%</span>
                     </div>
-                    <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
                         <div class="h-full transition-all duration-500 rounded-full
-                            {{if eq .Status "completed"}}bg-emerald-500{{else}}bg-primary-500{{end}}"
+                            {{if eq .Status "completed"}}bg-gradient-to-r from-success-500 to-emerald-500{{else}}bg-gradient-to-r from-brand-500 to-brand-600{{end}}"
                             style="width: {{printf "%.1f" .ProgressPercentage}}%"></div>
                     </div>
                 </div>
 
                 <!-- Amount Info -->
                 <div class="grid grid-cols-3 gap-4 mb-4">
-                    <div class="bg-slate-50 rounded-lg p-3">
-                        <p class="text-xs text-slate-500 uppercase tracking-wide">Valor Atual</p>
-                        <p class="text-xl font-bold text-emerald-600">R$ {{printf "%.2f" .CurrentAmount}}</p>
+                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                        <p class="text-xs text-dark-400 uppercase tracking-wide">Valor Atual</p>
+                        <p class="text-xl font-bold text-success-400">R$ {{printf "%.2f" .CurrentAmount}}</p>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-3">
-                        <p class="text-xs text-slate-500 uppercase tracking-wide">Valor Alvo</p>
-                        <p class="text-xl font-bold text-slate-800">R$ {{printf "%.2f" .TargetAmount}}</p>
+                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                        <p class="text-xs text-dark-400 uppercase tracking-wide">Valor Alvo</p>
+                        <p class="text-xl font-bold text-white">R$ {{printf "%.2f" .TargetAmount}}</p>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-3">
-                        <p class="text-xs text-slate-500 uppercase tracking-wide">Falta</p>
-                        <p class="text-xl font-bold text-rose-600">R$ {{printf "%.2f" .RemainingAmount}}</p>
+                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                        <p class="text-xs text-dark-400 uppercase tracking-wide">Falta</p>
+                        <p class="text-xl font-bold text-danger-400">R$ {{printf "%.2f" .RemainingAmount}}</p>
                     </div>
                 </div>
 
                 <!-- Meta Info -->
-                <div class="flex items-center gap-4 text-sm text-slate-500">
+                <div class="flex items-center gap-4 text-sm text-dark-400">
                     <div class="flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -194,18 +194,18 @@
             <div class="lg:w-80 space-y-4">
                 <!-- Contributions -->
                 {{if .Contributions}}
-                <div class="bg-slate-50 rounded-lg p-4">
-                    <p class="text-xs text-slate-500 uppercase tracking-wide mb-3">Contribuicoes</p>
+                <div class="bg-dark-800/50 rounded-xl p-4 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide mb-3">Contribuicoes</p>
                     <div class="space-y-2">
                         {{range .Contributions}}
-                        <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm">
+                        <div class="flex items-center justify-between bg-dark-700/30 rounded-lg px-3 py-2 border border-white/5">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center">
-                                    <span class="text-xs font-medium text-primary-700">{{slice .User.Name 0 1}}</span>
+                                <div class="w-6 h-6 bg-brand-500/20 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-medium text-brand-400">{{slice .User.Name 0 1}}</span>
                                 </div>
-                                <span class="text-sm text-slate-700">{{.User.Name}}</span>
+                                <span class="text-sm text-dark-200">{{.User.Name}}</span>
                             </div>
-                            <span class="text-sm font-semibold text-emerald-600">R$ {{printf "%.2f" .Amount}}</span>
+                            <span class="text-sm font-semibold text-success-400">R$ {{printf "%.2f" .Amount}}</span>
                         </div>
                         {{end}}
                     </div>
@@ -216,9 +216,9 @@
                 {{if eq .Status "active"}}
                 <form hx-post="/goals/{{.ID}}/contribution" hx-target="#goal-list" hx-swap="innerHTML" class="flex gap-2">
                     <input type="number" name="amount" step="0.01" min="0.01" placeholder="R$ 0,00" required
-                        class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        class="input-premium flex-1 rounded-xl px-3 py-2 text-sm text-white">
                     <button type="submit"
-                        class="inline-flex items-center gap-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium text-sm btn-press shadow-sm">
+                        class="inline-flex items-center gap-1 bg-success-500 hover:bg-success-400 text-dark-900 px-4 py-2 rounded-xl font-semibold text-sm transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
@@ -230,7 +230,7 @@
                 <!-- Delete Button -->
                 <button hx-delete="/goals/{{.ID}}" hx-target="#goal-list" hx-swap="innerHTML"
                     hx-confirm="Tem certeza que deseja excluir esta meta?"
-                    class="w-full inline-flex items-center justify-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-lg hover:bg-red-100 font-medium text-sm transition-colors">
+                    class="w-full inline-flex items-center justify-center gap-2 bg-danger-500/20 text-danger-400 px-4 py-2 rounded-xl hover:bg-danger-500/30 font-medium text-sm transition-colors border border-danger-500/30">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
@@ -242,13 +242,13 @@
     {{else}}
     <div class="px-6 py-12 text-center">
         <div class="flex flex-col items-center">
-            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-16 h-16 bg-dark-700/50 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
-            <p class="text-slate-500 font-medium">Nenhuma meta criada</p>
-            <p class="text-sm text-slate-400 mt-1">Crie sua primeira meta para o grupo acima</p>
+            <p class="text-dark-300 font-medium">Nenhuma meta criada</p>
+            <p class="text-sm text-dark-500 mt-1">Crie sua primeira meta para o grupo acima</p>
         </div>
     </div>
     {{end}}

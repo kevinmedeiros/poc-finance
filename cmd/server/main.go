@@ -248,7 +248,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler()
 	dashboardHandler := handlers.NewDashboardHandler(settingsCacheService)
 	incomeHandler := handlers.NewIncomeHandler()
-	expenseHandler := handlers.NewExpenseHandler()
+	expenseHandler := handlers.NewExpenseHandler(settingsCacheService)
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
 	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)

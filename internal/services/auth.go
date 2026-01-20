@@ -29,9 +29,7 @@ var JWTSecret []byte
 func init() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		// Default for development only - log warning
-		secret = "dev-secret-change-in-production"
-		log.Println("WARNING: JWT_SECRET environment variable not set, using insecure default. Set JWT_SECRET in production!")
+		log.Fatalf("JWT_SECRET environment variable must be set")
 	}
 	JWTSecret = []byte(secret)
 }
