@@ -1775,3 +1775,320 @@ The system calculates which installments are active for the current month:
 6. Client-side HTMX swaps the new list into the page
 
 ---
+
+## Settings Endpoints
+
+This section describes endpoints for managing application settings such as pro-labore amounts, INSS rates, and tax calculations.
+
+### Overview
+
+Settings endpoints allow users to view and update their financial configuration. Settings are cached for performance and the cache is invalidated on updates. All settings endpoints require authentication.
+
+---
+
+### 1. Get Settings
+
+Retrieve current application settings including pro-labore amount, INSS ceiling, INSS rate, and calculated INSS amount.
+
+**Endpoint:** `GET /settings`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** No (read-only operation)
+
+**Request Parameters:** None
+
+**Example Request:**
+```http
+GET /settings HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered settings page (settings.html)
+- **Description:** Returns settings page with current configuration values
+
+**Response Data Structure:**
+```go
+{
+  "settings": {
+    "pro_labore": 15000.00,      // Monthly pro-labore amount
+    "inss_ceiling": 7507.49,     // INSS contribution ceiling
+    "inss_rate": 0.11,           // INSS rate (11%)
+    "inss_amount": 825.82        // Calculated INSS amount (read-only)
+  }
+}
+```
+
+**Settings Cache:**
+- Settings are cached using the SettingsCacheService
+- Cache is loaded from database on first request
+- Cache remains valid until explicitly invalidated
+
+**Error Responses:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 401 | Unauthorized - Missing or invalid authentication token |
+
+---
+
+### 2. Update Settings
+
+Update application settings and invalidate the settings cache.
+
+**Endpoint:** `POST /settings`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** Yes
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| pro_labore | float | Yes | Monthly pro-labore amount in BRL |
+| inss_ceiling | float | Yes | Maximum INSS contribution ceiling in BRL |
+| inss_rate | float | Yes | INSS contribution rate (0.11 = 11%) |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /settings HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...; refresh_token=...
+X-CSRF-Token: ...
+
+pro_labore=15000.00&inss_ceiling=7507.49&inss_rate=0.11
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** HTMX partial - updated settings form (partials/settings-form.html)
+- **Description:** Updates settings in database, invalidates cache, and returns form with updated values and success indicator
+
+**Response Data:**
+```go
+{
+  "settings": {
+    "pro_labore": 15000.00,
+    "inss_ceiling": 7507.49,
+    "inss_rate": 0.11,
+    "inss_amount": 825.82  // Recalculated based on new values
+  },
+  "saved": true  // Success indicator for UI feedback
+}
+```
+
+**Settings Persistence:**
+Each setting is stored as a key-value pair in the database:
+- Key: `models.SettingProLabore`, `models.SettingINSSCeiling`, `models.SettingINSSRate`
+- Value: String representation of the float value
+- Settings are created if they don't exist, updated if they do
+
+**Cache Invalidation:**
+After successful update, the SettingsCacheService cache is invalidated, forcing a fresh database load on the next request.
+
+**Error Responses:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 401 | Unauthorized - Missing or invalid authentication token |
+| 403 | Forbidden - Missing or invalid CSRF token |
+| 400 | Bad Request - Invalid parameter format or values |
+
+**Error Response Format:**
+- **Content-Type:** text/plain or text/html
+- **Body:** Error message string or rendered error partial
+
+---
+
+## Export Endpoints
+
+This section describes endpoints for exporting financial data to Excel format.
+
+### Overview
+
+Export endpoints allow users to download their financial data as Excel spreadsheets. The export includes multiple sheets with summaries, incomes, expenses, and credit card installments for a specified year.
+
+---
+
+### 1. Export Year Data
+
+Export all financial data for a specific year to an Excel file with multiple sheets.
+
+**Endpoint:** `GET /export`
+
+**Authentication Required:** Yes
+
+**CSRF Protection:** No (read-only operation)
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| year | integer | No | Year to export (defaults to current year if not provided) |
+
+**Example Request:**
+```http
+GET /export?year=2024 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...; refresh_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+- **Content-Disposition:** attachment; filename=financeiro_2024.xlsx
+- **Body:** Binary Excel file (.xlsx format)
+- **Description:** Generates and returns Excel file with financial data
+
+**Excel File Structure:**
+
+The exported Excel file contains 4 sheets:
+
+#### Sheet 1: Resumo Mensal (Monthly Summary)
+Columns:
+- Mês (Month) - Month name in Portuguese
+- Receita Bruta (Gross Income) - Total gross income for the month
+- Imposto (Tax) - Total tax amount for the month
+- Receita Líquida (Net Income) - Total net income (gross - tax)
+- Despesas Fixas (Fixed Expenses) - Total fixed expenses
+- Despesas Variáveis (Variable Expenses) - Total variable expenses
+- Cartões (Cards) - Total credit card installments
+- Contas (Bills) - Total bills
+- Total Despesas (Total Expenses) - Sum of all expenses
+- Saldo (Balance) - Net income minus total expenses
+
+**Styling:**
+- Header row with bold text, blue background (#4472C4), centered alignment
+- Column width: 15 units
+- Data for all 12 months of the specified year
+
+#### Sheet 2: Recebimentos (Incomes)
+Columns:
+- Data (Date) - Income date in DD/MM/YYYY format
+- Valor USD (USD Amount) - Amount in US Dollars
+- Taxa Câmbio (Exchange Rate) - USD to BRL exchange rate
+- Valor BRL (BRL Amount) - Amount in Brazilian Reais
+- Imposto (Tax) - Tax amount
+- Líquido (Net) - Net amount after tax
+- Descrição (Description) - Income description
+
+**Styling:**
+- Header row with bold text, green background (#70AD47)
+- Column width: 15 units
+- Sorted by date ascending
+- Only includes incomes within the specified year (Jan 1 to Dec 31)
+
+#### Sheet 3: Despesas (Expenses)
+Columns:
+- Nome (Name) - Expense name
+- Valor (Amount) - Expense amount
+- Tipo (Type) - "Fixa" (Fixed) or "Variável" (Variable)
+- Dia Venc. (Due Day) - Due day of month
+- Categoria (Category) - Expense category
+- Ativa (Active) - "Sim" (Yes) or "Não" (No)
+
+**Styling:**
+- Header row with bold text, orange background (#ED7D31)
+- Column width: 15 units
+- Sorted by type, then name
+- Includes all expenses (not filtered by year)
+
+#### Sheet 4: Parcelamentos (Installments)
+Columns:
+- Cartão (Card) - Credit card name
+- Descrição (Description) - Purchase description
+- Valor Total (Total Amount) - Total purchase amount
+- Parcela (Installment Amount) - Monthly installment amount
+- Total Parcelas (Total Installments) - Number of installments
+- Parcela Atual (Current Installment) - Current installment number
+- Início (Start) - First installment date in DD/MM/YYYY
+- Categoria (Category) - Purchase category
+
+**Styling:**
+- Header row with bold text, blue background (#5B9BD5)
+- Column width: 15 units
+- Only includes active installments (not yet completed)
+- Filters out installments where all payments are complete
+
+**Data Sources:**
+- Monthly summaries: Generated by `services.GetYearlySummaries()`
+- Incomes: Filtered by year from `models.Income` table
+- Expenses: All records from `models.Expense` table
+- Installments: Active records from `models.Installment` table with preloaded credit card data
+
+**File Generation:**
+Uses the `github.com/xuri/excelize/v2` library for Excel file creation and manipulation.
+
+**Error Responses:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 401 | Unauthorized - Missing or invalid authentication token |
+| 500 | Internal Server Error - Error generating Excel file |
+
+**Error Response Format:**
+- **Content-Type:** text/plain
+- **Body:** Error message string
+
+**Notes:**
+- If year parameter is invalid or missing, defaults to current year
+- The default "Sheet1" created by excelize is automatically deleted
+- File is generated in-memory and streamed directly to the response
+- All monetary values are formatted as numbers (not strings) for Excel calculations
+
+---
+
+## Settings Endpoint Security
+
+### Authentication & Authorization
+
+All settings endpoints require valid JWT authentication via cookie. Settings are global per user account.
+
+### CSRF Protection
+
+Settings update operations (POST) are protected by CSRF tokens. Tokens must be included in the `X-CSRF-Token` header for HTMX requests.
+
+### Data Validation
+
+- **Amounts:** pro_labore and inss_ceiling should be positive numbers
+- **Rates:** inss_rate should be between 0 and 1 (e.g., 0.11 for 11%)
+
+### Settings Cache
+
+The application uses a `SettingsCacheService` to cache settings data:
+1. Settings are loaded from database on first access
+2. Cache remains valid until explicitly invalidated
+3. Cache is invalidated after successful updates
+4. This reduces database queries for frequently accessed settings
+
+---
+
+## Export Endpoint Security
+
+### Authentication & Authorization
+
+Export endpoints require valid JWT authentication via cookie. Users can only export their own financial data.
+
+### Data Filtering
+
+- Incomes are filtered to the specified year (Jan 1 to Dec 31)
+- Monthly summaries are calculated for all 12 months of the year
+- Expenses include all records (not year-filtered as they are recurring)
+- Installments are filtered to show only currently active purchases
+
+### Performance Considerations
+
+- Large datasets may take time to generate
+- Excel file is generated synchronously and streamed to response
+- Consider adding year range validation to prevent excessive data exports
+
+---
