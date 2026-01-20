@@ -28,15 +28,15 @@ func NewExpenseHandler(settingsCacheService *services.SettingsCacheService) *Exp
 }
 
 type CreateExpenseRequest struct {
-	AccountID   uint      `form:"account_id"`
-	Name        string    `form:"name"`
-	Amount      float64   `form:"amount"`
-	Type        string    `form:"type"`
-	DueDay      int       `form:"due_day"`
-	Category    string    `form:"category"`
-	IsSplit     bool      `form:"is_split"`
-	SplitUsers  []uint    `form:"split_user_ids"`
-	SplitPcts   []float64 `form:"split_percentages"`
+	AccountID  uint      `form:"account_id"`
+	Name       string    `form:"name"`
+	Amount     float64   `form:"amount"`
+	Type       string    `form:"type"`
+	DueDay     int       `form:"due_day"`
+	Category   string    `form:"category"`
+	IsSplit    bool      `form:"is_split"`
+	SplitUsers []uint    `form:"split_user_ids"`
+	SplitPcts  []float64 `form:"split_percentages"`
 }
 
 type ExpenseWithStatus struct {
@@ -49,6 +49,14 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
 	accounts, _ := h.accountService.GetUserAccounts(userID)
 
+	// Handle category filter from query parameter
+	var selectedCategory string
+	categoryParam := c.QueryParam("category")
+
+	if categoryParam != "" && categoryParam != "all" {
+		selectedCategory = categoryParam
+	}
+
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
@@ -56,8 +64,17 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 	var fixedExpenses []models.Expense
 	var variableExpenses []models.Expense
 
-	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs).Order("due_day, name").Find(&fixedExpenses)
-	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs).Order("created_at DESC").Find(&variableExpenses)
+	// Build queries with category filter if applicable
+	fixedQuery := database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeFixed, accountIDs)
+	variableQuery := database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", models.ExpenseTypeVariable, accountIDs)
+
+	if selectedCategory != "" {
+		fixedQuery = fixedQuery.Where("category = ?", selectedCategory)
+		variableQuery = variableQuery.Where("category = ?", selectedCategory)
+	}
+
+	fixedQuery.Order("due_day, name").Find(&fixedExpenses)
+	variableQuery.Order("created_at DESC").Find(&variableExpenses)
 
 	// Verifica status de pagamento para cada despesa fixa
 	fixedWithStatus := make([]ExpenseWithStatus, len(fixedExpenses))
@@ -97,6 +114,7 @@ func (h *ExpenseHandler) List(c echo.Context) error {
 		"categories":       getExpenseCategories(),
 		"currentMonth":     month,
 		"currentYear":      year,
+		"selectedCategory": selectedCategory,
 	}
 
 	return c.Render(http.StatusOK, "expenses.html", data)
@@ -359,18 +377,34 @@ func (h *ExpenseHandler) renderExpenseList(c echo.Context, expenseType string) e
 	userID := middleware.GetUserID(c)
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
 
+	// Handle category filter from query parameter
+	var selectedCategory string
+	categoryParam := c.QueryParam("category")
+
+	if categoryParam != "" && categoryParam != "all" {
+		selectedCategory = categoryParam
+	}
+
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
 
+	// Build query with category filter if applicable
 	var expenses []models.Expense
-	database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", expenseType, accountIDs).Order("due_day, name").Find(&expenses)
+	query := database.DB.Preload("Splits").Preload("Splits.User").Where("type = ? AND account_id IN ?", expenseType, accountIDs)
+
+	if selectedCategory != "" {
+		query = query.Where("category = ?", selectedCategory)
+	}
+
+	query.Order("due_day, name").Find(&expenses)
 
 	template := "partials/fixed-expense-list.html"
 	if expenseType == "variable" {
 		template = "partials/variable-expense-list.html"
 		return c.Render(http.StatusOK, template, map[string]interface{}{
-			"expenses": expenses,
+			"expenses":         expenses,
+			"selectedCategory": selectedCategory,
 		})
 	}
 
@@ -384,7 +418,8 @@ func (h *ExpenseHandler) renderExpenseList(c echo.Context, expenseType string) e
 	}
 
 	return c.Render(http.StatusOK, template, map[string]interface{}{
-		"expenses": expensesWithStatus,
+		"expenses":         expensesWithStatus,
+		"selectedCategory": selectedCategory,
 	})
 }
 
@@ -432,8 +467,8 @@ func (h *ExpenseHandler) GetAccountMembers(c echo.Context) error {
 
 	// Return HTML for member split inputs
 	return c.Render(http.StatusOK, "partials/split-members.html", map[string]interface{}{
-		"members":   members,
-		"account":   account,
-		"isJoint":   account.Type == models.AccountTypeJoint,
+		"members": members,
+		"account": account,
+		"isJoint": account.Type == models.AccountTypeJoint,
 	})
 }
