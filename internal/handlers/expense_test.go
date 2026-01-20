@@ -34,8 +34,11 @@ func setupExpenseTestHandler() (*ExpenseHandler, *echo.Echo, uint, uint) {
 	}
 	database.DB.Create(&account)
 
+	// Initialize settings cache
+	cacheService := services.NewSettingsCacheService()
+
 	e := echo.New()
-	handler := NewExpenseHandler()
+	handler := NewExpenseHandler(cacheService)
 	return handler, e, user.ID, account.ID
 }
 
