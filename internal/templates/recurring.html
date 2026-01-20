@@ -32,7 +32,7 @@
         <form hx-post="/recurring" hx-target="#recurring-list" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) this.reset()" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta <span class="text-danger-400">*</span></label>
                     <select name="account_id" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
@@ -40,7 +40,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Tipo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Tipo <span class="text-danger-400">*</span></label>
                     <select name="transaction_type" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .transactionTypes}}
                         <option value="{{.}}">{{if eq . "income"}}Receita{{else}}Despesa{{end}}</option>
@@ -50,12 +50,12 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição <span class="text-danger-400">*</span></label>
                     <input type="text" name="description" required placeholder="Ex: Salário, Aluguel..."
                         class="input-premium w-full rounded-xl px-4 py-3 text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (R$)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (R$) <span class="text-danger-400">*</span></label>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500">R$</span>
                         <input type="number" name="amount" step="0.01" min="0.01" required placeholder="Valor"
@@ -70,7 +70,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Frequência</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Frequência <span class="text-danger-400">*</span></label>
                     <select name="frequency" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .frequencies}}
                         <option value="{{.}}">
@@ -83,7 +83,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Início</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Início <span class="text-danger-400">*</span></label>
                     <input type="date" name="start_date" required
                         class="input-premium w-full rounded-xl px-4 py-3 text-white">
                 </div>
