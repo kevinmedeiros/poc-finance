@@ -3245,7 +3245,7 @@ name=Emergency+Fund&description=3+months+expenses&target_amount=15000.00&target_
 
 Delete a financial goal.
 
-**Endpoint:** `DELETE /groups/:id/goals/:goalId`
+**Endpoint:** `DELETE /goals/:goalId`
 
 **Authentication Required:** Yes (JWT cookie)
 
@@ -3257,12 +3257,11 @@ Delete a financial goal.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| id | integer | Group ID |
 | goalId | integer | Goal ID to delete |
 
 **Example Request:**
 ```http
-DELETE /groups/123/goals/456 HTTP/1.1
+DELETE /goals/456 HTTP/1.1
 Host: localhost:8080
 Cookie: access_token=...
 ```
@@ -3292,7 +3291,7 @@ Cookie: access_token=...
 
 Add a monetary contribution to a goal.
 
-**Endpoint:** `POST /groups/:id/goals/:goalId/contribute`
+**Endpoint:** `POST /goals/:goalId/contribution`
 
 **Authentication Required:** Yes (JWT cookie)
 
@@ -3304,7 +3303,6 @@ Add a monetary contribution to a goal.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| id | integer | Group ID |
 | goalId | integer | Goal ID to contribute to |
 
 **Request Parameters:**
@@ -3317,7 +3315,7 @@ Add a monetary contribution to a goal.
 
 **Example Request:**
 ```http
-POST /groups/123/goals/456/contribute HTTP/1.1
+POST /goals/456/contribution HTTP/1.1
 Host: localhost:8080
 Cookie: access_token=...
 Content-Type: application/x-www-form-urlencoded
