@@ -2092,3 +2092,572 @@ Export endpoints require valid JWT authentication via cookie. Users can only exp
 - Consider adding year range validation to prevent excessive data exports
 
 ---
+
+## Group Management Endpoints
+
+### Overview
+
+Group management endpoints allow users to create and manage family groups for shared financial tracking. Groups support multiple members with role-based permissions (admin/member) and invite-based joining system.
+
+**Authentication:**
+- Most endpoints require JWT authentication via cookie
+- Public endpoints: invite viewing and registration
+- Admin-only endpoints: invite management, member removal, group deletion
+
+**Roles:**
+- **Admin:** Can invite members, remove members, delete group, manage invites
+- **Member:** Can view group data, leave group
+
+---
+
+### 1. List Groups
+
+Get all groups the authenticated user is a member of.
+
+**Endpoint:** `GET /groups`
+
+**Authentication Required:** Yes
+
+**Request Parameters:** None
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered groups.html page with user's groups, members, and joint accounts
+
+**Response Data Includes:**
+- List of groups with members
+- User's role in each group
+- Joint accounts for each group
+
+---
+
+### 2. Create Group
+
+Create a new family group. The creator is automatically added as an admin member.
+
+**Endpoint:** `POST /groups`
+
+**Authentication Required:** Yes
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Name of the group |
+| description | string | No | Optional group description |
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /groups HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Cookie: access_token=...
+
+name=Family+Budget&description=Our+family+shared+expenses
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated group list partial (partials/group-list.html)
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Nome do grupo é obrigatório" | Group name is missing |
+| "Erro ao criar grupo" | Server error during group creation |
+| "Erro ao adicionar membro" | Server error when adding creator as admin |
+
+---
+
+### 3. Leave Group
+
+Leave a group you're a member of. Last admin cannot leave unless there are no other members.
+
+**Endpoint:** `POST /groups/:id/leave`
+
+**Authentication Required:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+POST /groups/123/leave HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated group list partial
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é membro deste grupo" | User is not a member of the group |
+| "Você é o único administrador e não pode sair do grupo" | Last admin cannot leave the group |
+| "Erro ao sair do grupo" | Server error during leave operation |
+
+---
+
+### 4. Delete Group
+
+Delete a group permanently. Only group admins can delete groups.
+
+**Endpoint:** `DELETE /groups/:id`
+
+**Authentication Required:** Yes (Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+DELETE /groups/123 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated group list partial
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Apenas administradores podem excluir o grupo" | User is not a group admin |
+| "Erro ao excluir grupo" | Server error during deletion |
+
+---
+
+### 5. Remove Member
+
+Remove a member from a group. Only group admins can remove members.
+
+**Endpoint:** `DELETE /groups/:id/members/:userId`
+
+**Authentication Required:** Yes (Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+| userId | integer | User ID of the member to remove |
+
+**Example Request:**
+```http
+DELETE /groups/123/members/456 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Updated group list partial
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "ID do membro inválido" | Invalid user ID parameter |
+| "Apenas administradores podem remover membros" | User is not a group admin |
+| "Membro não encontrado" | Member is not part of the group |
+| "Erro ao remover membro" | Server error during removal |
+
+---
+
+### 6. Generate Invite Code
+
+Generate a new invite code for a group. Only group admins can generate invites.
+
+**Endpoint:** `POST /groups/:id/invite`
+
+**Authentication Required:** Yes (Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+POST /groups/123/invite HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered invite modal partial with invite code and link
+
+**Response Includes:**
+- Invite code
+- Full invite URL (e.g., http://localhost:8080/groups/join/ABC123)
+- Expiration date (30 days from creation)
+- Maximum usage count (unlimited by default)
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é administrador deste grupo" | User is not a group admin |
+| "Erro ao gerar convite" | Server error during invite generation |
+
+---
+
+### 7. List Group Invites
+
+Get all active invites for a group. Only group admins can view invites.
+
+**Endpoint:** `GET /groups/:id/invites`
+
+**Authentication Required:** Yes (Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Group ID |
+
+**Example Request:**
+```http
+GET /groups/123/invites HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered invite list partial with active invites
+
+**Response Includes:**
+- All active invites for the group
+- Invite codes and full URLs
+- Creation dates and expiration dates
+- Usage counts
+- Creator information
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do grupo inválido" | Invalid group ID parameter |
+| "Você não é administrador deste grupo" | User is not a group admin |
+| "Erro ao buscar convites" | Server error retrieving invites |
+
+---
+
+### 8. View Invite Page (Public)
+
+View details about a group invite. This is a public endpoint that shows invite information to non-authenticated users.
+
+**Endpoint:** `GET /groups/join/:code`
+
+**Authentication Required:** No
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| code | string | Invite code |
+
+**Example Request:**
+```http
+GET /groups/join/ABC123XYZ HTTP/1.1
+Host: localhost:8080
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered join-group.html page with invite details
+
+**Response Includes:**
+- Group name and description
+- Inviter information
+- Options to login or register
+
+**Behavior:**
+- If user is already logged in, checks if already a member
+- If already a member, shows appropriate message
+- If not logged in, shows login/register options
+- If logged in but not a member, allows accepting invite
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Convite inválido ou expirado" | Invite code is invalid, expired, or reached max uses |
+
+---
+
+### 9. Accept Invite
+
+Accept a group invite and join the group. Requires authentication.
+
+**Endpoint:** `POST /groups/join/:code`
+
+**Authentication Required:** Yes
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| code | string | Invite code |
+
+**Example Request:**
+```http
+POST /groups/join/ABC123XYZ HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Body:** Rendered join-group.html page with success message
+
+**Side Effects:**
+- User is added as a member of the group with "member" role
+- User receives a notification about joining the group
+- Invite usage count is incremented
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Convite não encontrado" | Invite code does not exist |
+| "Convite expirado" | Invite has passed expiration date |
+| "Convite inválido" | Invite is not valid (revoked or deleted) |
+| "Convite atingiu o limite de usos" | Invite reached maximum usage count |
+| "Você já é membro deste grupo" | User is already a member |
+| "Erro ao aceitar convite" | Server error during acceptance |
+
+---
+
+### 10. Revoke Invite
+
+Revoke an invite code, making it invalid. Only group admins can revoke invites.
+
+**Endpoint:** `DELETE /groups/invites/:id`
+
+**Authentication Required:** Yes (Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Invite ID |
+
+**Example Request:**
+```http
+DELETE /groups/invites/789 HTTP/1.1
+Host: localhost:8080
+Cookie: access_token=...
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Body:** Empty response
+
+**Side Effects:**
+- Invite is soft-deleted (deleted_at timestamp set)
+- Invite code can no longer be used to join the group
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "ID do convite inválido" | Invalid invite ID parameter |
+| "Você não é administrador deste grupo" | User is not a group admin |
+| "Erro ao revogar convite" | Server error during revocation |
+
+---
+
+### 11. Register and Join
+
+Register a new user account and immediately join a group via invite code. This is a public endpoint that combines registration with group joining.
+
+**Endpoint:** `POST /groups/join/:code/register`
+
+**Authentication Required:** No
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| code | string | Invite code |
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| email | string | Yes | User's email address |
+| password | string | Yes | User's password (see requirements below) |
+| name | string | Yes | User's display name |
+
+**Password Requirements:**
+- Minimum 8 characters
+- At least one uppercase letter (A-Z)
+- At least one lowercase letter (a-z)
+- At least one number (0-9)
+
+**Content-Type:** `application/x-www-form-urlencoded`
+
+**Example Request:**
+```http
+POST /groups/join/ABC123XYZ/register HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+
+email=newuser@example.com&password=SecurePass123&name=Jane+Doe
+```
+
+**Success Response:**
+- **Status Code:** 200 OK
+- **Content-Type:** text/html
+- **Set-Cookie Headers:**
+  - `access_token`: JWT access token
+  - `refresh_token`: JWT refresh token
+- **Body:** Rendered join-group.html page with success message
+
+**Side Effects:**
+1. New user account is created
+2. User is authenticated (cookies set)
+3. User is added to the group as a member
+4. User receives a notification about joining
+5. Invite usage count is incremented
+
+**Error Responses:**
+
+| Error Message | Description |
+|--------------|-------------|
+| "Dados inválidos" | Invalid request format or data binding error |
+| "Todos os campos são obrigatórios" | One or more required fields are missing |
+| "A senha deve ter pelo menos 8 caracteres" | Password is too short |
+| "A senha deve conter letras maiúsculas, minúsculas e números" | Password doesn't meet complexity requirements |
+| "Este email já está cadastrado" | Email address is already registered |
+| "Erro ao criar conta" | Server error during registration |
+| "Convite não encontrado" | Invite code does not exist |
+| "Convite expirado" | Invite has passed expiration date |
+| "Convite inválido" | Invite is not valid |
+| "Convite atingiu o limite de usos" | Invite reached maximum usage count |
+| "Erro ao aceitar convite" | Server error during group joining |
+
+---
+
+## Group Management Endpoint Security
+
+### Authentication & Authorization
+
+**Protected Endpoints:**
+All group management endpoints except the public invite viewing and registration endpoints require valid JWT authentication via cookie.
+
+**Role-Based Access Control:**
+- **Admin-only operations:**
+  - Generate invite codes
+  - View group invites
+  - Revoke invites
+  - Remove members
+  - Delete group
+
+- **Member operations:**
+  - View groups
+  - Create new groups (becomes admin)
+  - Leave groups (if not last admin)
+
+**Public Endpoints:**
+- `GET /groups/join/:code` - View invite details
+- `POST /groups/join/:code/register` - Register and join
+
+### Authorization Checks
+
+The GroupService validates:
+1. User is a member of the group (for member operations)
+2. User has admin role (for admin operations)
+3. Last admin cannot leave group
+4. Invite codes are valid and not expired
+
+### Data Validation
+
+**Group Creation:**
+- Group name is required
+- Creator is automatically added as admin
+
+**Invite Generation:**
+- Invite codes are 32-character random strings
+- Default expiration: 30 days
+- Default max uses: unlimited (0)
+
+**Member Removal:**
+- Cannot remove yourself (use leave endpoint instead)
+- Admin check performed before removal
+
+### Security Considerations
+
+1. **Invite Code Security:**
+   - Invite codes are cryptographically random (32 characters)
+   - Codes expire after 30 days by default
+   - Codes can have maximum usage limits
+   - Codes can be revoked by admins
+
+2. **Open Redirect Protection:**
+   - All redirects use relative paths
+
+3. **CSRF Protection:**
+   - All state-changing endpoints require CSRF token
+   - Public registration endpoint has CSRF validation
+
+4. **Notification System:**
+   - Users receive notifications when joining groups
+   - Notifications include inviter information
+
+### Data Flow
+
+**Group Creation Flow:**
+1. User submits group creation form
+2. Group record created with user as creator
+3. User added as admin member
+4. Updated group list returned as HTML partial
+
+**Invite Flow:**
+1. Admin generates invite code
+2. Invite stored with expiration and usage limits
+3. Invite link shared externally
+4. Public user views invite page
+5. User logs in or registers
+6. User accepts invite and joins group
+7. Notification sent to new member
+
+**Member Management Flow:**
+1. Admin requests member removal
+2. Authorization check performed
+3. Member record soft-deleted
+4. Updated group list returned
+
+---
