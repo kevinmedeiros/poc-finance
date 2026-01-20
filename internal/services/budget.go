@@ -12,7 +12,6 @@ import (
 var (
 	ErrBudgetNotFound     = errors.New("orçamento não encontrado")
 	ErrCategoryNotFound   = errors.New("categoria não encontrada")
-	ErrUnauthorized       = errors.New("não autorizado")
 	ErrInvalidBudgetMonth = errors.New("mês inválido (deve estar entre 1-12)")
 	ErrInvalidBudgetYear  = errors.New("ano inválido")
 )
@@ -425,4 +424,104 @@ func formatBudgetMessage(budget *models.Budget, category *models.BudgetCategory,
 // Helper: formatMessage is a simple wrapper for fmt.Sprintf
 func formatMessage(format string, args ...interface{}) string {
 	return fmt.Sprintf(format, args...)
+}
+
+// UpdateCategorySpent recalculates spending from expenses for a specific category/month/year
+// This method is called when expenses are created, updated, or deleted
+func (s *BudgetService) UpdateCategorySpent(userID uint, category string, year, month int) error {
+	// Find all active budgets for this user and period (individual and group budgets)
+	var budgets []models.Budget
+	database.DB.Where("user_id = ? AND year = ? AND month = ? AND status = ?",
+		userID, year, month, models.BudgetStatusActive).
+		Preload("Group").
+		Preload("Categories").
+		Find(&budgets)
+
+	for _, budget := range budgets {
+		// Find the category in this budget
+		var budgetCategory models.BudgetCategory
+		if err := database.DB.Where("budget_id = ? AND category = ?", budget.ID, category).
+			First(&budgetCategory).Error; err != nil {
+			continue // Category doesn't exist in this budget, skip
+		}
+
+		// Recalculate spent amount from expenses
+		var totalSpent float64
+		expenseQuery := database.DB.Model(&models.Expense{}).
+			Where("category = ? AND EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?", category, year, month)
+
+		if budget.GroupID != nil {
+			// For group budgets, sum all expenses from group members
+			expenseQuery = expenseQuery.Where("group_id = ?", *budget.GroupID)
+		} else {
+			// For individual budgets, only count user's expenses
+			expenseQuery = expenseQuery.Where("user_id = ? AND (group_id IS NULL OR group_id = 0)", userID)
+		}
+
+		expenseQuery.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalSpent)
+
+		// Store old spent value to check if thresholds crossed
+		oldSpent := budgetCategory.Spent
+
+		// Update spent amount
+		database.DB.Model(&budgetCategory).Update("spent", totalSpent)
+
+		// Reload to get updated values
+		database.DB.First(&budgetCategory, budgetCategory.ID)
+
+		// Check if thresholds were crossed and send notifications
+		oldPercentage := 0.0
+		if budgetCategory.Limit > 0 {
+			oldPercentage = (oldSpent / budgetCategory.Limit) * 100
+		}
+		newPercentage := budgetCategory.ProgressPercentage()
+
+		// Send 80% notification if crossed from below to above
+		if oldPercentage < 80 && newPercentage >= 80 && budgetCategory.NotifiedAt80 == nil {
+			s.sendCategoryNotification(&budgetCategory, 80)
+			now := time.Now()
+			database.DB.Model(&budgetCategory).Update("notified_at_80", now)
+		}
+
+		// Send 100% notification if crossed from below to above
+		if oldPercentage < 100 && newPercentage >= 100 && budgetCategory.NotifiedAt100 == nil {
+			s.sendCategoryNotification(&budgetCategory, 100)
+			now := time.Now()
+			database.DB.Model(&budgetCategory).Update("notified_at_100", now)
+		}
+	}
+
+	return nil
+}
+
+// RecalculateBudgetSpent recalculates all category spending for a budget from expenses
+func (s *BudgetService) RecalculateBudgetSpent(budgetID uint) error {
+	// Get budget with categories
+	var budget models.Budget
+	if err := database.DB.Preload("Categories").First(&budget, budgetID).Error; err != nil {
+		return ErrBudgetNotFound
+	}
+
+	// Recalculate each category
+	for _, category := range budget.Categories {
+		var totalSpent float64
+		expenseQuery := database.DB.Model(&models.Expense{}).
+			Where("category = ? AND EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?",
+				category.Category, budget.Year, budget.Month)
+
+		if budget.GroupID != nil {
+			// For group budgets, sum all expenses from group members
+			expenseQuery = expenseQuery.Where("group_id = ?", *budget.GroupID)
+		} else {
+			// For individual budgets, only count user's expenses
+			expenseQuery = expenseQuery.Where("user_id = ? AND (group_id IS NULL OR group_id = 0)", budget.UserID)
+		}
+
+		expenseQuery.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalSpent)
+
+		// Update spent amount
+		database.DB.Model(&category).Update("spent", totalSpent)
+	}
+
+	return nil
 }
