@@ -57,7 +57,7 @@
                             class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
-                            <input type="number" name="amount" step="0.01" placeholder="0.00" required
+                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor" required
                                 class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
@@ -67,7 +67,7 @@
                             <option value="{{.}}">{{.}}</option>
                             {{end}}
                         </select>
-                        <input type="number" name="due_day" placeholder="Dia vencimento" min="1" max="31"
+                        <input type="number" name="due_day" placeholder="Dia (1-31)" min="1" max="31"
                             class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                     </div>
                     <!-- Split toggle -->
@@ -126,7 +126,7 @@
                             class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
-                            <input type="number" name="amount" step="0.01" placeholder="0.00" required
+                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor" required
                                 class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
