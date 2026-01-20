@@ -35,19 +35,19 @@
         <form hx-post="/groups/{{.groupID}}/goals" hx-target="#goal-list" hx-swap="innerHTML" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome da Meta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome da Meta <span class="text-danger-400">*</span></label>
                     <input type="text" name="name" required placeholder="Ex: Fundo de Emergencia"
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Alvo (R$)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Alvo (R$) <span class="text-danger-400">*</span></label>
                     <input type="number" name="target_amount" step="0.01" min="0.01" required placeholder="0,00"
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Alvo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Alvo <span class="text-danger-400">*</span></label>
                     <input type="date" name="target_date" required
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
