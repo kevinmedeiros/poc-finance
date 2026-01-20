@@ -435,3 +435,44 @@ func GetMonthlySummaryForAccounts(db *gorm.DB, year int, month int, accountIDs [
 
 	return summary
 }
+
+// CategoryBreakdown representa o total de gastos por categoria
+type CategoryBreakdown struct {
+	Category string  `json:"category"`
+	Amount   float64 `json:"amount"`
+}
+
+// GetCategoryBreakdownForAccounts retorna o breakdown de despesas por categoria para contas específicas
+func GetCategoryBreakdownForAccounts(db *gorm.DB, year int, month int, accountIDs []uint) []CategoryBreakdown {
+	if len(accountIDs) == 0 {
+		return nil
+	}
+
+	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
+
+	// Query expenses grouped by category
+	type CategoryResult struct {
+		Category string
+		Total    float64
+	}
+	var results []CategoryResult
+	db.Model(&models.Expense{}).
+		Select("category, COALESCE(SUM(amount), 0) as total").
+		Where("account_id IN ? AND created_at BETWEEN ? AND ? AND active = ?", accountIDs, startDate, endDate, true).
+		Group("category").
+		Scan(&results)
+
+	// Build breakdown list
+	breakdown := make([]CategoryBreakdown, 0, len(results))
+	for _, r := range results {
+		if r.Category != "" { // Only include expenses with a category
+			breakdown = append(breakdown, CategoryBreakdown{
+				Category: r.Category,
+				Amount:   r.Total,
+			})
+		}
+	}
+
+	return breakdown
+}

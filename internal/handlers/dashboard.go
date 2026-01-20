@@ -121,6 +121,10 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	log.Println("[Dashboard] Fetching upcoming bills")
 	upcomingBills := getUpcomingBillsForAccounts(now, accountIDs)
 
+	// Category breakdown
+	log.Println("[Dashboard] Fetching category breakdown")
+	categoryBreakdown := services.GetCategoryBreakdownForAccounts(database.DB, year, month, accountIDs)
+
 	log.Println("[Dashboard] Dashboard data loaded successfully - rendering template")
 	data := map[string]interface{}{
 		"currentMonth":        currentSummary,
@@ -129,6 +133,7 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		"currentBracket":      bracket,
 		"effectiveRate":       rate,
 		"upcomingBills":       upcomingBills,
+		"categoryBreakdown":   categoryBreakdown,
 		"now":                 now,
 		"inssAmount":          settingsData.INSSAmount,
 		"proLabore":           settingsData.ProLabore,
