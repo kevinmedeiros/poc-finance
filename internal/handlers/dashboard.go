@@ -125,24 +125,35 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	log.Println("[Dashboard] Fetching category breakdown")
 	categoryBreakdown := services.GetCategoryBreakdownForAccounts(database.DB, year, month, accountIDs)
 
+	// Analytics data
+	log.Println("[Dashboard] Fetching analytics data")
+	monthOverMonthComparison := services.GetMonthOverMonthComparison(database.DB, year, month, accountIDs)
+	categoryBreakdownWithPercentages := services.GetCategoryBreakdownWithPercentages(database.DB, year, month, accountIDs)
+	incomeVsExpenseTrend := services.GetIncomeVsExpenseTrend(database.DB, 6, accountIDs) // Last 6 months
+	log.Printf("[Dashboard] Analytics data loaded - comparison: %v categories, trend: %d months",
+		len(categoryBreakdownWithPercentages), len(incomeVsExpenseTrend))
+
 	log.Println("[Dashboard] Dashboard data loaded successfully - rendering template")
 	data := map[string]interface{}{
-		"currentMonth":        currentSummary,
-		"monthSummaries":      monthSummaries,
-		"revenue12m":          revenue12M,
-		"currentBracket":      bracket,
-		"effectiveRate":       rate,
-		"upcomingBills":       upcomingBills,
-		"categoryBreakdown":   categoryBreakdown,
-		"now":                 now,
-		"inssAmount":          settingsData.INSSAmount,
-		"proLabore":           settingsData.ProLabore,
-		"totalImpostos":       totalImpostos,
-		"liquidoAposImpostos": liquidoAposImpostos,
-		"totalSaidas":         totalSaidas,
-		"saldoFinal":          saldoFinal,
-		"accounts":            allAccounts,
-		"selectedAccountID":   selectedAccountID,
+		"currentMonth":                     currentSummary,
+		"monthSummaries":                   monthSummaries,
+		"revenue12m":                       revenue12M,
+		"currentBracket":                   bracket,
+		"effectiveRate":                    rate,
+		"upcomingBills":                    upcomingBills,
+		"categoryBreakdown":                categoryBreakdown,
+		"now":                              now,
+		"inssAmount":                       settingsData.INSSAmount,
+		"proLabore":                        settingsData.ProLabore,
+		"totalImpostos":                    totalImpostos,
+		"liquidoAposImpostos":              liquidoAposImpostos,
+		"totalSaidas":                      totalSaidas,
+		"saldoFinal":                       saldoFinal,
+		"accounts":                         allAccounts,
+		"selectedAccountID":                selectedAccountID,
+		"monthOverMonthComparison":         monthOverMonthComparison,
+		"categoryBreakdownWithPercentages": categoryBreakdownWithPercentages,
+		"incomeVsExpenseTrend":             incomeVsExpenseTrend,
 	}
 
 	return c.Render(http.StatusOK, "dashboard.html", data)
