@@ -191,6 +191,37 @@ func startRecurringScheduler(schedulerService *services.RecurringSchedulerServic
 	}
 }
 
+// startDueDateScheduler runs the due date notification scheduler in the background
+// It checks for upcoming expense due dates daily at midnight
+func startDueDateScheduler(schedulerService *services.DueDateSchedulerService) {
+	log.Println("Starting due date notification scheduler...")
+
+	// Run immediately on startup
+	if err := schedulerService.CheckUpcomingDueDates(); err != nil {
+		log.Printf("Error checking upcoming due dates on startup: %v", err)
+	}
+
+	// Calculate time until next midnight
+	now := time.Now()
+	nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	durationUntilMidnight := nextMidnight.Sub(now)
+
+	// Wait until midnight
+	time.Sleep(durationUntilMidnight)
+
+	// Then run every 24 hours
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		log.Println("Running scheduled check for upcoming expense due dates...")
+		if err := schedulerService.CheckUpcomingDueDates(); err != nil {
+			log.Printf("Error checking upcoming due dates: %v", err)
+		}
+		<-ticker.C
+	}
+}
+
 func main() {
 	// Inicializa banco de dados
 	if err := database.Init(); err != nil {
@@ -203,6 +234,10 @@ func main() {
 	// Start recurring transaction scheduler
 	schedulerService := services.NewRecurringSchedulerService()
 	go startRecurringScheduler(schedulerService)
+
+	// Start due date notification scheduler
+	dueDateSchedulerService := services.NewDueDateSchedulerService()
+	go startDueDateScheduler(dueDateSchedulerService)
 
 	// Inicializa Echo
 	e := echo.New()
@@ -251,17 +286,12 @@ func main() {
 	expenseHandler := handlers.NewExpenseHandler()
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
-<<<<<<< HEAD
-	settingsHandler := handlers.NewSettingsHandler()
+	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)
 	groupCrudHandler := handlers.NewGroupCrudHandler()
 	groupInviteHandler := handlers.NewGroupInviteHandler()
 	groupJointAccountHandler := handlers.NewGroupJointAccountHandler()
 	groupDashboardHandler := handlers.NewGroupDashboardHandler()
 	groupSummaryHandler := handlers.NewGroupSummaryHandler()
-=======
-	settingsHandler := handlers.NewSettingsHandler(settingsCacheService)
-	groupHandler := handlers.NewGroupHandler()
->>>>>>> d4254bd (auto-claude: subtask-2-2 - Update SettingsHandler to use cache and invalidate)
 	accountHandler := handlers.NewAccountHandler()
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
