@@ -296,6 +296,7 @@ func main() {
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
+	healthScoreHandler := handlers.NewHealthScoreHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -380,6 +381,10 @@ func main() {
 	protected.DELETE("/goals/:goalId", goalHandler.Delete)
 	protected.POST("/goals/:goalId/contribution", goalHandler.AddContribution)
 
+	// Health Score do grupo
+	protected.GET("/groups/:id/health-score", healthScoreHandler.GroupScorePage)
+	protected.GET("/groups/:id/health-score/history", healthScoreHandler.GetGroupScoreHistory)
+
 	// Notificacoes
 	protected.GET("/notifications", notificationHandler.List)
 	protected.GET("/notifications/badge", notificationHandler.GetBadge)
@@ -394,6 +399,11 @@ func main() {
 	protected.POST("/recurring/:id", recurringHandler.Update)
 	protected.DELETE("/recurring/:id", recurringHandler.Delete)
 	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
+
+	// Health Score
+	protected.GET("/health-score", healthScoreHandler.Index)
+	protected.GET("/health-score/current", healthScoreHandler.GetUserScore)
+	protected.GET("/health-score/history", healthScoreHandler.GetScoreHistory)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
