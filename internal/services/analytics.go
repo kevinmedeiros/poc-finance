@@ -1,7 +1,11 @@
 package services
 
 import (
+	"time"
+
 	"gorm.io/gorm"
+
+	"poc-finance/internal/models"
 )
 
 // MonthOverMonthComparison represents a comparison between current and previous month spending
@@ -101,4 +105,73 @@ func GetMonthOverMonthComparison(db *gorm.DB, year int, month int, accountIDs []
 	}
 
 	return comparison
+}
+
+// CategoryBreakdownWithPercentages represents a category expense breakdown with percentage of total
+type CategoryBreakdownWithPercentages struct {
+	Category   string  `json:"category"`
+	Amount     float64 `json:"amount"`
+	Percentage float64 `json:"percentage"` // Percentage of total expenses
+}
+
+// GetCategoryBreakdownWithPercentages retorna o breakdown de despesas por categoria
+// com percentuais do total para contas específicas.
+//
+// Esta função estende GetCategoryBreakdownForAccounts adicionando cálculo de percentual
+// para cada categoria em relação ao total de despesas.
+//
+// Parâmetros:
+//   - db: Conexão com banco de dados
+//   - year: Ano do mês
+//   - month: Mês (1-12)
+//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar nil)
+//
+// Retorna:
+//   - Slice de CategoryBreakdownWithPercentages com categoria, valor e percentual do total
+func GetCategoryBreakdownWithPercentages(db *gorm.DB, year int, month int, accountIDs []uint) []CategoryBreakdownWithPercentages {
+	if len(accountIDs) == 0 {
+		return nil
+	}
+
+	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
+
+	// Query expenses grouped by category
+	type CategoryResult struct {
+		Category string
+		Total    float64
+	}
+	var results []CategoryResult
+	db.Model(&models.Expense{}).
+		Select("category, COALESCE(SUM(amount), 0) as total").
+		Where("account_id IN ? AND created_at BETWEEN ? AND ? AND active = ?", accountIDs, startDate, endDate, true).
+		Group("category").
+		Scan(&results)
+
+	// Calculate total expenses across all categories
+	var totalExpenses float64
+	for _, r := range results {
+		if r.Category != "" {
+			totalExpenses += r.Total
+		}
+	}
+
+	// Build breakdown list with percentages
+	breakdown := make([]CategoryBreakdownWithPercentages, 0, len(results))
+	for _, r := range results {
+		if r.Category != "" { // Only include expenses with a category
+			percentage := 0.0
+			if totalExpenses > 0 {
+				percentage = (r.Total / totalExpenses) * 100
+			}
+
+			breakdown = append(breakdown, CategoryBreakdownWithPercentages{
+				Category:   r.Category,
+				Amount:     r.Total,
+				Percentage: percentage,
+			})
+		}
+	}
+
+	return breakdown
 }

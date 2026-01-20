@@ -435,3 +435,211 @@ func TestGetMonthOverMonthComparison_DecreaseScenario(t *testing.T) {
 		t.Errorf("IncomeChange = %.2f, want -2000.00", comparison.IncomeChange)
 	}
 }
+
+func TestGetCategoryBreakdownWithPercentages(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	// Create expenses in different categories for January 2024
+	// Total: 1000 + 500 + 300 = 1800
+	expenses := []struct {
+		name     string
+		category string
+		amount   float64
+	}{
+		{"Groceries", "Food", 1000.00},
+		{"Gas", "Transportation", 500.00},
+		{"Movie", "Entertainment", 300.00},
+	}
+
+	for _, exp := range expenses {
+		expense := &models.Expense{
+			AccountID: account.ID,
+			Name:      exp.name,
+			Category:  exp.category,
+			Amount:    exp.amount,
+			Type:      models.ExpenseTypeVariable,
+			Active:    true,
+		}
+		db.Create(expense)
+		// Set created_at to January 2024
+		db.Model(expense).Update("created_at", time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local))
+	}
+
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 1, []uint{account.ID})
+
+	// Should have 3 categories
+	if len(breakdown) != 3 {
+		t.Errorf("len(breakdown) = %d, want 3", len(breakdown))
+	}
+
+	// Verify each category has correct amount and percentage
+	expectedBreakdown := map[string]struct {
+		amount     float64
+		percentage float64
+	}{
+		"Food":           {1000.00, 55.555555555555557}, // 1000/1800 * 100
+		"Transportation": {500.00, 27.777777777777779},  // 500/1800 * 100
+		"Entertainment":  {300.00, 16.666666666666668},  // 300/1800 * 100
+	}
+
+	tolerance := 0.01
+	for _, item := range breakdown {
+		expected, ok := expectedBreakdown[item.Category]
+		if !ok {
+			t.Errorf("Unexpected category: %s", item.Category)
+			continue
+		}
+
+		if item.Amount != expected.amount {
+			t.Errorf("Category %s: Amount = %.2f, want %.2f", item.Category, item.Amount, expected.amount)
+		}
+
+		if item.Percentage < expected.percentage-tolerance ||
+			item.Percentage > expected.percentage+tolerance {
+			t.Errorf("Category %s: Percentage = %.2f, want %.2f", item.Category, item.Percentage, expected.percentage)
+		}
+	}
+
+	// Verify percentages add up to 100%
+	var totalPercentage float64
+	for _, item := range breakdown {
+		totalPercentage += item.Percentage
+	}
+
+	if totalPercentage < 99.99 || totalPercentage > 100.01 {
+		t.Errorf("Total percentage = %.2f, want ~100.00", totalPercentage)
+	}
+}
+
+func TestGetCategoryBreakdownWithPercentages_EmptyAccounts(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 1, []uint{})
+
+	// Should return nil for empty account list
+	if breakdown != nil {
+		t.Errorf("breakdown = %v, want nil for empty accounts", breakdown)
+	}
+}
+
+func TestGetCategoryBreakdownWithPercentages_NoExpenses(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 1, []uint{account.ID})
+
+	// Should return empty slice when no expenses
+	if len(breakdown) != 0 {
+		t.Errorf("len(breakdown) = %d, want 0 for no expenses", len(breakdown))
+	}
+}
+
+func TestGetCategoryBreakdownWithPercentages_SingleCategory(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account := testutil.CreateTestAccount(db, "Test Account", models.AccountTypeIndividual, user.ID, nil)
+
+	// Create single expense
+	expense := &models.Expense{
+		AccountID: account.ID,
+		Name:      "Groceries",
+		Category:  "Food",
+		Amount:    500.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expense)
+	db.Model(expense).Update("created_at", time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local))
+
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 1, []uint{account.ID})
+
+	// Should have 1 category with 100%
+	if len(breakdown) != 1 {
+		t.Errorf("len(breakdown) = %d, want 1", len(breakdown))
+	}
+
+	if breakdown[0].Category != "Food" {
+		t.Errorf("Category = %s, want Food", breakdown[0].Category)
+	}
+
+	if breakdown[0].Amount != 500.00 {
+		t.Errorf("Amount = %.2f, want 500.00", breakdown[0].Amount)
+	}
+
+	if breakdown[0].Percentage != 100.00 {
+		t.Errorf("Percentage = %.2f, want 100.00 (single category should be 100%%)", breakdown[0].Percentage)
+	}
+}
+
+func TestGetCategoryBreakdownWithPercentages_MultipleAccounts(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	user := testutil.CreateTestUser(db, "test@example.com", "Test User", "hash")
+	account1 := testutil.CreateTestAccount(db, "Account 1", models.AccountTypeIndividual, user.ID, nil)
+	account2 := testutil.CreateTestAccount(db, "Account 2", models.AccountTypeIndividual, user.ID, nil)
+
+	// Create expenses in account1
+	expense1 := &models.Expense{
+		AccountID: account1.ID,
+		Name:      "Groceries",
+		Category:  "Food",
+		Amount:    600.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expense1)
+	db.Model(expense1).Update("created_at", time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local))
+
+	// Create expenses in account2
+	expense2 := &models.Expense{
+		AccountID: account2.ID,
+		Name:      "Gas",
+		Category:  "Transportation",
+		Amount:    400.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expense2)
+	db.Model(expense2).Update("created_at", time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local))
+
+	// Query both accounts together
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 1, []uint{account1.ID, account2.ID})
+
+	// Should have 2 categories
+	if len(breakdown) != 2 {
+		t.Errorf("len(breakdown) = %d, want 2", len(breakdown))
+	}
+
+	// Total: 600 + 400 = 1000
+	// Food: 600/1000 = 60%
+	// Transportation: 400/1000 = 40%
+	expectedBreakdown := map[string]struct {
+		amount     float64
+		percentage float64
+	}{
+		"Food":           {600.00, 60.0},
+		"Transportation": {400.00, 40.0},
+	}
+
+	for _, item := range breakdown {
+		expected, ok := expectedBreakdown[item.Category]
+		if !ok {
+			t.Errorf("Unexpected category: %s", item.Category)
+			continue
+		}
+
+		if item.Amount != expected.amount {
+			t.Errorf("Category %s: Amount = %.2f, want %.2f", item.Category, item.Amount, expected.amount)
+		}
+
+		if item.Percentage != expected.percentage {
+			t.Errorf("Category %s: Percentage = %.2f, want %.2f", item.Category, item.Percentage, expected.percentage)
+		}
+	}
+}
