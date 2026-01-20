@@ -192,6 +192,18 @@
             transform: translateY(0) scale(0.98);
         }
 
+        .btn-primary:focus {
+            outline: none;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), 0 2px 8px rgba(168, 85, 247, 0.25);
+        }
+
+        .btn-primary:focus-visible {
+            outline: none;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), 0 2px 8px rgba(168, 85, 247, 0.25);
+        }
+
         .btn-ghost {
             background: transparent;
             color: #94a3b8;
@@ -201,6 +213,20 @@
         .btn-ghost:hover {
             background: rgba(255, 255, 255, 0.05);
             color: #f1f5f9;
+        }
+
+        .btn-ghost:focus {
+            outline: none;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-ghost:focus-visible {
+            outline: none;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         /* Input styles */
@@ -220,30 +246,6 @@
             border-color: #a855f7;
             box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
             background: rgba(15, 23, 42, 0.7);
-        }
-
-        /* Form validation styles */
-        .input-error {
-            border-color: #f43f5e !important;
-            background: rgba(244, 63, 94, 0.05);
-            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
-            transition: all 0.2s ease;
-        }
-
-        .input-error:focus {
-            border-color: #e11d48 !important;
-            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
-        }
-
-        .error-message {
-            color: #fb7185;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-            animation: slideIn 0.3s ease-out forwards;
-            transition: all 0.2s ease;
         }
 
         /* Navigation link effect */
@@ -633,131 +635,6 @@
                 }
             });
         });
-
-        // Form Validation Handler
-        (function() {
-            const validatedForms = new Set();
-
-            function getErrorMessage(input) {
-                const fieldName = input.getAttribute('placeholder') || input.getAttribute('name') || 'Este campo';
-
-                if (input.validity.valueMissing) {
-                    return fieldName + ' é obrigatório';
-                }
-                if (input.validity.typeMismatch && input.type === 'email') {
-                    return 'Por favor, insira um e-mail válido';
-                }
-                if (input.validity.tooShort) {
-                    return fieldName + ' deve ter pelo menos ' + input.minLength + ' caracteres';
-                }
-                if (input.validity.rangeUnderflow) {
-                    return fieldName + ' deve ser no mínimo ' + input.min;
-                }
-                if (input.validity.rangeOverflow) {
-                    return fieldName + ' deve ser no máximo ' + input.max;
-                }
-                if (input.validity.patternMismatch) {
-                    return 'Por favor, insira um valor válido';
-                }
-                return 'Por favor, corrija este campo';
-            }
-
-            function showError(input) {
-                const errorMessage = getErrorMessage(input);
-                const errorContainer = input.parentElement.querySelector('.error-message');
-
-                input.classList.add('input-error');
-
-                if (errorContainer) {
-                    errorContainer.textContent = errorMessage;
-                    errorContainer.style.display = 'flex';
-                } else {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg><span>' + errorMessage + '</span>';
-                    input.parentElement.appendChild(errorDiv);
-                }
-            }
-
-            function clearError(input) {
-                const errorContainer = input.parentElement.querySelector('.error-message');
-
-                input.classList.remove('input-error');
-
-                if (errorContainer) {
-                    errorContainer.style.display = 'none';
-                }
-            }
-
-            function validateInput(input) {
-                if (!input.checkValidity()) {
-                    showError(input);
-                    return false;
-                } else {
-                    clearError(input);
-                    return true;
-                }
-            }
-
-            function validateForm(form) {
-                const inputs = form.querySelectorAll('input[required], input[type="email"], input[minlength], input[min], input[max], input[pattern]');
-                let isValid = true;
-
-                inputs.forEach(input => {
-                    if (!validateInput(input)) {
-                        isValid = false;
-                    }
-                });
-
-                return isValid;
-            }
-
-            function setupFormValidation(form) {
-                const inputs = form.querySelectorAll('input[required], input[type="email"], input[minlength], input[min], input[max], input[pattern]');
-
-                inputs.forEach(input => {
-                    input.addEventListener('blur', function() {
-                        if (validatedForms.has(form)) {
-                            validateInput(input);
-                        }
-                    });
-
-                    input.addEventListener('input', function() {
-                        if (validatedForms.has(form) && input.classList.contains('input-error')) {
-                            validateInput(input);
-                        }
-                    });
-                });
-
-                form.addEventListener('submit', function(event) {
-                    validatedForms.add(form);
-
-                    if (!validateForm(form)) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        return false;
-                    }
-                });
-
-                form.addEventListener('htmx:configRequest', function(event) {
-                    if (!validateForm(form)) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        return false;
-                    }
-                });
-            }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                const forms = document.querySelectorAll('form[data-validate], form');
-                forms.forEach(setupFormValidation);
-            });
-
-            document.body.addEventListener('htmx:afterSwap', function(event) {
-                const forms = event.detail.target.querySelectorAll('form[data-validate], form');
-                forms.forEach(setupFormValidation);
-            });
-        })();
     </script>
 </body>
 </html>
