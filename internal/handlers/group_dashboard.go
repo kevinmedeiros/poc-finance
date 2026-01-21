@@ -14,14 +14,16 @@ import (
 )
 
 type GroupDashboardHandler struct {
-	groupService   *services.GroupService
-	accountService *services.AccountService
+	groupService       *services.GroupService
+	accountService     *services.AccountService
+	healthScoreService *services.HealthScoreService
 }
 
 func NewGroupDashboardHandler() *GroupDashboardHandler {
 	return &GroupDashboardHandler{
-		groupService:   services.NewGroupService(),
-		accountService: services.NewAccountService(),
+		groupService:       services.NewGroupService(),
+		accountService:     services.NewAccountService(),
+		healthScoreService: services.NewHealthScoreService(),
 	}
 }
 
@@ -112,6 +114,33 @@ func (h *GroupDashboardHandler) Dashboard(c echo.Context) error {
 		holisticMonthSummaries = append(holisticMonthSummaries, services.GetMonthlySummaryForAccounts(database.DB, y, m, allAccountIDs))
 	}
 
+	// Calculate group health score
+	healthScore, err := h.healthScoreService.CalculateGroupScore(uint(groupID))
+	var scoreValue float64
+	var scoreOffset float64
+	var lastUpdated string
+	var scoreTrend float64
+
+	if err == nil && healthScore != nil {
+		scoreValue = healthScore.Score
+		// Calculate circular progress offset (628 = 2*pi*100, circumference of the circle)
+		scoreOffset = 628 - (628 * scoreValue / 100)
+		lastUpdated = healthScore.CalculatedAt.Format("02/01/2006")
+
+		// Get previous score for trend calculation
+		groupIDPtr := uint(groupID)
+		history, histErr := h.healthScoreService.GetScoreHistory(nil, &groupIDPtr, 2)
+		if histErr == nil && len(history) >= 2 {
+			scoreTrend = history[0].Score - history[1].Score
+		}
+	} else {
+		// Default values if score calculation fails
+		scoreValue = 0
+		scoreOffset = 628
+		lastUpdated = "N/A"
+		scoreTrend = 0
+	}
+
 	data := map[string]interface{}{
 		"group":               group,
 		"members":             members,
@@ -131,6 +160,11 @@ func (h *GroupDashboardHandler) Dashboard(c echo.Context) error {
 		"holisticBalance":        holisticBalance,
 		"holisticMonthSummaries": holisticMonthSummaries,
 		"allAccountBalances":     allAccountBalances,
+		// Health score data
+		"healthScore":  scoreValue,
+		"scoreOffset":  scoreOffset,
+		"lastUpdated":  lastUpdated,
+		"scoreTrend":   scoreTrend,
 	}
 
 	return c.Render(http.StatusOK, "group-dashboard.html", data)
