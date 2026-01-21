@@ -131,6 +131,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/accounts.html",
 		"internal/templates/group-dashboard.html",
 		"internal/templates/goals.html",
+		"internal/templates/health_score.html",
 		"internal/templates/notifications.html",
 		"internal/templates/recurring.html",
 	}
