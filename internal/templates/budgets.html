@@ -4,22 +4,12 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="font-display text-3xl sm:text-4xl text-white tracking-tight">Orcamentos</h1>
-            <p class="text-dark-400 mt-2">Planeje e acompanhe seus limites de gastos</p>
+            <p class="text-dark-400 mt-2">Planeje e acompanhe seus limites de gastos por categoria</p>
         </div>
         <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3">
             <div class="text-sm text-center">
-                <p class="text-dark-400">Total Planejado</p>
-                <p class="font-bold text-brand-400">R$ {{printf "%.2f" .totalPlanned}}</p>
-            </div>
-            <div class="h-8 w-px bg-dark-600"></div>
-            <div class="text-sm text-center">
-                <p class="text-dark-400">Total Gasto</p>
-                <p class="font-bold text-warning-400">R$ {{printf "%.2f" .totalSpent}}</p>
-            </div>
-            <div class="h-8 w-px bg-dark-600"></div>
-            <div class="text-sm text-center">
-                <p class="text-dark-400">Disponivel</p>
-                <p class="font-bold text-success-400">R$ {{printf "%.2f" .totalAvailable}}</p>
+                <p class="text-dark-400">Mes</p>
+                <p class="font-bold text-brand-400">{{.currentMonth}}/{{.currentYear}}</p>
             </div>
         </div>
     </div>
@@ -35,54 +25,36 @@
             </h2>
         </div>
         <form hx-post="/budgets" hx-target="#budget-list" hx-swap="innerHTML" class="p-6 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-dark-300 mb-2">Nome do Orcamento</label>
-                    <input type="text" name="name" required placeholder="Ex: Alimentacao, Lazer, Transporte"
+                    <input type="text" name="name" required placeholder="Ex: Orcamento Familiar"
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Limite (R$)</label>
-                    <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0,00"
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Ano</label>
+                    <input type="number" name="year" min="2020" max="2100" value="{{.currentYear}}" required
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Categoria</label>
-                    <select name="category" required
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Mes</label>
+                    <select name="month" required
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
-                        <option value="">Selecione uma categoria</option>
-                        <option value="Alimentacao">Alimentacao</option>
-                        <option value="Transporte">Transporte</option>
-                        <option value="Moradia">Moradia</option>
-                        <option value="Lazer">Lazer</option>
-                        <option value="Saude">Saude</option>
-                        <option value="Educacao">Educacao</option>
-                        <option value="Outros">Outros</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Periodo</label>
-                    <select name="period" required
-                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
-                        <option value="monthly">Mensal</option>
-                        <option value="weekly">Semanal</option>
-                        <option value="yearly">Anual</option>
+                        {{range $i := seq 1 12}}
+                        <option value="{{$i}}" {{if eq $i $.currentMonth}}selected{{end}}>{{$i}}</option>
+                        {{end}}
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data de Inicio</label>
-                    <input type="date" name="start_date" required
-                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data de Termino</label>
-                    <input type="date" name="end_date" required
-                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-300 mb-2">Grupo (opcional)</label>
+                <select name="group_id"
+                    class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
+                    <option value="">Orcamento Pessoal</option>
+                    {{range .groups}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
             </div>
             <button type="submit"
                 class="btn-primary w-full py-2.5 rounded-xl text-sm font-semibold text-dark-900 flex items-center justify-center gap-2">
