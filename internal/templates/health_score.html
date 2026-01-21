@@ -1,0 +1,411 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+            <p class="text-brand-400 text-sm font-medium tracking-wide uppercase mb-2">Saude Financeira</p>
+            <h1 class="font-display text-4xl sm:text-5xl text-white tracking-tight">Pontuacao de Saude</h1>
+            <p class="text-dark-400 mt-2">Acompanhe sua saude financeira e receba recomendacoes personalizadas</p>
+        </div>
+        <div class="flex items-center gap-3 glass-light rounded-xl px-5 py-3">
+            <div class="w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs text-dark-400 uppercase tracking-wide">Metodologia</p>
+                <button onclick="toggleMethodology()" class="text-sm font-semibold text-white hover:text-brand-400 transition-colors">
+                    Ver detalhes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Score Card -->
+    <div class="relative overflow-hidden rounded-3xl">
+        <div class="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700"></div>
+        <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+        <div class="relative p-8 lg:p-12">
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <!-- Score Circle -->
+                <div class="flex-shrink-0">
+                    <div class="relative w-56 h-56">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="112" cy="112" r="100" stroke="rgba(255,255,255,0.2)" stroke-width="16" fill="none"/>
+                            <circle cx="112" cy="112" r="100"
+                                stroke="white"
+                                stroke-width="16"
+                                fill="none"
+                                stroke-dasharray="628"
+                                stroke-dashoffset="{{.scoreOffset}}"
+                                stroke-linecap="round"
+                                class="transition-all duration-1000"/>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-7xl font-bold text-white">{{printf "%.0f" .healthScore}}</span>
+                            <span class="text-white/80 text-sm font-medium">de 100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Info -->
+                <div class="flex-1 text-center lg:text-left">
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-bold text-white mb-2">
+                            {{if ge .healthScore 80.0}}Excelente!{{else if ge .healthScore 60.0}}Bom Trabalho!{{else if ge .healthScore 40.0}}Precisa Melhorar{{else}}Atencao Necessaria{{end}}
+                        </h2>
+                        <p class="text-white/90 text-lg max-w-2xl">
+                            {{if ge .healthScore 80.0}}Sua saude financeira esta otima! Continue mantendo bons habitos.
+                            {{else if ge .healthScore 60.0}}Voce esta no caminho certo. Veja as recomendacoes para melhorar ainda mais.
+                            {{else if ge .healthScore 40.0}}Ha espaco para melhorias. Siga as recomendacoes abaixo.
+                            {{else}}Sua situacao financeira precisa de atencao. Comece pelas recomendacoes prioritarias.{{end}}
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                        <div class="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
+                            <p class="text-white/80 text-xs uppercase tracking-wide mb-1">Ultima Atualizacao</p>
+                            <p class="text-white font-semibold">{{.lastUpdated}}</p>
+                        </div>
+                        <div class="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
+                            <p class="text-white/80 text-xs uppercase tracking-wide mb-1">Tendencia</p>
+                            <div class="flex items-center gap-2">
+                                {{if gt .scoreTrend 0.0}}
+                                <svg class="w-5 h-5 text-success-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                                <span class="text-white font-semibold">+{{printf "%.1f" .scoreTrend}}</span>
+                                {{else if lt .scoreTrend 0.0}}
+                                <svg class="w-5 h-5 text-danger-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                                </svg>
+                                <span class="text-white font-semibold">{{printf "%.1f" .scoreTrend}}</span>
+                                {{else}}
+                                <span class="text-white font-semibold">--</span>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Breakdown -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Componentes da Pontuacao</h2>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Savings Rate -->
+            <div class="bg-dark-800/50 rounded-xl p-6 border border-white/5 hover:border-success-500/30 transition-all group">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Taxa de Poupanca</h3>
+                            <p class="text-xs text-dark-400">Quanto voce economiza</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl font-bold text-success-400">{{printf "%.0f" .components.savingsScore}}</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-dark-300">Meta: 20%+</span>
+                        <span class="text-white font-medium">{{printf "%.1f" .savingsRate}}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-success-500 to-emerald-500 rounded-full transition-all duration-500"
+                            style="width: {{printf "%.0f" .components.savingsScore}}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Adherence -->
+            <div class="bg-dark-800/50 rounded-xl p-6 border border-white/5 hover:border-brand-500/30 transition-all group">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-brand-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Controle de Gastos</h3>
+                            <p class="text-xs text-dark-400">Aderencia ao orcamento</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl font-bold text-brand-400">{{printf "%.0f" .components.budgetScore}}</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-dark-300">Meta: 100%</span>
+                        <span class="text-white font-medium">{{printf "%.1f" .budgetAdherence}}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500"
+                            style="width: {{printf "%.0f" .components.budgetScore}}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debt Management -->
+            <div class="bg-dark-800/50 rounded-xl p-6 border border-white/5 hover:border-violet-500/30 transition-all group">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Gestao de Dividas</h3>
+                            <p class="text-xs text-dark-400">Nivel de endividamento</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl font-bold text-violet-400">{{printf "%.0f" .components.debtScore}}</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-dark-300">Meta: {"<"}30%</span>
+                        <span class="text-white font-medium">{{printf "%.1f" .debtRatio}}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-violet-500 to-violet-600 rounded-full transition-all duration-500"
+                            style="width: {{printf "%.0f" .components.debtScore}}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Goal Progress -->
+            <div class="bg-dark-800/50 rounded-xl p-6 border border-white/5 hover:border-amber-500/30 transition-all group">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Progresso de Metas</h3>
+                            <p class="text-xs text-dark-400">Alcance de objetivos</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl font-bold text-amber-400">{{printf "%.0f" .components.goalScore}}</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-dark-300">Metas: {{.activeGoals}}</span>
+                        <span class="text-white font-medium">{{printf "%.1f" .goalProgress}}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500"
+                            style="width: {{printf "%.0f" .components.goalScore}}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid: Recommendations + Trend -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recommendations (2 columns) -->
+        <div class="lg:col-span-2 card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-success-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Recomendacoes Personalizadas</h2>
+            </div>
+
+            <div class="p-6 space-y-4">
+                {{if .recommendations}}
+                {{range $index, $rec := .recommendations}}
+                <div class="flex items-start gap-4 p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-{{$rec.Color}}-500/30 transition-all group">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-{{$rec.Color}}-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            {{if eq $rec.Priority "high"}}
+                            <svg class="w-5 h-5 text-{{$rec.Color}}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            {{else if eq $rec.Priority "medium"}}
+                            <svg class="w-5 h-5 text-{{$rec.Color}}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{else}}
+                            <svg class="w-5 h-5 text-{{$rec.Color}}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{end}}
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-semibold text-white">{{$rec.Title}}</h3>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                                {{if eq $rec.Priority "high"}}badge-danger{{else if eq $rec.Priority "medium"}}badge-warning{{else}}badge-info{{end}}">
+                                {{if eq $rec.Priority "high"}}Alta{{else if eq $rec.Priority "medium"}}Media{{else}}Baixa{{end}}
+                            </span>
+                        </div>
+                        <p class="text-dark-300 text-sm mb-3">{{$rec.Description}}</p>
+                        {{if $rec.ActionUrl}}
+                        <a href="{{$rec.ActionUrl}}"
+                            class="inline-flex items-center gap-2 text-sm font-medium text-{{$rec.Color}}-400 hover:text-{{$rec.Color}}-300 transition-colors">
+                            {{$rec.ActionText}}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+                {{else}}
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-success-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Parabens!</h3>
+                    <p class="text-dark-400">Voce nao tem recomendacoes pendentes no momento.</p>
+                </div>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Trend Chart (1 column) -->
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Historico</h2>
+            </div>
+
+            <div class="p-6">
+                <div class="space-y-4">
+                    {{range .scoreHistory}}
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0 w-20 text-sm text-dark-400">
+                            {{.Month}}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1 h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-500 {{if ge .Score 80.0}}bg-gradient-to-r from-success-500 to-emerald-500{{else if ge .Score 60.0}}bg-gradient-to-r from-brand-500 to-brand-600{{else if ge .Score 40.0}}bg-gradient-to-r from-amber-500 to-amber-600{{else}}bg-gradient-to-r from-danger-500 to-rose-600{{end}}"
+                                        style="width: {{printf "%.0f" .Score}}%"></div>
+                                </div>
+                                <span class="flex-shrink-0 w-12 text-right font-semibold {{if ge .Score 80.0}}text-success-400{{else if ge .Score 60.0}}text-brand-400{{else if ge .Score 40.0}}text-amber-400{{else}}text-danger-400{{end}}">
+                                    {{printf "%.0f" .Score}}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Methodology Modal (Hidden by default) -->
+    <div id="methodology-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="card-premium rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between sticky top-0 bg-dark-900">
+                <h2 class="text-xl font-semibold text-white">Metodologia de Calculo</h2>
+                <button onclick="toggleMethodology()" class="text-dark-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="font-semibold text-white mb-2">Como calculamos sua pontuacao</h3>
+                    <p class="text-dark-300 text-sm">Sua pontuacao de saude financeira e calculada com base em quatro componentes principais, cada um com peso igual (25 pontos):</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-dark-800/50 rounded-xl p-4 border border-success-500/20">
+                        <h4 class="font-semibold text-success-400 mb-2">1. Taxa de Poupanca (25 pontos)</h4>
+                        <p class="text-dark-300 text-sm mb-2">Mede quanto da sua receita liquida voce esta economizando.</p>
+                        <ul class="text-dark-400 text-xs space-y-1 ml-4">
+                            <li>• 20%+ = 25 pontos</li>
+                            <li>• 15-20% = 20 pontos</li>
+                            <li>• 10-15% = 15 pontos</li>
+                            <li>• {"<"}10% = proporcional</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-dark-800/50 rounded-xl p-4 border border-brand-500/20">
+                        <h4 class="font-semibold text-brand-400 mb-2">2. Controle de Gastos (25 pontos)</h4>
+                        <p class="text-dark-300 text-sm mb-2">Avalia sua disciplina em manter despesas dentro do planejado.</p>
+                        <ul class="text-dark-400 text-xs space-y-1 ml-4">
+                            <li>• Dentro do orcamento = 25 pontos</li>
+                            <li>• Ate 10% acima = 20 pontos</li>
+                            <li>• Ate 20% acima = 15 pontos</li>
+                            <li>• Mais de 20% acima = 10 pontos</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-dark-800/50 rounded-xl p-4 border border-violet-500/20">
+                        <h4 class="font-semibold text-violet-400 mb-2">3. Gestao de Dividas (25 pontos)</h4>
+                        <p class="text-dark-300 text-sm mb-2">Analisa seu nivel de endividamento em relacao a receita.</p>
+                        <ul class="text-dark-400 text-xs space-y-1 ml-4">
+                            <li>• {"<"}10% da receita = 25 pontos</li>
+                            <li>• 10-30% = 20 pontos</li>
+                            <li>• 30-50% = 10 pontos</li>
+                            <li>• {">"}50% = 5 pontos</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-dark-800/50 rounded-xl p-4 border border-amber-500/20">
+                        <h4 class="font-semibold text-amber-400 mb-2">4. Progresso de Metas (25 pontos)</h4>
+                        <p class="text-dark-300 text-sm mb-2">Verifica se voce esta alcancando seus objetivos financeiros.</p>
+                        <ul class="text-dark-400 text-xs space-y-1 ml-4">
+                            <li>• No prazo ou adiantado = 25 pontos</li>
+                            <li>• Ate 20% atrasado = 20 pontos</li>
+                            <li>• Ate 50% atrasado = 15 pontos</li>
+                            <li>• Mais de 50% atrasado = 10 pontos</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-brand-500/10 rounded-xl p-4 border border-brand-500/20">
+                    <p class="text-dark-300 text-sm">
+                        <strong class="text-white">Nota:</strong> A pontuacao e atualizada automaticamente sempre que voce adiciona novas transacoes ou atualiza suas metas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMethodology() {
+    const modal = document.getElementById('methodology-modal');
+    modal.classList.toggle('hidden');
+}
+
+// Close modal on outside click
+document.getElementById('methodology-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        toggleMethodology();
+    }
+});
+</script>
+{{end}}
