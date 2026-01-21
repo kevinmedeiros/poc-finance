@@ -285,6 +285,173 @@
         </div>
     </div>
 
+    <!-- Income vs Expense Trend -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Tendencia - Receita vs Despesas</h2>
+        </div>
+
+        <div class="p-6">
+            {{if .monthSummaries}}
+            <div class="relative w-full" style="height: 400px;">
+                <canvas id="trendLineChart"></canvas>
+            </div>
+
+            <script>
+                (function() {
+                    const ctx = document.getElementById('trendLineChart');
+                    if (!ctx) return;
+
+                    // Get the last 6 months of data
+                    const monthData = [
+                        {{range .monthSummaries}}
+                        {
+                            month: "{{.Month.Format "Jan/06"}}",
+                            income: {{.TotalIncomeGross}},
+                            expenses: {{.TotalExpenses}}
+                        },
+                        {{end}}
+                    ].slice(-6);
+
+                    // Create chart
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: monthData.map(d => d.month),
+                            datasets: [
+                                {
+                                    label: 'Receita',
+                                    data: monthData.map(d => d.income),
+                                    borderColor: '#22c55e',
+                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    pointBackgroundColor: '#22c55e',
+                                    pointBorderColor: '#1e293b',
+                                    pointBorderWidth: 2,
+                                    pointHoverBackgroundColor: '#22c55e',
+                                    pointHoverBorderColor: '#fff',
+                                    pointHoverBorderWidth: 3
+                                },
+                                {
+                                    label: 'Despesas',
+                                    data: monthData.map(d => d.expenses),
+                                    borderColor: '#a855f7',
+                                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    pointBackgroundColor: '#a855f7',
+                                    pointBorderColor: '#1e293b',
+                                    pointBorderWidth: 2,
+                                    pointHoverBackgroundColor: '#a855f7',
+                                    pointHoverBorderColor: '#fff',
+                                    pointHoverBorderWidth: 3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    align: 'end',
+                                    labels: {
+                                        color: '#e2e8f0',
+                                        font: {
+                                            size: 13,
+                                            weight: '600'
+                                        },
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleColor: '#f1f5f9',
+                                    bodyColor: '#e2e8f0',
+                                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return ' ' + context.dataset.label + ': R$ ' + context.parsed.y.toFixed(2);
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        }
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        },
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toFixed(0);
+                                        }
+                                    }
+                                }
+                            },
+                            animation: {
+                                duration: 1000,
+                                easing: 'easeInOutQuart'
+                            }
+                        }
+                    });
+                })();
+            </script>
+            {{else}}
+            <div class="text-center py-12">
+                <div class="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                    </svg>
+                </div>
+                <p class="text-dark-400 font-medium">Sem dados suficientes</p>
+                <p class="text-dark-500 text-sm mt-1">Adicione transacoes para visualizar a tendencia</p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Financial Summary (2 columns) -->
