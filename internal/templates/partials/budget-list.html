@@ -1,0 +1,112 @@
+{{define "budget-list"}}
+<div class="divide-y divide-dark-700/50">
+    {{range .budgets}}
+    <div class="p-6 hover:bg-dark-800/30 transition-colors">
+        <div class="flex flex-col gap-6">
+            <!-- Budget Header -->
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                            {{if ge .OverallProgressPercentage 100}}bg-danger-500/20{{else if ge .OverallProgressPercentage 80}}bg-warning-500/20{{else}}bg-success-500/20{{end}}">
+                            <svg class="w-5 h-5 {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">{{.Name}}</h3>
+                            <p class="text-sm text-dark-400">{{.Month}}/{{.Year}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        {{if eq .Status "active"}}badge-success{{else}}bg-dark-700/50 text-dark-400{{end}}">
+                        {{if eq .Status "active"}}Ativo{{else}}Arquivado{{end}}
+                    </span>
+                    <button hx-delete="/budgets/{{.ID}}" hx-target="#budget-list" hx-swap="innerHTML"
+                        hx-confirm="Tem certeza que deseja excluir este orcamento?"
+                        class="inline-flex items-center justify-center p-2 rounded-lg text-danger-400 hover:bg-danger-500/10 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overall Progress -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-dark-300">Progresso Geral</span>
+                    <span class="text-sm font-semibold {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-white{{end}}">
+                        {{printf "%.1f" .OverallProgressPercentage}}%
+                    </span>
+                </div>
+                <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
+                    <div class="h-full transition-all duration-500 rounded-full
+                        {{if ge .OverallProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .OverallProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                        style="width: {{if ge .OverallProgressPercentage 100}}100{{else}}{{printf "%.1f" .OverallProgressPercentage}}{{end}}%"></div>
+                </div>
+            </div>
+
+            <!-- Total Summary -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Planejado</p>
+                    <p class="text-xl font-bold text-brand-400">R$ {{printf "%.2f" .TotalLimit}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Gasto</p>
+                    <p class="text-xl font-bold text-warning-400">R$ {{printf "%.2f" .TotalSpent}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Disponivel</p>
+                    <p class="text-xl font-bold text-success-400">R$ {{printf "%.2f" .RemainingAmount}}</p>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            {{if .Categories}}
+            <div>
+                <p class="text-sm font-medium text-dark-300 mb-3">Categorias</p>
+                <div class="space-y-3">
+                    {{range .Categories}}
+                    <div class="bg-dark-800/30 rounded-xl p-4 border border-white/5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-white">{{.Category}}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-dark-400">R$ {{printf "%.2f" .Spent}} / R$ {{printf "%.2f" .Limit}}</span>
+                                <span class="text-sm font-semibold {{if ge .ProgressPercentage 100}}text-danger-400{{else if ge .ProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}">
+                                    {{printf "%.0f" .ProgressPercentage}}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                            <div class="h-full transition-all duration-500 rounded-full
+                                {{if ge .ProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .ProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                                style="width: {{if ge .ProgressPercentage 100}}100{{else}}{{printf "%.1f" .ProgressPercentage}}{{end}}%"></div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{else}}
+            <p class="text-sm text-dark-400 text-center py-4">Nenhuma categoria adicionada ainda</p>
+            {{end}}
+        </div>
+    </div>
+    {{else}}
+    <div class="px-6 py-12 text-center">
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 bg-dark-700/50 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <p class="text-dark-300 font-medium">Nenhum orcamento criado</p>
+            <p class="text-sm text-dark-500 mt-1">Crie seu primeiro orcamento acima</p>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}

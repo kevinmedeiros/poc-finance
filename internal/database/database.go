@@ -57,6 +57,8 @@ func Init() error {
 		&models.GoalContribution{},
 		&models.Notification{},
 		&models.RecurringTransaction{},
+		&models.Budget{},
+		&models.BudgetCategory{},
 	)
 	if err != nil {
 		return err
