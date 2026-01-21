@@ -73,6 +73,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/groups.html"
 	case strings.Contains(baseName, "recurring"):
 		templateFile = "internal/templates/recurring.html"
+	case strings.Contains(baseName, "health"):
+		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:

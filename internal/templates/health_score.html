@@ -23,72 +23,8 @@
     </div>
 
     <!-- Main Score Card -->
-    <div class="relative overflow-hidden rounded-3xl">
-        <div class="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700"></div>
-        <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
-        <div class="relative p-8 lg:p-12">
-            <div class="flex flex-col lg:flex-row items-center gap-12">
-                <!-- Score Circle -->
-                <div class="flex-shrink-0">
-                    <div class="relative w-56 h-56">
-                        <svg class="w-full h-full transform -rotate-90">
-                            <circle cx="112" cy="112" r="100" stroke="rgba(255,255,255,0.2)" stroke-width="16" fill="none"/>
-                            <circle cx="112" cy="112" r="100"
-                                stroke="white"
-                                stroke-width="16"
-                                fill="none"
-                                stroke-dasharray="628"
-                                stroke-dashoffset="{{.scoreOffset}}"
-                                stroke-linecap="round"
-                                class="transition-all duration-1000"/>
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-7xl font-bold text-white">{{printf "%.0f" .healthScore}}</span>
-                            <span class="text-white/80 text-sm font-medium">de 100</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Score Info -->
-                <div class="flex-1 text-center lg:text-left">
-                    <div class="mb-6">
-                        <h2 class="text-3xl font-bold text-white mb-2">
-                            {{if ge .healthScore 80.0}}Excelente!{{else if ge .healthScore 60.0}}Bom Trabalho!{{else if ge .healthScore 40.0}}Precisa Melhorar{{else}}Atencao Necessaria{{end}}
-                        </h2>
-                        <p class="text-white/90 text-lg max-w-2xl">
-                            {{if ge .healthScore 80.0}}Sua saude financeira esta otima! Continue mantendo bons habitos.
-                            {{else if ge .healthScore 60.0}}Voce esta no caminho certo. Veja as recomendacoes para melhorar ainda mais.
-                            {{else if ge .healthScore 40.0}}Ha espaco para melhorias. Siga as recomendacoes abaixo.
-                            {{else}}Sua situacao financeira precisa de atencao. Comece pelas recomendacoes prioritarias.{{end}}
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
-                        <div class="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
-                            <p class="text-white/80 text-xs uppercase tracking-wide mb-1">Ultima Atualizacao</p>
-                            <p class="text-white font-semibold">{{.lastUpdated}}</p>
-                        </div>
-                        <div class="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
-                            <p class="text-white/80 text-xs uppercase tracking-wide mb-1">Tendencia</p>
-                            <div class="flex items-center gap-2">
-                                {{if gt .scoreTrend 0.0}}
-                                <svg class="w-5 h-5 text-success-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                </svg>
-                                <span class="text-white font-semibold">+{{printf "%.1f" .scoreTrend}}</span>
-                                {{else if lt .scoreTrend 0.0}}
-                                <svg class="w-5 h-5 text-danger-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
-                                </svg>
-                                <span class="text-white font-semibold">{{printf "%.1f" .scoreTrend}}</span>
-                                {{else}}
-                                <span class="text-white font-semibold">--</span>
-                                {{end}}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div id="health-score-card">
+        {{template "health-score-card" .}}
     </div>
 
     <!-- Score Breakdown -->
