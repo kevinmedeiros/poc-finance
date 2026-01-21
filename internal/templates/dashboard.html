@@ -355,14 +355,14 @@
 
                     // Get the last 6 months of data
                     const monthData = [
-                        {{range .monthSummaries}}
+                        {{range .incomeVsExpenseTrend}}
                         {
-                            month: "{{.Month.Format "Jan/06"}}",
-                            income: {{.TotalIncomeGross}},
-                            expenses: {{.TotalExpenses}}
+                            month: "{{.MonthName}}",
+                            income: {{.TotalIncome}},
+                            expenses: {{.TotalExpense}}
                         },
                         {{end}}
-                    ].slice(-6);
+                    ];
 
                     // Create chart
                     new Chart(ctx, {
@@ -739,7 +739,7 @@
 
                     // Category data
                     const categories = [
-                        {{range .categoryBreakdown}}
+                        {{range .categoryBreakdownWithPercentages}}
                         {
                             name: "{{.Category}}",
                             amount: {{.Amount}}

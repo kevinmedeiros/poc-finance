@@ -555,16 +555,16 @@
                     </div>
                     <!-- Legend -->
                     <div class="space-y-2">
-                        {{range .categoryBreakdownWithPercentages}}
+                        {{range $index, $item := .categoryBreakdownWithPercentages}}
                         <div class="flex items-center justify-between p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:border-brand-500/30 transition-all">
                             <div class="flex items-center gap-3">
-                                <div class="w-3 h-3 rounded-full" style="background-color: {{.Color}}"></div>
-                                <span class="text-sm font-medium text-dark-200">{{.Category}}</span>
+                                <div class="w-3 h-3 rounded-full category-color-{{$index}}"></div>
+                                <span class="text-sm font-medium text-dark-200">{{$item.Category}}</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="text-sm font-semibold text-white">R$ {{printf "%.2f" .Amount}}</span>
+                                <span class="text-sm font-semibold text-white">R$ {{printf "%.2f" $item.Amount}}</span>
                                 <span class="text-xs font-medium px-2 py-1 rounded-full bg-brand-500/20 text-brand-400 min-w-[3rem] text-center">
-                                    {{printf "%.1f" .Percentage}}%
+                                    {{printf "%.1f" $item.Percentage}}%
                                 </span>
                             </div>
                         </div>
@@ -591,12 +591,12 @@
             ];
             const incomeData = [
                 {{range .incomeVsExpenseTrend}}
-                {{.TotalIncomeGross}},
+                {{.TotalIncome}},
                 {{end}}
             ];
             const expenseData = [
                 {{range .incomeVsExpenseTrend}}
-                {{.TotalExpenses}},
+                {{.TotalExpense}},
                 {{end}}
             ];
 
@@ -711,11 +711,24 @@
                 {{.Amount}},
                 {{end}}
             ];
-            const categoryColors = [
-                {{range .categoryBreakdownWithPercentages}}
-                '{{.Color}}',
-                {{end}}
+            // Generate colors for categories
+            const colors = [
+                '#a855f7', '#c084fc', '#e9d5ff',
+                '#fb923c', '#f97316', '#fdba74',
+                '#22c55e', '#4ade80', '#86efac',
+                '#3b82f6', '#60a5fa', '#93c5fd',
+                '#ec4899', '#f472b6', '#f9a8d4',
+                '#14b8a6', '#2dd4bf', '#5eead4',
+                '#f59e0b', '#fbbf24', '#fcd34d'
             ];
+
+            // Apply colors to legend items
+            categoryLabels.forEach((cat, index) => {
+                const colorElements = document.querySelectorAll('.category-color-' + index);
+                colorElements.forEach(el => {
+                    el.style.backgroundColor = colors[index % colors.length];
+                });
+            });
 
             new Chart(categoryCtx, {
                 type: 'doughnut',
@@ -723,7 +736,7 @@
                     labels: categoryLabels,
                     datasets: [{
                         data: categoryData,
-                        backgroundColor: categoryColors,
+                        backgroundColor: colors.slice(0, categoryLabels.length),
                         borderColor: 'rgb(17, 24, 39)',
                         borderWidth: 2
                     }]
