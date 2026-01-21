@@ -40,9 +40,18 @@
                     <label class="block text-sm font-medium text-dark-300 mb-2">Mes</label>
                     <select name="month" required
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
-                        {{range $i := seq 1 12}}
-                        <option value="{{$i}}" {{if eq $i $.currentMonth}}selected{{end}}>{{$i}}</option>
-                        {{end}}
+                        <option value="1" {{if eq 1 .currentMonth}}selected{{end}}>Janeiro</option>
+                        <option value="2" {{if eq 2 .currentMonth}}selected{{end}}>Fevereiro</option>
+                        <option value="3" {{if eq 3 .currentMonth}}selected{{end}}>Marco</option>
+                        <option value="4" {{if eq 4 .currentMonth}}selected{{end}}>Abril</option>
+                        <option value="5" {{if eq 5 .currentMonth}}selected{{end}}>Maio</option>
+                        <option value="6" {{if eq 6 .currentMonth}}selected{{end}}>Junho</option>
+                        <option value="7" {{if eq 7 .currentMonth}}selected{{end}}>Julho</option>
+                        <option value="8" {{if eq 8 .currentMonth}}selected{{end}}>Agosto</option>
+                        <option value="9" {{if eq 9 .currentMonth}}selected{{end}}>Setembro</option>
+                        <option value="10" {{if eq 10 .currentMonth}}selected{{end}}>Outubro</option>
+                        <option value="11" {{if eq 11 .currentMonth}}selected{{end}}>Novembro</option>
+                        <option value="12" {{if eq 12 .currentMonth}}selected{{end}}>Dezembro</option>
                     </select>
                 </div>
             </div>
@@ -87,99 +96,97 @@
 <div class="divide-y divide-dark-700/50">
     {{range .budgets}}
     <div class="p-6 hover:bg-dark-800/30 transition-colors">
-        <div class="flex flex-col lg:flex-row lg:items-start gap-6">
-            <!-- Budget Info -->
-            <div class="flex-1">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center
-                                {{if ge .SpentPercentage 100}}bg-danger-500/20{{else if ge .SpentPercentage 80}}bg-warning-500/20{{else}}bg-success-500/20{{end}}">
-                                <svg class="w-5 h-5 {{if ge .SpentPercentage 100}}text-danger-400{{else if ge .SpentPercentage 80}}text-warning-400{{else}}text-success-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-white">{{.Name}}</h3>
-                                <p class="text-sm text-dark-400">{{.Category}}</p>
-                            </div>
+        <div class="flex flex-col gap-6">
+            <!-- Budget Header -->
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                            {{if ge .OverallProgressPercentage 100}}bg-danger-500/20{{else if ge .OverallProgressPercentage 80}}bg-warning-500/20{{else}}bg-success-500/20{{end}}">
+                            <svg class="w-5 h-5 {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">{{.Name}}</h3>
+                            <p class="text-sm text-dark-400">{{.Month}}/{{.Year}}</p>
                         </div>
                     </div>
+                </div>
+                <div class="flex items-center gap-2">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                        {{if eq .Status "active"}}badge-success{{else if eq .Status "completed"}}badge-info{{else}}bg-dark-700/50 text-dark-400{{end}}">
-                        {{if eq .Status "active"}}Ativo{{else if eq .Status "completed"}}Concluido{{else}}Inativo{{end}}
+                        {{if eq .Status "active"}}badge-success{{else}}bg-dark-700/50 text-dark-400{{end}}">
+                        {{if eq .Status "active"}}Ativo{{else}}Arquivado{{end}}
+                    </span>
+                    <button hx-delete="/budgets/{{.ID}}" hx-target="#budget-list" hx-swap="innerHTML"
+                        hx-confirm="Tem certeza que deseja excluir este orcamento?"
+                        class="inline-flex items-center justify-center p-2 rounded-lg text-danger-400 hover:bg-danger-500/10 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overall Progress -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-dark-300">Progresso Geral</span>
+                    <span class="text-sm font-semibold {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-white{{end}}">
+                        {{printf "%.1f" .OverallProgressPercentage}}%
                     </span>
                 </div>
-
-                <!-- Progress Bar -->
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-dark-300">Utilizacao</span>
-                        <span class="text-sm font-semibold {{if ge .SpentPercentage 100}}text-danger-400{{else if ge .SpentPercentage 80}}text-warning-400{{else}}text-white{{end}}">
-                            {{printf "%.1f" .SpentPercentage}}%
-                        </span>
-                    </div>
-                    <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
-                        <div class="h-full transition-all duration-500 rounded-full
-                            {{if ge .SpentPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .SpentPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
-                            style="width: {{if ge .SpentPercentage 100}}100{{else}}{{printf "%.1f" .SpentPercentage}}{{end}}%"></div>
-                    </div>
-                </div>
-
-                <!-- Amount Info -->
-                <div class="grid grid-cols-3 gap-4 mb-4">
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">Planejado</p>
-                        <p class="text-xl font-bold text-brand-400">R$ {{printf "%.2f" .Amount}}</p>
-                    </div>
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">Gasto</p>
-                        <p class="text-xl font-bold text-warning-400">R$ {{printf "%.2f" .Spent}}</p>
-                    </div>
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">Disponivel</p>
-                        <p class="text-xl font-bold {{if lt .Remaining 0}}text-danger-400{{else}}text-success-400{{end}}">R$ {{printf "%.2f" .Remaining}}</p>
-                    </div>
-                </div>
-
-                <!-- Budget Info -->
-                <div class="flex items-center gap-4 text-sm text-dark-400">
-                    <div class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <span>{{.StartDate.Format "02/01/2006"}} - {{.EndDate.Format "02/01/2006"}}</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>{{if eq .Period "monthly"}}Mensal{{else if eq .Period "weekly"}}Semanal{{else}}Anual{{end}}</span>
-                    </div>
+                <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
+                    <div class="h-full transition-all duration-500 rounded-full
+                        {{if ge .OverallProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .OverallProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                        style="width: {{if ge .OverallProgressPercentage 100}}100{{else}}{{printf "%.1f" .OverallProgressPercentage}}{{end}}%"></div>
                 </div>
             </div>
 
-            <!-- Right Side: Actions -->
-            <div class="lg:w-64 space-y-3">
-                <!-- Edit Button -->
-                <button
-                    class="w-full inline-flex items-center justify-center gap-2 glass-light rounded-xl px-4 py-2.5 hover:bg-white/5 font-medium text-sm transition-colors text-brand-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    Editar
-                </button>
-
-                <!-- Delete Button -->
-                <button hx-delete="/budgets/{{.ID}}" hx-target="#budget-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja excluir este orcamento?"
-                    class="w-full inline-flex items-center justify-center gap-2 bg-danger-500/20 text-danger-400 px-4 py-2.5 rounded-xl hover:bg-danger-500/30 font-medium text-sm transition-colors border border-danger-500/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Excluir
-                </button>
+            <!-- Total Summary -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Planejado</p>
+                    <p class="text-xl font-bold text-brand-400">R$ {{printf "%.2f" .TotalLimit}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Gasto</p>
+                    <p class="text-xl font-bold text-warning-400">R$ {{printf "%.2f" .TotalSpent}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Disponivel</p>
+                    <p class="text-xl font-bold text-success-400">R$ {{printf "%.2f" .RemainingAmount}}</p>
+                </div>
             </div>
+
+            <!-- Categories -->
+            {{if .Categories}}
+            <div>
+                <p class="text-sm font-medium text-dark-300 mb-3">Categorias</p>
+                <div class="space-y-3">
+                    {{range .Categories}}
+                    <div class="bg-dark-800/30 rounded-xl p-4 border border-white/5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-white">{{.Category}}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-dark-400">R$ {{printf "%.2f" .Spent}} / R$ {{printf "%.2f" .Limit}}</span>
+                                <span class="text-sm font-semibold {{if ge .ProgressPercentage 100}}text-danger-400{{else if ge .ProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}">
+                                    {{printf "%.0f" .ProgressPercentage}}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                            <div class="h-full transition-all duration-500 rounded-full
+                                {{if ge .ProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .ProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                                style="width: {{if ge .ProgressPercentage 100}}100{{else}}{{printf "%.1f" .ProgressPercentage}}{{end}}%"></div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{else}}
+            <p class="text-sm text-dark-400 text-center py-4">Nenhuma categoria adicionada ainda</p>
+            {{end}}
         </div>
     </div>
     {{else}}
