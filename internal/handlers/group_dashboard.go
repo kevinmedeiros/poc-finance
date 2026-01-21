@@ -87,6 +87,11 @@ func (h *GroupDashboardHandler) Dashboard(c echo.Context) error {
 	// Get member contributions
 	memberContributions := services.GetMemberContributions(database.DB, uint(groupID), accountIDs)
 
+	// Analytics data for group joint accounts
+	monthOverMonthComparison := services.GetMonthOverMonthComparison(database.DB, year, month, accountIDs)
+	categoryBreakdownWithPercentages := services.GetCategoryBreakdownWithPercentages(database.DB, year, month, accountIDs)
+	incomeVsExpenseTrend := services.GetIncomeVsExpenseTrend(database.DB, 6, accountIDs)
+
 	// HOLISTIC SUMMARY - All accounts (individual + joint) for the family group
 	allAccountIDs, _ := h.accountService.GetAllGroupAccountIDs(uint(groupID))
 	holisticSummary := services.GetMonthlySummaryForAccounts(database.DB, year, month, allAccountIDs)
@@ -124,6 +129,10 @@ func (h *GroupDashboardHandler) Dashboard(c echo.Context) error {
 		"upcomingBills":       upcomingBills,
 		"memberContributions": memberContributions,
 		"now":                 now,
+		// Analytics data
+		"monthOverMonthComparison":         monthOverMonthComparison,
+		"categoryBreakdownWithPercentages": categoryBreakdownWithPercentages,
+		"incomeVsExpenseTrend":             incomeVsExpenseTrend,
 		// Holistic summary data
 		"holisticSummary":        holisticSummary,
 		"holisticIncome":         holisticIncome,
