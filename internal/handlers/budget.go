@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"poc-finance/internal/middleware"
+	"poc-finance/internal/models"
 	"poc-finance/internal/services"
 )
 
@@ -180,9 +181,9 @@ func (h *BudgetHandler) Create(c echo.Context) error {
 	// Return updated list
 	var budgets interface{}
 	if req.GroupID != nil {
-		budgets, _ = h.budgetService.GetGroupBudgets(*req.GroupID, userID)
+		budgets, _ = h.budgetService.GetGroupBudgets(userID, *req.GroupID, 0, 0)
 	} else {
-		budgets, _ = h.budgetService.GetUserBudgets(userID)
+		budgets, _ = h.budgetService.GetUserBudgets(userID, 0, 0)
 	}
 
 	return c.Render(http.StatusOK, "partials/budget-list.html", map[string]interface{}{
@@ -221,9 +222,9 @@ func (h *BudgetHandler) Delete(c echo.Context) error {
 	// Return updated list
 	var budgets interface{}
 	if budget.GroupID != nil {
-		budgets, _ = h.budgetService.GetGroupBudgets(*budget.GroupID, userID)
+		budgets, _ = h.budgetService.GetGroupBudgets(userID, *budget.GroupID, 0, 0)
 	} else {
-		budgets, _ = h.budgetService.GetUserBudgets(userID)
+		budgets, _ = h.budgetService.GetUserBudgets(userID, 0, 0)
 	}
 
 	return c.Render(http.StatusOK, "partials/budget-list.html", map[string]interface{}{
@@ -387,9 +388,9 @@ func (h *BudgetHandler) CopyFromPreviousMonth(c echo.Context) error {
 	// Return updated list
 	var budgets interface{}
 	if groupID != nil {
-		budgets, _ = h.budgetService.GetGroupBudgets(*groupID, userID)
+		budgets, _ = h.budgetService.GetGroupBudgets(userID, *groupID, 0, 0)
 	} else {
-		budgets, _ = h.budgetService.GetUserBudgets(userID)
+		budgets, _ = h.budgetService.GetUserBudgets(userID, 0, 0)
 	}
 
 	return c.Render(http.StatusOK, "partials/budget-list.html", map[string]interface{}{

@@ -206,6 +206,18 @@ func (s *GroupService) GetGroupMembers(groupID uint) ([]models.User, error) {
 	return users, nil
 }
 
+// GetUserGroups returns all groups that a user is a member of
+func (s *GroupService) GetUserGroups(userID uint) ([]models.FamilyGroup, error) {
+	var groups []models.FamilyGroup
+	err := database.DB.
+		Joins("JOIN group_members ON group_members.group_id = family_groups.id").
+		Where("group_members.user_id = ? AND group_members.deleted_at IS NULL", userID).
+		Preload("Members").
+		Preload("Members.User").
+		Find(&groups).Error
+	return groups, err
+}
+
 // LeaveGroup removes a user from a group
 // If the last member leaves, the group is automatically deleted
 func (s *GroupService) LeaveGroup(groupID, userID uint) error {
