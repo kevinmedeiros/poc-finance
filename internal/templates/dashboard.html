@@ -43,6 +43,52 @@
         </div>
     </div>
 
+    <!-- Bracket Warning Notification -->
+    {{if .bracketWarning}}
+    <div id="bracket-warning" class="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-500/30">
+        <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M10 0v20M0 10h20%22 stroke=%22rgba(251,191,36,0.15)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-amber-300 text-lg">Atencao: Aproximando da Faixa {{.bracketWarning.nextBracket}}</h3>
+                    <p class="text-dark-300 text-sm mt-1">
+                        Faltam <span class="font-semibold text-amber-400">R$ {{printf "%.2f" .bracketWarning.remaining}}</span>
+                        para atingir a proxima faixa do Simples Nacional (R$ {{printf "%.0f" .bracketWarning.threshold}}).
+                    </p>
+                    <p class="text-dark-400 text-xs mt-2">
+                        A aliquota efetiva aumentara de <span class="text-brand-400">{{printf "%.2f" $.effectiveRate}}%</span>
+                        para <span class="text-amber-400">~{{printf "%.2f" .bracketWarning.nextRate}}%</span>
+                        (aumento de +{{printf "%.2f" .bracketWarning.rateIncrease}}%)
+                    </p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('bracket-warning').remove()"
+                class="self-start sm:self-center p-2 rounded-lg hover:bg-amber-500/20 transition-colors group">
+                <svg class="w-5 h-5 text-dark-400 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Progress bar showing how close to next bracket -->
+        <div class="relative mt-4">
+            <div class="h-2 bg-dark-800/50 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                     style="width: {{printf "%.1f" .bracketWarning.percentageUsed}}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-dark-500 mt-1">
+                <span>Faixa {{$.currentBracket}}</span>
+                <span>{{printf "%.1f" .bracketWarning.percentageUsed}}% utilizado</span>
+                <span>Faixa {{.bracketWarning.nextBracket}}</span>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <!-- Quick Stats Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <!-- Receita -->

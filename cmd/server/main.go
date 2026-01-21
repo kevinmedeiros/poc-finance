@@ -73,6 +73,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/groups.html"
 	case strings.Contains(baseName, "recurring"):
 		templateFile = "internal/templates/recurring.html"
+	case strings.Contains(baseName, "tax"):
+		templateFile = "internal/templates/tax-report.html"
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
@@ -133,6 +135,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/goals.html",
 		"internal/templates/notifications.html",
 		"internal/templates/recurring.html",
+		"internal/templates/tax-report.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -296,6 +299,7 @@ func main() {
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
+	taxReportHandler := handlers.NewTaxReportHandler(settingsCacheService)
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -394,6 +398,10 @@ func main() {
 	protected.POST("/recurring/:id", recurringHandler.Update)
 	protected.DELETE("/recurring/:id", recurringHandler.Delete)
 	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
+
+	// Tax Reports
+	protected.GET("/tax-report", taxReportHandler.TaxReportPage)
+	protected.GET("/tax-report/export", taxReportHandler.ExportTaxReport)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")
