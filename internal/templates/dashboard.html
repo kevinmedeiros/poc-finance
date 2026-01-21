@@ -105,6 +105,186 @@
         </div>
     </div>
 
+    <!-- Month-over-Month Comparison -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Comparacao Mes a Mes</h2>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Receita Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-success-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-success-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Receita</span>
+                        </div>
+                        {{if .previousMonth}}
+                        {{$change := 0.0}}
+                        {{if gt .previousMonth.TotalIncomeGross 0.0}}
+                            {{$change = mul (div (sub .currentMonth.TotalIncomeGross .previousMonth.TotalIncomeGross) .previousMonth.TotalIncomeGross) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
+                        </div>
+                        {{if .previousMonth}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .previousMonth.TotalIncomeGross}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Impostos Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-danger-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-danger-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Impostos</span>
+                        </div>
+                        {{if .previousMonth}}
+                        {{$prevTax := add .previousMonth.TotalTax .previousInss}}
+                        {{$currTax := .totalImpostos}}
+                        {{$change := 0.0}}
+                        {{if gt $prevTax 0.0}}
+                            {{$change = mul (div (sub $currTax $prevTax) $prevTax) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-danger-500/20 text-danger-400{{else}}bg-success-500/20 text-success-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .totalImpostos}}</p>
+                        </div>
+                        {{if .previousMonth}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" (add .previousMonth.TotalTax .previousInss)}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Despesas Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-brand-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-brand-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Despesas</span>
+                        </div>
+                        {{if .previousMonth}}
+                        {{$change := 0.0}}
+                        {{if gt .previousMonth.TotalExpenses 0.0}}
+                            {{$change = mul (div (sub .currentMonth.TotalExpenses .previousMonth.TotalExpenses) .previousMonth.TotalExpenses) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-danger-500/20 text-danger-400{{else}}bg-success-500/20 text-success-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
+                        </div>
+                        {{if .previousMonth}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .previousMonth.TotalExpenses}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Saldo Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-violet-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-violet-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Saldo</span>
+                        </div>
+                        {{if .previousMonth}}
+                        {{$prevBalance := sub (sub .previousMonth.TotalIncomeGross .previousMonth.TotalTax) .previousMonth.TotalExpenses}}
+                        {{$prevBalance = sub $prevBalance .previousInss}}
+                        {{$change := 0.0}}
+                        {{if gt $prevBalance 0.0}}
+                            {{$change = mul (div (sub .saldoFinal $prevBalance) $prevBalance) 100.0}}
+                        {{else if lt $prevBalance 0.0}}
+                            {{$change = mul (div (sub .saldoFinal $prevBalance) (mul $prevBalance -1.0)) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .saldoFinal}}</p>
+                        </div>
+                        {{if .previousMonth}}
+                        {{$prevBalance := sub (sub .previousMonth.TotalIncomeGross .previousMonth.TotalTax) .previousMonth.TotalExpenses}}
+                        {{$prevBalance = sub $prevBalance .previousInss}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevBalance}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Financial Summary (2 columns) -->
