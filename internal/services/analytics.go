@@ -26,11 +26,17 @@ type MonthOverMonthComparison struct {
 // Esta função usa GetBatchMonthlySummariesForAccounts para buscar ambos os meses
 // de forma eficiente (2 queries batch ao invés de 10 queries separadas).
 //
+// GROUP ANALYTICS SUPPORT:
+// Esta função funciona com contas individuais, múltiplas contas, e contas conjuntas (joint accounts).
+// Para análises de grupos familiares, passe os IDs das contas conjuntas do grupo.
+// Exemplo: accountIDs = GetGroupJointAccountIDs(groupID)
+//
 // Parâmetros:
 //   - db: Conexão com banco de dados
 //   - year: Ano do mês atual
 //   - month: Mês atual (1-12)
-//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para todas as contas)
+//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para todas as contas,
+//     pode incluir contas individuais e/ou conjuntas)
 //
 // Retorna:
 //   - MonthOverMonthComparison com dados do mês atual, mês anterior e mudanças percentuais
@@ -120,11 +126,17 @@ type CategoryBreakdownWithPercentages struct {
 // Esta função estende GetCategoryBreakdownForAccounts adicionando cálculo de percentual
 // para cada categoria em relação ao total de despesas.
 //
+// GROUP ANALYTICS SUPPORT:
+// Esta função funciona com contas individuais, múltiplas contas, e contas conjuntas (joint accounts).
+// Para análises de grupos familiares, passe os IDs das contas conjuntas do grupo.
+// Exemplo: accountIDs = GetGroupJointAccountIDs(groupID)
+//
 // Parâmetros:
 //   - db: Conexão com banco de dados
 //   - year: Ano do mês
 //   - month: Mês (1-12)
-//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar nil)
+//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar nil,
+//     pode incluir contas individuais e/ou conjuntas)
 //
 // Retorna:
 //   - Slice de CategoryBreakdownWithPercentages com categoria, valor e percentual do total
@@ -191,10 +203,16 @@ type IncomeVsExpenseTrendPoint struct {
 // Esta função utiliza o padrão batch de GetBatchMonthlySummariesForAccounts para buscar
 // dados de múltiplos meses de forma eficiente (5 queries batch ao invés de N*5 queries).
 //
+// GROUP ANALYTICS SUPPORT:
+// Esta função funciona com contas individuais, múltiplas contas, e contas conjuntas (joint accounts).
+// Para análises de grupos familiares, passe os IDs das contas conjuntas do grupo.
+// Exemplo: accountIDs = GetGroupJointAccountIDs(groupID)
+//
 // Parâmetros:
 //   - db: Conexão com banco de dados
 //   - months: Número de meses anteriores a incluir (ex: 6 para últimos 6 meses)
-//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar dados zerados)
+//   - accountIDs: IDs das contas a incluir no cálculo (pode ser vazio para retornar dados zerados,
+//     pode incluir contas individuais e/ou conjuntas)
 //
 // Retorna:
 //   - Slice de IncomeVsExpenseTrendPoint ordenado cronologicamente (mais antigo para mais recente)

@@ -986,3 +986,225 @@ func TestGetIncomeVsExpenseTrend_WithCreditCardAndBills(t *testing.T) {
 		t.Errorf("Current month NetBalance = %.2f, want %.2f", currentMonthPoint.NetBalance, expectedBalance)
 	}
 }
+
+func TestGroupAnalytics(t *testing.T) {
+	db := testutil.SetupTestDB()
+
+	// Create a family group with two members
+	user1 := testutil.CreateTestUser(db, "user1@example.com", "User 1", "hash1")
+	user2 := testutil.CreateTestUser(db, "user2@example.com", "User 2", "hash2")
+
+	group := &models.FamilyGroup{
+		Name:        "Test Family",
+		Description: "Test family group",
+		CreatedByID: user1.ID,
+	}
+	db.Create(group)
+
+	// Add members to the group
+	db.Create(&models.GroupMember{
+		GroupID: group.ID,
+		UserID:  user1.ID,
+		Role:    "admin",
+	})
+	db.Create(&models.GroupMember{
+		GroupID: group.ID,
+		UserID:  user2.ID,
+		Role:    "member",
+	})
+
+	// Create a joint account for the group
+	jointAccount := testutil.CreateTestAccount(db, "Joint Account", models.AccountTypeJoint, user1.ID, &group.ID)
+
+	// Create income for January 2024 in joint account
+	db.Create(&models.Income{
+		AccountID:   jointAccount.ID,
+		Date:        time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local),
+		GrossAmount: 8000.00,
+		TaxAmount:   800.00,
+		NetAmount:   7200.00,
+		Description: "Joint Income January",
+	})
+
+	// Create income for February 2024 in joint account
+	db.Create(&models.Income{
+		AccountID:   jointAccount.ID,
+		Date:        time.Date(2024, 2, 15, 0, 0, 0, 0, time.Local),
+		GrossAmount: 10000.00,
+		TaxAmount:   1000.00,
+		NetAmount:   9000.00,
+		Description: "Joint Income February",
+	})
+
+	// Create fixed expense for joint account
+	db.Create(&models.Expense{
+		AccountID: jointAccount.ID,
+		Name:      "Shared Rent",
+		Amount:    2000.00,
+		Type:      models.ExpenseTypeFixed,
+		Active:    true,
+	})
+
+	// Create variable expenses for January with category
+	expenseJan := &models.Expense{
+		AccountID: jointAccount.ID,
+		Name:      "Groceries Jan",
+		Category:  "Food",
+		Amount:    800.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseJan)
+	db.Model(expenseJan).Update("created_at", time.Date(2024, 1, 20, 0, 0, 0, 0, time.Local))
+
+	// Create variable expenses for February with category
+	expenseFeb := &models.Expense{
+		AccountID: jointAccount.ID,
+		Name:      "Groceries Feb",
+		Category:  "Food",
+		Amount:    1000.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseFeb)
+	db.Model(expenseFeb).Update("created_at", time.Date(2024, 2, 20, 0, 0, 0, 0, time.Local))
+
+	// Create another category expense for February
+	expenseFeb2 := &models.Expense{
+		AccountID: jointAccount.ID,
+		Name:      "Gas Feb",
+		Category:  "Transportation",
+		Amount:    500.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseFeb2)
+	db.Model(expenseFeb2).Update("created_at", time.Date(2024, 2, 25, 0, 0, 0, 0, time.Local))
+
+	// Test 1: GetMonthOverMonthComparison with joint account
+	comparison := GetMonthOverMonthComparison(db, 2024, 2, []uint{jointAccount.ID})
+
+	// Verify current month (February)
+	if comparison.CurrentMonth.TotalIncomeGross != 10000.00 {
+		t.Errorf("CurrentMonth TotalIncomeGross = %.2f, want 10000.00", comparison.CurrentMonth.TotalIncomeGross)
+	}
+
+	// February expenses: 2000 (fixed) + 1000 (food) + 500 (transport) = 3500
+	if comparison.CurrentMonth.TotalExpenses != 3500.00 {
+		t.Errorf("CurrentMonth TotalExpenses = %.2f, want 3500.00", comparison.CurrentMonth.TotalExpenses)
+	}
+
+	// Verify previous month (January)
+	if comparison.PreviousMonth.TotalIncomeGross != 8000.00 {
+		t.Errorf("PreviousMonth TotalIncomeGross = %.2f, want 8000.00", comparison.PreviousMonth.TotalIncomeGross)
+	}
+
+	// January expenses: 2000 (fixed) + 800 (food) = 2800
+	if comparison.PreviousMonth.TotalExpenses != 2800.00 {
+		t.Errorf("PreviousMonth TotalExpenses = %.2f, want 2800.00", comparison.PreviousMonth.TotalExpenses)
+	}
+
+	// Verify percentage change
+	// Income: (10000 - 8000) / 8000 * 100 = 25%
+	expectedIncomeChangePercent := 25.0
+	if comparison.IncomeChangePercent != expectedIncomeChangePercent {
+		t.Errorf("IncomeChangePercent = %.2f, want %.2f", comparison.IncomeChangePercent, expectedIncomeChangePercent)
+	}
+
+	// Test 2: GetCategoryBreakdownWithPercentages with joint account
+	breakdown := GetCategoryBreakdownWithPercentages(db, 2024, 2, []uint{jointAccount.ID})
+
+	// Should have 2 categories in February
+	if len(breakdown) != 2 {
+		t.Errorf("len(breakdown) = %d, want 2", len(breakdown))
+	}
+
+	// Verify categories and percentages
+	// Total: 1000 (food) + 500 (transport) = 1500
+	// Food: 1000/1500 = 66.67%
+	// Transportation: 500/1500 = 33.33%
+	expectedBreakdown := map[string]struct {
+		amount     float64
+		percentage float64
+	}{
+		"Food":           {1000.00, 66.666666666666667},
+		"Transportation": {500.00, 33.333333333333333},
+	}
+
+	tolerance := 0.01
+	for _, item := range breakdown {
+		expected, ok := expectedBreakdown[item.Category]
+		if !ok {
+			t.Errorf("Unexpected category: %s", item.Category)
+			continue
+		}
+
+		if item.Amount != expected.amount {
+			t.Errorf("Category %s: Amount = %.2f, want %.2f", item.Category, item.Amount, expected.amount)
+		}
+
+		if item.Percentage < expected.percentage-tolerance ||
+			item.Percentage > expected.percentage+tolerance {
+			t.Errorf("Category %s: Percentage = %.2f, want %.2f", item.Category, item.Percentage, expected.percentage)
+		}
+	}
+
+	// Test 3: GetIncomeVsExpenseTrend with joint account
+	// Get trend for current month and previous month
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
+	// Create data for current period
+	currentMonthDate := time.Date(currentYear, time.Month(currentMonth), 1, 0, 0, 0, 0, time.Local)
+
+	db.Create(&models.Income{
+		AccountID:   jointAccount.ID,
+		Date:        currentMonthDate.AddDate(0, 0, 10),
+		GrossAmount: 6000.00,
+		TaxAmount:   600.00,
+		NetAmount:   5400.00,
+	})
+
+	// Create fixed expense (already exists, will be counted)
+	// Create variable expense for current month
+	expenseCurrent := &models.Expense{
+		AccountID: jointAccount.ID,
+		Name:      "Groceries Current",
+		Category:  "Food",
+		Amount:    700.00,
+		Type:      models.ExpenseTypeVariable,
+		Active:    true,
+	}
+	db.Create(expenseCurrent)
+	db.Model(expenseCurrent).Update("created_at", currentMonthDate.AddDate(0, 0, 15))
+
+	trend := GetIncomeVsExpenseTrend(db, 2, []uint{jointAccount.ID})
+
+	// Should have 2 data points
+	if len(trend) != 2 {
+		t.Errorf("len(trend) = %d, want 2", len(trend))
+	}
+
+	// Verify data is sorted chronologically
+	if len(trend) >= 2 && trend[0].Month.After(trend[1].Month) {
+		t.Errorf("Trend not sorted chronologically")
+	}
+
+	// Current month should have income and expenses from joint account
+	currentMonthPoint := trend[len(trend)-1]
+	if currentMonthPoint.TotalIncome != 6000.00 {
+		t.Errorf("Current month TotalIncome = %.2f, want 6000.00", currentMonthPoint.TotalIncome)
+	}
+
+	// Expenses: 2000 (fixed) + 700 (variable) = 2700
+	if currentMonthPoint.TotalExpense != 2700.00 {
+		t.Errorf("Current month TotalExpense = %.2f, want 2700.00", currentMonthPoint.TotalExpense)
+	}
+
+	// Net balance: 5400 (net income) - 2700 (expenses) = 2700
+	expectedBalance := 5400.00 - 2700.00
+	if currentMonthPoint.NetBalance != expectedBalance {
+		t.Errorf("Current month NetBalance = %.2f, want %.2f", currentMonthPoint.NetBalance, expectedBalance)
+	}
+}
