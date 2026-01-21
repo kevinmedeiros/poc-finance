@@ -25,4 +25,6 @@ const (
 	SettingINSSRate = "inss_rate"
 	// SettingBudgetWarningThreshold represents the budget warning threshold percentage for alerts
 	SettingBudgetWarningThreshold = "budget_warning_threshold"
+	// SettingRecordStartDate represents the start date from which records should be displayed (format: YYYY-MM-DD)
+	SettingRecordStartDate = "record_start_date"
 )

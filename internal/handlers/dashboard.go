@@ -68,8 +68,27 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	}
 
 	now := time.Now()
+
+	// Get settings early to check for record start date
+	settingsData := h.cacheService.GetSettingsData()
+	recordStartDate := settingsData.RecordStartDate
+
+	// Determine which month to show as "current"
+	// If start date is set and is after current date, use start date's month
 	year := now.Year()
 	month := int(now.Month())
+
+	if !recordStartDate.IsZero() {
+		startYear := recordStartDate.Year()
+		startMonth := int(recordStartDate.Month())
+		// If current month is before start date, use start date's month
+		currentMonthStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+		if currentMonthStart.Before(recordStartDate) {
+			year = startYear
+			month = startMonth
+			log.Printf("[Dashboard] Start date is after current month, showing %d/%d instead", month, year)
+		}
+	}
 
 	// Resumo do mês atual (single month, so we use the standard function)
 	currentSummary := services.GetMonthlySummaryForAccounts(database.DB, year, month, accountIDs)
@@ -133,8 +152,16 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		}
 	}
 
-	// Busca configurações de INSS
-	settingsData := h.cacheService.GetSettingsData()
+	// Filter monthSummaries by start date
+	if !recordStartDate.IsZero() {
+		filteredSummaries := make([]services.MonthlySummary, 0)
+		for _, summary := range monthSummaries {
+			if !summary.Month.Before(recordStartDate) {
+				filteredSummaries = append(filteredSummaries, summary)
+			}
+		}
+		monthSummaries = filteredSummaries
+	}
 
 	// Calcula totais
 	totalImpostos := currentSummary.TotalTax + settingsData.INSSAmount
@@ -160,8 +187,8 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 
 	if err == nil && healthScore != nil {
 		scoreValue = healthScore.Score
-		// Calculate circular progress offset (628 = 2*pi*100, circumference of the circle)
-		scoreOffset = 628 - (628 * scoreValue / 100)
+		// Calculate circular progress offset (440 = 2*pi*70, circumference of the SVG circle with r=70)
+		scoreOffset = 440 - (440 * scoreValue / 100)
 		lastUpdated = healthScore.CalculatedAt.Format("02/01/2006")
 
 		// Get previous score for trend calculation
@@ -173,7 +200,7 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		log.Printf("[Dashboard] Error calculating health score: %v", err)
 		// Default values if score calculation fails
 		scoreValue = 0
-		scoreOffset = 628
+		scoreOffset = 440 // Full circle offset (no progress)
 		lastUpdated = "N/A"
 		scoreTrend = 0
 	}
@@ -182,7 +209,18 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	log.Println("[Dashboard] Fetching analytics data")
 	monthOverMonthComparison := services.GetMonthOverMonthComparison(database.DB, year, month, accountIDs)
 	categoryBreakdownWithPercentages := services.GetCategoryBreakdownWithPercentages(database.DB, year, month, accountIDs)
-	incomeVsExpenseTrend := services.GetIncomeVsExpenseTrend(database.DB, 6, accountIDs) // Last 6 months
+
+	// Generate trend from monthSummaries (already filtered by start date)
+	incomeVsExpenseTrend := make([]services.IncomeVsExpenseTrendPoint, 0, len(monthSummaries))
+	for _, summary := range monthSummaries {
+		incomeVsExpenseTrend = append(incomeVsExpenseTrend, services.IncomeVsExpenseTrendPoint{
+			Month:        summary.Month,
+			MonthName:    summary.Month.Format("Jan"),
+			TotalIncome:  summary.TotalIncomeGross,
+			TotalExpense: summary.TotalExpenses,
+		})
+	}
+
 	log.Printf("[Dashboard] Analytics data loaded - comparison: %v categories, trend: %d months",
 		len(categoryBreakdownWithPercentages), len(incomeVsExpenseTrend))
 

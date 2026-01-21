@@ -11,8 +11,10 @@ import (
 type Recommendation struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	ActionURL   string `json:"action_url"`
-	Priority    int    `json:"priority"` // 1=high, 2=medium, 3=low
+	ActionUrl   string `json:"action_url"`
+	ActionText  string `json:"action_text"`
+	Priority    string `json:"priority"` // "high", "medium", "low"
+	Color       string `json:"color"`    // CSS color class: "danger", "warning", "brand", "success"
 }
 
 // HealthScoreService handles financial health score calculations and recommendations
@@ -27,14 +29,30 @@ func NewHealthScoreService() *HealthScoreService {
 	}
 }
 
+// getRecordStartDate retrieves the record start date from settings
+func (s *HealthScoreService) getRecordStartDate() time.Time {
+	var setting models.Settings
+	if err := database.DB.Where("key = ?", models.SettingRecordStartDate).First(&setting).Error; err != nil {
+		return time.Time{}
+	}
+	parsed, err := time.Parse("2006-01-02", setting.Value)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
+
 // CalculateUserScore calculates the financial health score for a user
 // Scoring formula: 30% savings rate + 25% debt level + 25% goal progress + 20% budget adherence
 func (s *HealthScoreService) CalculateUserScore(userID uint, accountIDs []uint) (*models.HealthScore, error) {
+	// Get record start date from settings
+	recordStartDate := s.getRecordStartDate()
+
 	// Calculate component scores
-	savingsScore := s.calculateSavingsScore(accountIDs)
-	debtScore := s.calculateDebtScore(accountIDs)
+	savingsScore := s.calculateSavingsScore(accountIDs, recordStartDate)
+	debtScore := s.calculateDebtScore(accountIDs, recordStartDate)
 	goalScore := s.calculateGoalScore(userID, nil)
-	budgetScore := s.calculateBudgetScore(accountIDs)
+	budgetScore := s.calculateBudgetScore(accountIDs, recordStartDate)
 
 	// Calculate weighted overall score
 	overallScore := (savingsScore * 0.30) + (debtScore * 0.25) + (goalScore * 0.25) + (budgetScore * 0.20)
@@ -65,11 +83,14 @@ func (s *HealthScoreService) CalculateGroupScore(groupID uint) (*models.HealthSc
 		return nil, err
 	}
 
+	// Get record start date from settings
+	recordStartDate := s.getRecordStartDate()
+
 	// Calculate component scores
-	savingsScore := s.calculateSavingsScore(accountIDs)
-	debtScore := s.calculateDebtScore(accountIDs)
+	savingsScore := s.calculateSavingsScore(accountIDs, recordStartDate)
+	debtScore := s.calculateDebtScore(accountIDs, recordStartDate)
 	goalScore := s.calculateGoalScore(0, &groupID)
-	budgetScore := s.calculateBudgetScore(accountIDs)
+	budgetScore := s.calculateBudgetScore(accountIDs, recordStartDate)
 
 	// Calculate weighted overall score
 	overallScore := (savingsScore * 0.30) + (debtScore * 0.25) + (goalScore * 0.25) + (budgetScore * 0.20)
@@ -97,6 +118,12 @@ func (s *HealthScoreService) GetScoreHistory(userID *uint, groupID *uint, months
 	var scores []models.HealthScore
 
 	query := database.DB.Order("calculated_at DESC").Limit(months)
+
+	// Filter by record start date
+	recordStartDate := s.getRecordStartDate()
+	if !recordStartDate.IsZero() {
+		query = query.Where("calculated_at >= ?", recordStartDate)
+	}
 
 	if userID != nil {
 		query = query.Where("user_id = ?", *userID)
@@ -152,16 +179,20 @@ func (s *HealthScoreService) GetRecommendations(score *models.HealthScore) ([]Re
 		recommendations = append(recommendations, Recommendation{
 			Title:       "Excelente Saúde Financeira!",
 			Description: "Você está no caminho certo. Continue monitorando suas finanças regularmente.",
-			ActionURL:   "/dashboard",
-			Priority:    3,
+			ActionUrl:   "/dashboard",
+			ActionText:  "Ver Dashboard",
+			Priority:    "low",
+			Color:       "success",
 		})
 	} else if score.Score >= 75 {
 		// Add one positive recommendation
 		recommendations = append(recommendations, Recommendation{
 			Title:       "Continue Assim!",
 			Description: "Sua saúde financeira está boa. Pequenos ajustes podem torná-la excelente.",
-			ActionURL:   "/dashboard",
-			Priority:    2,
+			ActionUrl:   "/dashboard",
+			ActionText:  "Ver Dashboard",
+			Priority:    "medium",
+			Color:       "brand",
 		})
 	}
 
@@ -170,8 +201,10 @@ func (s *HealthScoreService) GetRecommendations(score *models.HealthScore) ([]Re
 		recommendations = append(recommendations, Recommendation{
 			Title:       "Comece Pequeno",
 			Description: "Estabeleça uma meta financeira simples e trabalhe para alcançá-la este mês.",
-			ActionURL:   "/goals",
-			Priority:    1,
+			ActionUrl:   "/goals",
+			ActionText:  "Ver Metas",
+			Priority:    "high",
+			Color:       "danger",
 		})
 	}
 
@@ -185,7 +218,7 @@ func (s *HealthScoreService) GetRecommendations(score *models.HealthScore) ([]Re
 
 // calculateSavingsScore calculates savings rate score (0-100)
 // Based on (income - expenses) / income ratio
-func (s *HealthScoreService) calculateSavingsScore(accountIDs []uint) float64 {
+func (s *HealthScoreService) calculateSavingsScore(accountIDs []uint, recordStartDate time.Time) float64 {
 	if len(accountIDs) == 0 {
 		return 0
 	}
@@ -193,6 +226,16 @@ func (s *HealthScoreService) calculateSavingsScore(accountIDs []uint) float64 {
 	// Get last 3 months of data for more stable calculation
 	endDate := time.Now()
 	startDate := endDate.AddDate(0, -3, 0)
+
+	// Respect record start date - don't go before it
+	if !recordStartDate.IsZero() && startDate.Before(recordStartDate) {
+		startDate = recordStartDate
+	}
+
+	// If start date is after end date, there's no valid data period yet
+	if startDate.After(endDate) {
+		return 50 // Neutral score - no data available yet
+	}
 
 	// Calculate total income (net)
 	var totalIncome float64
@@ -261,7 +304,7 @@ func (s *HealthScoreService) calculateSavingsScore(accountIDs []uint) float64 {
 
 // calculateDebtScore calculates debt management score (0-100)
 // Currently based on expense ratio as inverse (lower expenses = better score)
-func (s *HealthScoreService) calculateDebtScore(accountIDs []uint) float64 {
+func (s *HealthScoreService) calculateDebtScore(accountIDs []uint, recordStartDate time.Time) float64 {
 	if len(accountIDs) == 0 {
 		return 100 // No accounts = no debt
 	}
@@ -269,6 +312,16 @@ func (s *HealthScoreService) calculateDebtScore(accountIDs []uint) float64 {
 	// Get last month of data
 	endDate := time.Now()
 	startDate := endDate.AddDate(0, -1, 0)
+
+	// Respect record start date - don't go before it
+	if !recordStartDate.IsZero() && startDate.Before(recordStartDate) {
+		startDate = recordStartDate
+	}
+
+	// If start date is after end date, there's no valid data period yet
+	if startDate.After(endDate) {
+		return 50 // Neutral score - no data available yet
+	}
 
 	var totalIncome float64
 	database.DB.Model(&models.Income{}).
@@ -379,7 +432,7 @@ func (s *HealthScoreService) calculateGoalScore(userID uint, groupID *uint) floa
 
 // calculateBudgetScore calculates budget adherence score (0-100)
 // Based on consistency of expenses month-over-month
-func (s *HealthScoreService) calculateBudgetScore(accountIDs []uint) float64 {
+func (s *HealthScoreService) calculateBudgetScore(accountIDs []uint, recordStartDate time.Time) float64 {
 	if len(accountIDs) == 0 {
 		return 100
 	}
@@ -396,29 +449,66 @@ func (s *HealthScoreService) calculateBudgetScore(accountIDs []uint) float64 {
 	month3Start := endDate.AddDate(0, -3, 0)
 	month3End := month2Start
 
-	// Calculate expenses for each month
-	month1Expenses := s.calculateMonthExpenses(accountIDs, month1Start, month1End)
-	month2Expenses := s.calculateMonthExpenses(accountIDs, month2Start, month2End)
-	month3Expenses := s.calculateMonthExpenses(accountIDs, month3Start, month3End)
+	// Respect record start date for each month range
+	if !recordStartDate.IsZero() {
+		if month1Start.Before(recordStartDate) {
+			month1Start = recordStartDate
+		}
+		if month2Start.Before(recordStartDate) {
+			month2Start = recordStartDate
+		}
+		if month3Start.Before(recordStartDate) {
+			month3Start = recordStartDate
+		}
+	}
+
+	// Calculate expenses for each month (only if the range is valid)
+	var month1Expenses, month2Expenses, month3Expenses float64
+	var validMonths int
+
+	if month1End.After(month1Start) {
+		month1Expenses = s.calculateMonthExpenses(accountIDs, month1Start, month1End)
+		validMonths++
+	}
+	if month2End.After(month2Start) {
+		month2Expenses = s.calculateMonthExpenses(accountIDs, month2Start, month2End)
+		validMonths++
+	}
+	if month3End.After(month3Start) {
+		month3Expenses = s.calculateMonthExpenses(accountIDs, month3Start, month3End)
+		validMonths++
+	}
+
+	// If less than 2 valid months, return high score (not enough data to measure consistency)
+	if validMonths < 2 {
+		return 85
+	}
 
 	// If no expenses, return high score (staying within budget of 0!)
 	if month1Expenses == 0 && month2Expenses == 0 && month3Expenses == 0 {
 		return 90
 	}
 
-	// Calculate average and variance
-	avgExpenses := (month1Expenses + month2Expenses + month3Expenses) / 3
+	// Calculate average and variance using only valid months
+	totalExpenses := month1Expenses + month2Expenses + month3Expenses
+	avgExpenses := totalExpenses / float64(validMonths)
 
 	if avgExpenses == 0 {
 		return 90
 	}
 
-	// Calculate coefficient of variation (std dev / mean)
-	variance1 := (month1Expenses - avgExpenses) * (month1Expenses - avgExpenses)
-	variance2 := (month2Expenses - avgExpenses) * (month2Expenses - avgExpenses)
-	variance3 := (month3Expenses - avgExpenses) * (month3Expenses - avgExpenses)
-
-	variance := (variance1 + variance2 + variance3) / 3
+	// Calculate coefficient of variation (std dev / mean) for valid months only
+	var variance float64
+	if month1End.After(month1Start) {
+		variance += (month1Expenses - avgExpenses) * (month1Expenses - avgExpenses)
+	}
+	if month2End.After(month2Start) {
+		variance += (month2Expenses - avgExpenses) * (month2Expenses - avgExpenses)
+	}
+	if month3End.After(month3Start) {
+		variance += (month3Expenses - avgExpenses) * (month3Expenses - avgExpenses)
+	}
+	variance = variance / float64(validMonths)
 	stdDev := 0.0
 	if variance > 0 {
 		// Simple square root approximation
@@ -487,67 +577,266 @@ func (s *HealthScoreService) getRecommendationForArea(area string, score float64
 			return Recommendation{
 				Title:       "Aumente Sua Taxa de Poupança",
 				Description: "Sua taxa de poupança está baixa. Tente reduzir despesas variáveis em 10% este mês.",
-				ActionURL:   "/expenses",
-				Priority:    1,
+				ActionUrl:   "/expenses",
+				ActionText:  "Ver Despesas",
+				Priority:    "high",
+				Color:       "danger",
 			}
 		}
 		return Recommendation{
 			Title:       "Melhore Suas Economias",
 			Description: "Considere criar uma conta poupança automática de 5-10% do seu salário.",
-			ActionURL:   "/dashboard",
-			Priority:    2,
+			ActionUrl:   "/dashboard",
+			ActionText:  "Ver Dashboard",
+			Priority:    "medium",
+			Color:       "warning",
 		}
 	case "debt":
 		if score < 30 {
 			return Recommendation{
 				Title:       "Reduza Suas Obrigações Fixas",
 				Description: "Suas despesas fixas estão muito altas. Revise contratos e busque alternativas mais econômicas.",
-				ActionURL:   "/expenses",
-				Priority:    1,
+				ActionUrl:   "/expenses",
+				ActionText:  "Ver Despesas",
+				Priority:    "high",
+				Color:       "danger",
 			}
 		}
 		return Recommendation{
 			Title:       "Gerencie Suas Contas",
 			Description: "Configure lembretes para pagamento de contas e evite juros de atraso.",
-			ActionURL:   "/bills",
-			Priority:    2,
+			ActionUrl:   "/bills",
+			ActionText:  "Ver Contas",
+			Priority:    "medium",
+			Color:       "warning",
 		}
 	case "goals":
 		if score < 30 {
 			return Recommendation{
 				Title:       "Defina Metas Financeiras",
 				Description: "Você não tem metas ativas. Criar objetivos financeiros ajuda a manter o foco.",
-				ActionURL:   "/goals",
-				Priority:    1,
+				ActionUrl:   "/goals",
+				ActionText:  "Ver Metas",
+				Priority:    "high",
+				Color:       "danger",
 			}
 		}
 		return Recommendation{
 			Title:       "Aumente Contribuições para Metas",
 			Description: "Suas metas estão progredindo lentamente. Considere aumentar as contribuições mensais.",
-			ActionURL:   "/goals",
-			Priority:    2,
+			ActionUrl:   "/goals",
+			ActionText:  "Ver Metas",
+			Priority:    "medium",
+			Color:       "warning",
 		}
 	case "budget":
 		if score < 30 {
 			return Recommendation{
 				Title:       "Controle Seus Gastos Variáveis",
 				Description: "Suas despesas variam muito mês a mês. Estabeleça um orçamento mensal e monitore semanalmente.",
-				ActionURL:   "/expenses",
-				Priority:    1,
+				ActionUrl:   "/expenses",
+				ActionText:  "Ver Despesas",
+				Priority:    "high",
+				Color:       "danger",
 			}
 		}
 		return Recommendation{
 			Title:       "Mantenha a Consistência",
 			Description: "Revise seus gastos regularmente para manter a consistência no orçamento.",
-			ActionURL:   "/dashboard",
-			Priority:    2,
+			ActionUrl:   "/dashboard",
+			ActionText:  "Ver Dashboard",
+			Priority:    "medium",
+			Color:       "warning",
 		}
 	default:
 		return Recommendation{
 			Title:       "Continue Acompanhando",
 			Description: "Monitore suas finanças regularmente para manter a saúde financeira.",
-			ActionURL:   "/dashboard",
-			Priority:    3,
+			ActionUrl:   "/dashboard",
+			ActionText:  "Ver Dashboard",
+			Priority:    "low",
+			Color:       "brand",
 		}
 	}
+}
+
+// HealthMetrics contains raw financial metrics (percentages)
+type HealthMetrics struct {
+	SavingsRate     float64 // Percentage of income saved
+	DebtRatio       float64 // Debt/obligations as percentage of income
+	GoalProgress    float64 // Average progress across goals
+	ActiveGoals     int     // Count of active goals
+	BudgetAdherence float64 // Budget adherence percentage (100 = perfect)
+}
+
+// GetHealthMetrics calculates raw financial metrics for display
+func (s *HealthScoreService) GetHealthMetrics(userID uint, accountIDs []uint) HealthMetrics {
+	recordStartDate := s.getRecordStartDate()
+
+	metrics := HealthMetrics{
+		SavingsRate:     s.getSavingsRate(accountIDs, recordStartDate),
+		DebtRatio:       s.getDebtRatio(accountIDs, recordStartDate),
+		BudgetAdherence: s.getBudgetAdherence(accountIDs, recordStartDate),
+	}
+
+	// Get goal metrics
+	metrics.GoalProgress, metrics.ActiveGoals = s.getGoalMetrics(userID)
+
+	return metrics
+}
+
+// getSavingsRate returns the actual savings rate as a percentage
+func (s *HealthScoreService) getSavingsRate(accountIDs []uint, recordStartDate time.Time) float64 {
+	if len(accountIDs) == 0 {
+		return 0
+	}
+
+	endDate := time.Now()
+	startDate := endDate.AddDate(0, -3, 0)
+
+	// Respect record start date
+	if !recordStartDate.IsZero() && startDate.Before(recordStartDate) {
+		startDate = recordStartDate
+	}
+
+	// If start date is after end date, there's no valid data period yet
+	if startDate.After(endDate) {
+		return 0
+	}
+
+	var totalIncome float64
+	database.DB.Model(&models.Income{}).
+		Where("account_id IN ? AND date BETWEEN ? AND ?", accountIDs, startDate, endDate).
+		Select("COALESCE(SUM(net_amount), 0)").
+		Scan(&totalIncome)
+
+	if totalIncome == 0 {
+		return 0
+	}
+
+	totalExpenses := s.calculateMonthExpenses(accountIDs, startDate, endDate)
+	savingsRate := ((totalIncome - totalExpenses) / totalIncome) * 100
+
+	if savingsRate < 0 {
+		savingsRate = 0
+	}
+
+	return savingsRate
+}
+
+// getDebtRatio returns the debt/obligation ratio as a percentage
+func (s *HealthScoreService) getDebtRatio(accountIDs []uint, recordStartDate time.Time) float64 {
+	if len(accountIDs) == 0 {
+		return 0
+	}
+
+	endDate := time.Now()
+	startDate := endDate.AddDate(0, -1, 0)
+
+	// Respect record start date
+	if !recordStartDate.IsZero() && startDate.Before(recordStartDate) {
+		startDate = recordStartDate
+	}
+
+	// If start date is after end date, there's no valid data period yet
+	if startDate.After(endDate) {
+		return 0
+	}
+
+	var totalIncome float64
+	database.DB.Model(&models.Income{}).
+		Where("account_id IN ? AND date BETWEEN ? AND ?", accountIDs, startDate, endDate).
+		Select("COALESCE(SUM(net_amount), 0)").
+		Scan(&totalIncome)
+
+	if totalIncome == 0 {
+		return 0
+	}
+
+	var totalFixed float64
+	database.DB.Model(&models.Expense{}).
+		Where("account_id IN ? AND type = ? AND active = ?", accountIDs, models.ExpenseTypeFixed, true).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalFixed)
+
+	var totalBills float64
+	database.DB.Model(&models.Bill{}).
+		Where("account_id IN ? AND due_date BETWEEN ? AND ?", accountIDs, startDate, endDate).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalBills)
+
+	totalObligations := totalFixed + totalBills
+	debtRatio := (totalObligations / totalIncome) * 100
+
+	return debtRatio
+}
+
+// getBudgetAdherence returns budget adherence as percentage (100 = consistent spending)
+func (s *HealthScoreService) getBudgetAdherence(accountIDs []uint, recordStartDate time.Time) float64 {
+	if len(accountIDs) == 0 {
+		return 100
+	}
+
+	endDate := time.Now()
+	month1Start := endDate.AddDate(0, -1, 0)
+	month2Start := endDate.AddDate(0, -2, 0)
+
+	// Respect record start date
+	if !recordStartDate.IsZero() {
+		if month1Start.Before(recordStartDate) {
+			month1Start = recordStartDate
+		}
+		if month2Start.Before(recordStartDate) {
+			return 100 // Not enough months for comparison
+		}
+	}
+
+	// If start date is after end date, there's no valid data period yet
+	if month1Start.After(endDate) {
+		return 100
+	}
+
+	month1Expenses := s.calculateMonthExpenses(accountIDs, month1Start, endDate)
+	month2Expenses := s.calculateMonthExpenses(accountIDs, month2Start, month1Start)
+
+	if month2Expenses == 0 {
+		return 100
+	}
+
+	// Calculate how close current spending is to previous (100% = same, less = overspending)
+	ratio := month1Expenses / month2Expenses
+	if ratio > 1 {
+		// Overspending - reduce from 100
+		adherence := 100 - ((ratio - 1) * 100)
+		if adherence < 0 {
+			adherence = 0
+		}
+		return adherence
+	}
+
+	return 100 // At or under budget
+}
+
+// getGoalMetrics returns goal progress and active goals count
+func (s *HealthScoreService) getGoalMetrics(userID uint) (progress float64, count int) {
+	var goals []models.GroupGoal
+
+	// Get user's groups
+	var groupIDs []uint
+	database.DB.Model(&models.GroupMember{}).Where("user_id = ?", userID).Pluck("group_id", &groupIDs)
+
+	if len(groupIDs) > 0 {
+		database.DB.Where("group_id IN ? AND status = ?", groupIDs, models.GoalStatusActive).Find(&goals)
+	}
+
+	if len(goals) == 0 {
+		return 0, 0
+	}
+
+	totalProgress := 0.0
+	for _, goal := range goals {
+		totalProgress += goal.ProgressPercentage()
+	}
+
+	return totalProgress / float64(len(goals)), len(goals)
 }

@@ -124,6 +124,21 @@ func loadTemplates() *TemplateRegistry {
 			}
 			return dict
 		},
+		"mul": func(a, b float64) float64 {
+			return a * b
+		},
+		"div": func(a, b float64) float64 {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"sub": func(a, b float64) float64 {
+			return a - b
+		},
+		"add": func(a, b float64) float64 {
+			return a + b
+		},
 	}
 
 	baseTemplate := "internal/templates/base.html"
@@ -153,9 +168,14 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/join-group.html",
 	}
 
+	// Get all partial templates
+	partials, _ := filepath.Glob("internal/templates/partials/*.html")
+
 	for _, page := range pages {
 		name := filepath.Base(page)
-		tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(baseTemplate, page))
+		// Parse base template, page, and all partials
+		files := append([]string{baseTemplate, page}, partials...)
+		tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(files...))
 		templates[name] = tmpl
 	}
 

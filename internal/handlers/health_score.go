@@ -52,9 +52,44 @@ func (h *HealthScoreHandler) Index(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Erro ao gerar recomendações")
 	}
 
+	// Get actual health metrics
+	metrics := h.healthScoreService.GetHealthMetrics(userID, accountIDs)
+
+	// Calculate score offset for SVG circle (440 is the circumference for r=70)
+	scoreOffset := 440 - (440 * score.Score / 100)
+
+	// Calculate trend from history
+	var scoreTrend float64
+	if len(history) >= 2 {
+		scoreTrend = history[0].Score - history[1].Score
+	}
+
+	// Format score history for template
+	scoreHistory := make([]map[string]interface{}, len(history))
+	for i, h := range history {
+		scoreHistory[i] = map[string]interface{}{
+			"Month": h.CalculatedAt.Format("Jan"),
+			"Score": h.Score,
+		}
+	}
+
 	return c.Render(http.StatusOK, "health_score.html", map[string]interface{}{
-		"score":           score,
-		"history":         history,
+		"healthScore": score.Score,
+		"scoreOffset": scoreOffset,
+		"lastUpdated": score.CalculatedAt.Format("02/01/2006"),
+		"scoreTrend":  scoreTrend,
+		"components": map[string]float64{
+			"savingsScore": score.SavingsScore,
+			"budgetScore":  score.BudgetScore,
+			"debtScore":    score.DebtScore,
+			"goalScore":    score.GoalScore,
+		},
+		"savingsRate":     metrics.SavingsRate,
+		"budgetAdherence": metrics.BudgetAdherence,
+		"debtRatio":       metrics.DebtRatio,
+		"goalProgress":    metrics.GoalProgress,
+		"activeGoals":     metrics.ActiveGoals,
+		"scoreHistory":    scoreHistory,
 		"recommendations": recommendations,
 		"userID":          userID,
 	})
@@ -148,9 +183,45 @@ func (h *HealthScoreHandler) GroupScorePage(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Erro ao gerar recomendações")
 	}
 
+	// Get group account IDs for metrics calculation
+	groupAccountIDs, _ := h.accountService.GetAllGroupAccountIDs(uint(groupID))
+	metrics := h.healthScoreService.GetHealthMetrics(userID, groupAccountIDs)
+
+	// Calculate score offset for SVG circle (440 is the circumference for r=70)
+	scoreOffset := 440 - (440 * score.Score / 100)
+
+	// Calculate trend from history
+	var scoreTrend float64
+	if len(history) >= 2 {
+		scoreTrend = history[0].Score - history[1].Score
+	}
+
+	// Format score history for template
+	scoreHistory := make([]map[string]interface{}, len(history))
+	for i, h := range history {
+		scoreHistory[i] = map[string]interface{}{
+			"Month": h.CalculatedAt.Format("Jan"),
+			"Score": h.Score,
+		}
+	}
+
 	return c.Render(http.StatusOK, "health_score.html", map[string]interface{}{
-		"score":           score,
-		"history":         history,
+		"healthScore": score.Score,
+		"scoreOffset": scoreOffset,
+		"lastUpdated": score.CalculatedAt.Format("02/01/2006"),
+		"scoreTrend":  scoreTrend,
+		"components": map[string]float64{
+			"savingsScore": score.SavingsScore,
+			"budgetScore":  score.BudgetScore,
+			"debtScore":    score.DebtScore,
+			"goalScore":    score.GoalScore,
+		},
+		"savingsRate":     metrics.SavingsRate,
+		"budgetAdherence": metrics.BudgetAdherence,
+		"debtRatio":       metrics.DebtRatio,
+		"goalProgress":    metrics.GoalProgress,
+		"activeGoals":     metrics.ActiveGoals,
+		"scoreHistory":    scoreHistory,
 		"recommendations": recommendations,
 		"group":           group,
 		"groupID":         groupID,

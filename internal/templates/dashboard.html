@@ -1,10 +1,10 @@
 {{define "content"}}
 <div class="space-y-8">
     <!-- Header -->
-    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6">
         <div>
-            <p class="text-brand-400 text-sm font-medium tracking-wide uppercase mb-2">Visao Geral</p>
-            <h1 class="font-display text-4xl sm:text-5xl text-white tracking-tight">Dashboard</h1>
+            <p class="text-brand-400 text-xs sm:text-sm font-medium tracking-wide uppercase mb-1 sm:mb-2">Visao Geral</p>
+            <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl text-white tracking-tight">Dashboard</h1>
         </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <!-- Account Filter -->
@@ -22,22 +22,22 @@
                 </select>
             </div>
             <!-- Fiscal Info -->
-            <div class="flex items-center gap-4 glass-light rounded-xl px-5 py-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center">
-                        <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center gap-2 sm:gap-4 glass-light rounded-xl px-3 sm:px-5 py-2 sm:py-3">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-brand-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">12 meses</p>
-                        <p class="font-semibold text-white">R$ {{printf "%.2f" .revenue12m}}</p>
+                        <p class="text-[10px] sm:text-xs text-dark-400 uppercase tracking-wide">12 meses</p>
+                        <p class="text-sm sm:text-base font-semibold text-white">R$ {{printf "%.2f" .revenue12m}}</p>
                     </div>
                 </div>
-                <div class="h-10 w-px bg-white/10"></div>
+                <div class="h-8 sm:h-10 w-px bg-white/10"></div>
                 <div>
-                    <p class="text-xs text-dark-400 uppercase tracking-wide">Faixa {{.currentBracket}}</p>
-                    <p class="font-semibold text-brand-400">{{printf "%.2f" .effectiveRate}}%</p>
+                    <p class="text-[10px] sm:text-xs text-dark-400 uppercase tracking-wide">Faixa {{.currentBracket}}</p>
+                    <p class="text-sm sm:text-base font-semibold text-brand-400">{{printf "%.2f" .effectiveRate}}%</p>
                 </div>
             </div>
         </div>
@@ -90,140 +90,140 @@
     {{end}}
 
     <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <!-- Receita -->
-        <div class="card-premium rounded-2xl p-6 group">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <svg class="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card-premium rounded-xl sm:rounded-2xl p-4 sm:p-6 group">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-success-500/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <span class="badge-success text-xs font-medium px-2.5 py-1 rounded-full">Entrada</span>
+                <span class="badge-success text-[10px] sm:text-xs font-medium px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Entrada</span>
             </div>
-            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
-            <p class="text-sm text-dark-400">Receita Bruta</p>
+            <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
+            <p class="text-xs sm:text-sm text-dark-400">Receita Bruta</p>
         </div>
 
         <!-- Impostos -->
-        <div class="card-premium rounded-2xl p-6 group">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-danger-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <svg class="w-6 h-6 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card-premium rounded-xl sm:rounded-2xl p-4 sm:p-6 group">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-danger-500/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
                     </svg>
                 </div>
-                <span class="badge-danger text-xs font-medium px-2.5 py-1 rounded-full">Impostos</span>
+                <span class="badge-danger text-[10px] sm:text-xs font-medium px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Impostos</span>
             </div>
-            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .totalImpostos}}</p>
-            <p class="text-sm text-dark-400">Simples + INSS</p>
+            <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">R$ {{printf "%.2f" .totalImpostos}}</p>
+            <p class="text-xs sm:text-sm text-dark-400">Simples + INSS</p>
         </div>
 
         <!-- Despesas -->
-        <div class="card-premium rounded-2xl p-6 group">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-brand-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card-premium rounded-xl sm:rounded-2xl p-4 sm:p-6 group">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-brand-500/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
                     </svg>
                 </div>
-                <span class="badge-warning text-xs font-medium px-2.5 py-1 rounded-full">Saida</span>
+                <span class="badge-warning text-[10px] sm:text-xs font-medium px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Saida</span>
             </div>
-            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
-            <p class="text-sm text-dark-400">Total Despesas</p>
+            <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
+            <p class="text-xs sm:text-sm text-dark-400">Total Despesas</p>
         </div>
 
         <!-- Saldo Final -->
-        <div class="relative overflow-hidden rounded-2xl p-6 {{if gt .saldoFinal 0.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}} group">
+        <div class="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 {{if gt .saldoFinal 0.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}} group">
             <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
             <div class="relative">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
                     </div>
-                    <span class="text-xs font-medium text-white/90 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">Saldo</span>
+                    <span class="text-[10px] sm:text-xs font-medium text-white/90 bg-white/20 backdrop-blur-sm px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Saldo</span>
                 </div>
-                <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .saldoFinal}}</p>
-                <p class="text-sm text-white/70">Sobra do Mes</p>
+                <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">R$ {{printf "%.2f" .saldoFinal}}</p>
+                <p class="text-xs sm:text-sm text-white/70">Sobra do Mes</p>
             </div>
         </div>
     </div>
 
     <!-- Health Score Widget -->
-    <a href="/health-score" class="block group transition-all duration-300 hover:scale-[1.02]">
-        <div class="relative overflow-hidden rounded-2xl">
+    <a href="/health-score" class="block group transition-all duration-300 hover:scale-[1.01] sm:hover:scale-[1.02]">
+        <div class="relative overflow-hidden rounded-xl sm:rounded-2xl">
             <div class="absolute inset-0 {{if ge .healthScore 80.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else if ge .healthScore 60.0}}bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700{{else if ge .healthScore 40.0}}bg-gradient-to-br from-amber-600 via-amber-500 to-orange-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}}"></div>
             <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
-            <div class="relative p-6 lg:p-8">
-                <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+            <div class="relative p-4 sm:p-6 lg:p-8">
+                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 lg:gap-12">
                     <!-- Score Circle (Compact) -->
                     <div class="flex-shrink-0">
-                        <div class="relative w-32 h-32 lg:w-40 lg:h-40">
-                            <svg class="w-full h-full transform -rotate-90">
-                                <circle cx="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" cy="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" r="{{if eq 32 (printf `%.0f` 32)}}56{{else}}70{{end}}" stroke="rgba(255,255,255,0.2)" stroke-width="10" fill="none"/>
-                                <circle cx="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" cy="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" r="{{if eq 32 (printf `%.0f` 32)}}56{{else}}70{{end}}"
+                        <div class="relative w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+                                <circle cx="80" cy="80" r="70" stroke="rgba(255,255,255,0.2)" stroke-width="10" fill="none"/>
+                                <circle cx="80" cy="80" r="70"
                                     stroke="white"
                                     stroke-width="10"
                                     fill="none"
-                                    stroke-dasharray="{{if eq 32 (printf `%.0f` 32)}}352{{else}}440{{end}}"
+                                    stroke-dasharray="440"
                                     stroke-dashoffset="{{.scoreOffset}}"
                                     stroke-linecap="round"
                                     class="transition-all duration-1000"/>
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-4xl lg:text-5xl font-bold text-white">{{printf "%.0f" .healthScore}}</span>
-                                <span class="text-white/80 text-xs font-medium">de 100</span>
+                                <span class="text-2xl sm:text-4xl lg:text-5xl font-bold text-white">{{printf "%.0f" .healthScore}}</span>
+                                <span class="text-white/80 text-[10px] sm:text-xs font-medium">de 100</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Score Info -->
-                    <div class="flex-1 text-center lg:text-left">
-                        <div class="flex items-center gap-2 justify-center lg:justify-start mb-2">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex-1 text-center sm:text-left">
+                        <div class="flex items-center gap-2 justify-center sm:justify-start mb-2">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <h2 class="text-2xl lg:text-3xl font-bold text-white">
+                            <h2 class="text-lg sm:text-2xl lg:text-3xl font-bold text-white">
                                 {{if ge .healthScore 80.0}}Saude Financeira Excelente!
                                 {{else if ge .healthScore 60.0}}Boa Saude Financeira
                                 {{else if ge .healthScore 40.0}}Saude Financeira Regular
                                 {{else}}Atencao: Melhore sua Saude Financeira{{end}}
                             </h2>
                         </div>
-                        <p class="text-white/90 text-base lg:text-lg mb-4 max-w-2xl mx-auto lg:mx-0">
+                        <p class="text-white/90 text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 max-w-2xl mx-auto sm:mx-0">
                             {{if ge .healthScore 80.0}}Continue assim! Seus habitos financeiros estao otimos.
                             {{else if ge .healthScore 60.0}}Voce esta no caminho certo. Veja recomendacoes para melhorar.
                             {{else if ge .healthScore 40.0}}Ha espaco para melhorias. Clique para ver recomendacoes.
                             {{else}}Sua situacao precisa de atencao. Veja recomendacoes urgentes.{{end}}
                         </p>
-                        <div class="flex flex-wrap gap-3 justify-center lg:justify-start">
-                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <p class="text-white/80 text-xs uppercase tracking-wide mb-0.5">Ultima Atualizacao</p>
-                                <p class="text-white font-semibold text-sm">{{.lastUpdated}}</p>
+                        <div class="flex flex-wrap gap-2 sm:gap-3 justify-center sm:justify-start">
+                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1.5 sm:py-2">
+                                <p class="text-white/80 text-[10px] sm:text-xs uppercase tracking-wide mb-0.5">Ultima Atualizacao</p>
+                                <p class="text-white font-semibold text-xs sm:text-sm">{{.lastUpdated}}</p>
                             </div>
                             {{if ne .scoreTrend 0.0}}
-                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <p class="text-white/80 text-xs uppercase tracking-wide mb-0.5">Tendencia</p>
-                                <div class="flex items-center gap-1.5">
+                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1.5 sm:py-2">
+                                <p class="text-white/80 text-[10px] sm:text-xs uppercase tracking-wide mb-0.5">Tendencia</p>
+                                <div class="flex items-center gap-1 sm:gap-1.5">
                                     {{if gt .scoreTrend 0.0}}
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                                     </svg>
-                                    <span class="text-white font-semibold text-sm">+{{printf "%.1f" .scoreTrend}}</span>
+                                    <span class="text-white font-semibold text-xs sm:text-sm">+{{printf "%.1f" .scoreTrend}}</span>
                                     {{else}}
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
                                     </svg>
-                                    <span class="text-white font-semibold text-sm">{{printf "%.1f" .scoreTrend}}</span>
+                                    <span class="text-white font-semibold text-xs sm:text-sm">{{printf "%.1f" .scoreTrend}}</span>
                                     {{end}}
                                 </div>
                             </div>
                             {{end}}
-                            <div class="bg-white/30 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2 group-hover:bg-white/40 transition-colors">
-                                <span class="text-white font-semibold text-sm">Ver Detalhes</span>
-                                <svg class="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="bg-white/30 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 group-hover:bg-white/40 transition-colors">
+                                <span class="text-white font-semibold text-xs sm:text-sm">Ver Detalhes</span>
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
                             </div>
@@ -258,7 +258,7 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Receita</span>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         {{$change := 0.0}}
                         {{if gt .monthOverMonthComparison.PreviousMonth.TotalIncomeGross 0.0}}
                             {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalIncomeGross .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) 100.0}}
@@ -273,7 +273,7 @@
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
                             <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalIncomeGross}}</p>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
                             <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalIncomeGross}}</p>
@@ -297,9 +297,9 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Impostos</span>
                         </div>
-                        {{$currTax := add .monthOverMonthComparison.CurrentMonth.TotalTax .monthOverMonthComparison.CurrentMonth.TotalINSS}}
-                        {{if .monthOverMonthComparison.PreviousMonth}}
-                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
+                        {{$currTax := .monthOverMonthComparison.CurrentMonth.TotalTax}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
+                        {{$prevTax := .monthOverMonthComparison.PreviousMonth.TotalTax}}
                         {{$change := 0.0}}
                         {{if gt $prevTax 0.0}}
                             {{$change = mul (div (sub $currTax $prevTax) $prevTax) 100.0}}
@@ -314,8 +314,8 @@
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
                             <p class="text-lg font-bold text-white">R$ {{printf "%.2f" $currTax}}</p>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
-                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
+                        {{$prevTax := .monthOverMonthComparison.PreviousMonth.TotalTax}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
                             <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevTax}}</p>
@@ -339,7 +339,7 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Despesas</span>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         {{$change := 0.0}}
                         {{if gt .monthOverMonthComparison.PreviousMonth.TotalExpenses 0.0}}
                             {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalExpenses .monthOverMonthComparison.PreviousMonth.TotalExpenses) .monthOverMonthComparison.PreviousMonth.TotalExpenses) 100.0}}
@@ -354,7 +354,7 @@
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
                             <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalExpenses}}</p>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
                             <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalExpenses}}</p>
@@ -378,7 +378,7 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Saldo</span>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
                         {{$change := 0.0}}
                         {{if gt $prevBalance 0.0}}
@@ -396,7 +396,7 @@
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
                             <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.Balance}}</p>
                         </div>
-                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{if .monthOverMonthComparison.HasPreviousMonth}}
                         {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
@@ -415,100 +415,88 @@
 
     <!-- Income vs Expense Trend -->
     <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
-            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
-                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+            <div class="w-7 h-7 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                 </svg>
             </div>
-            <h2 class="text-lg font-semibold text-white">Tendencia - Receita vs Despesas</h2>
+            <h2 class="text-base font-semibold text-white">Tendencia - Receita vs Despesas</h2>
         </div>
 
-        <div class="p-6">
+        <div class="p-4">
             {{if .monthSummaries}}
-            <div class="relative w-full" style="height: 400px;">
-                <canvas id="trendLineChart"></canvas>
+            <div class="relative w-full" style="height: 280px;">
+                <canvas id="trendBarChart"></canvas>
             </div>
 
             <script>
                 (function() {
-                    const ctx = document.getElementById('trendLineChart');
+                    const ctx = document.getElementById('trendBarChart');
                     if (!ctx) return;
 
-                    // Get the last 6 months of data
                     const monthData = [
                         {{range .incomeVsExpenseTrend}}
-                        {
-                            month: "{{.MonthName}}",
-                            income: {{.TotalIncome}},
-                            expenses: {{.TotalExpense}}
-                        },
+                        { month: "{{.MonthName}}", income: {{.TotalIncome}}, expenses: {{.TotalExpense}} },
                         {{end}}
                     ];
 
-                    // Create chart
                     new Chart(ctx, {
-                        type: 'line',
+                        type: 'bar',
                         data: {
                             labels: monthData.map(d => d.month),
                             datasets: [
                                 {
                                     label: 'Receita',
                                     data: monthData.map(d => d.income),
+                                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
                                     borderColor: '#22c55e',
-                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                    borderWidth: 3,
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 6,
-                                    pointHoverRadius: 8,
-                                    pointBackgroundColor: '#22c55e',
-                                    pointBorderColor: '#1e293b',
-                                    pointBorderWidth: 2,
-                                    pointHoverBackgroundColor: '#22c55e',
-                                    pointHoverBorderColor: '#fff',
-                                    pointHoverBorderWidth: 3
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    order: 2
                                 },
                                 {
                                     label: 'Despesas',
                                     data: monthData.map(d => d.expenses),
+                                    backgroundColor: 'rgba(168, 85, 247, 0.8)',
                                     borderColor: '#a855f7',
-                                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                                    borderWidth: 3,
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 6,
-                                    pointHoverRadius: 8,
-                                    pointBackgroundColor: '#a855f7',
-                                    pointBorderColor: '#1e293b',
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    order: 3
+                                },
+                                {
+                                    label: 'Saldo',
+                                    data: monthData.map(d => d.income - d.expenses),
+                                    type: 'line',
+                                    borderColor: '#fbbf24',
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#fbbf24',
+                                    pointBorderColor: '#0f172a',
                                     pointBorderWidth: 2,
-                                    pointHoverBackgroundColor: '#a855f7',
-                                    pointHoverBorderColor: '#fff',
-                                    pointHoverBorderWidth: 3
+                                    tension: 0.3,
+                                    order: 1
                                 }
                             ]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
-                            },
+                            interaction: { intersect: false, mode: 'index' },
                             plugins: {
                                 legend: {
                                     display: true,
                                     position: 'top',
                                     align: 'end',
                                     labels: {
-                                        color: '#e2e8f0',
-                                        font: {
-                                            size: 13,
-                                            weight: '600'
-                                        },
-                                        padding: 15,
+                                        color: '#94a3b8',
+                                        font: { size: 11, weight: '500' },
+                                        padding: 12,
                                         usePointStyle: true,
-                                        pointStyle: 'circle'
+                                        pointStyle: 'circle',
+                                        boxWidth: 8
                                     }
                                 },
                                 tooltip: {
@@ -517,74 +505,54 @@
                                     bodyColor: '#e2e8f0',
                                     borderColor: 'rgba(168, 85, 247, 0.3)',
                                     borderWidth: 1,
-                                    padding: 12,
-                                    displayColors: true,
+                                    padding: 10,
                                     callbacks: {
                                         label: function(context) {
-                                            return ' ' + context.dataset.label + ': R$ ' + context.parsed.y.toFixed(2);
+                                            const value = context.parsed.y;
+                                            const prefix = context.dataset.label === 'Saldo' && value >= 0 ? '+' : '';
+                                            return ' ' + context.dataset.label + ': ' + prefix + 'R$ ' + value.toFixed(2);
                                         }
                                     }
                                 }
                             },
                             scales: {
                                 x: {
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.05)',
-                                        drawBorder: false
-                                    },
-                                    ticks: {
-                                        color: '#94a3b8',
-                                        font: {
-                                            size: 12,
-                                            weight: '500'
-                                        }
-                                    }
+                                    grid: { display: false },
+                                    ticks: { color: '#64748b', font: { size: 11 } }
                                 },
                                 y: {
                                     beginAtZero: true,
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.05)',
-                                        drawBorder: false
-                                    },
+                                    grid: { color: 'rgba(255, 255, 255, 0.03)', drawBorder: false },
                                     ticks: {
-                                        color: '#94a3b8',
-                                        font: {
-                                            size: 12,
-                                            weight: '500'
-                                        },
-                                        callback: function(value) {
-                                            return 'R$ ' + value.toFixed(0);
-                                        }
+                                        color: '#64748b',
+                                        font: { size: 10 },
+                                        callback: function(value) { return 'R$ ' + (value/1000).toFixed(0) + 'k'; }
                                     }
                                 }
                             },
-                            animation: {
-                                duration: 1000,
-                                easing: 'easeInOutQuart'
-                            }
+                            animation: { duration: 600, easing: 'easeOutQuart' }
                         }
                     });
                 })();
             </script>
             {{else}}
-            <div class="text-center py-12">
-                <div class="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="text-center py-8">
+                <div class="w-12 h-12 bg-brand-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                     </svg>
                 </div>
-                <p class="text-dark-400 font-medium">Sem dados suficientes</p>
-                <p class="text-dark-500 text-sm mt-1">Adicione transacoes para visualizar a tendencia</p>
+                <p class="text-dark-400 font-medium text-sm">Sem dados suficientes</p>
+                <p class="text-dark-500 text-xs mt-1">Adicione transacoes para visualizar</p>
             </div>
             {{end}}
         </div>
     </div>
->>>>>>> master
 
     <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <!-- Financial Summary (2 columns) -->
-        <div class="lg:col-span-2 card-premium rounded-2xl overflow-hidden">
+        <div class="md:col-span-2 lg:col-span-2 card-premium rounded-2xl overflow-hidden">
             <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
                 <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -777,37 +745,38 @@
 
         <div class="p-6">
             {{if .categoryBreakdown}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Pie Chart -->
-                <div class="flex items-center justify-center p-4">
-                    <div class="relative w-full max-w-sm aspect-square">
-                        <canvas id="categoryPieChart"></canvas>
+            {{$total := 0.0}}
+            {{range .categoryBreakdown}}
+                {{$total = add $total .Amount}}
+            {{end}}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Doughnut Chart with Total -->
+                <div class="flex items-center justify-center">
+                    <div class="relative w-48 h-48">
+                        <canvas id="categoryDoughnutChart"></canvas>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span class="text-xs text-dark-400 uppercase tracking-wider">Total</span>
+                            <span class="text-xl font-bold text-white">R$ {{printf "%.0f" $total}}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Legend with Percentages -->
-                <div class="flex flex-col justify-center">
-                    <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wider mb-4">Distribuicao</h3>
-                    <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-                        {{$total := 0.0}}
-                        {{range .categoryBreakdown}}
-                            {{$total = add $total .Amount}}
-                        {{end}}
+                <!-- Compact Category List -->
+                <div class="lg:col-span-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
                         {{range $index, $cat := .categoryBreakdown}}
                         {{$percentage := 0.0}}
                         {{if gt $total 0.0}}
                             {{$percentage = mul (div $cat.Amount $total) 100.0}}
                         {{end}}
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:bg-dark-800 transition-all duration-200">
-                            <div class="flex items-center gap-3 flex-1 min-w-0">
-                                <div class="w-4 h-4 rounded-full category-color-{{$index}} flex-shrink-0"></div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-white truncate">{{$cat.Category}}</p>
-                                    <p class="text-xs text-dark-400">R$ {{printf "%.2f" $cat.Amount}}</p>
-                                </div>
+                        <div class="flex items-center gap-3 p-2.5 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors">
+                            <div class="w-3 h-3 rounded-full category-color-{{$index}} flex-shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-white truncate">{{$cat.Category}}</p>
                             </div>
-                            <div class="ml-3">
-                                <span class="text-lg font-bold text-brand-400 whitespace-nowrap">{{printf "%.1f" $percentage}}%</span>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="text-xs text-dark-400">R$ {{printf "%.0f" $cat.Amount}}</span>
+                                <span class="text-sm font-semibold text-brand-400 w-12 text-right">{{printf "%.0f" $percentage}}%</span>
                             </div>
                         </div>
                         {{end}}
@@ -817,61 +786,47 @@
 
             <script>
                 (function() {
-                    const ctx = document.getElementById('categoryPieChart');
+                    const ctx = document.getElementById('categoryDoughnutChart');
                     if (!ctx) return;
 
-                    // Category data
                     const categories = [
                         {{range .categoryBreakdownWithPercentages}}
-                        {
-                            name: "{{.Category}}",
-                            amount: {{.Amount}}
-                        },
+                        { name: "{{.Category}}", amount: {{.Amount}} },
                         {{end}}
                     ];
 
-                    // Calculate total
                     const total = categories.reduce((sum, cat) => sum + cat.amount, 0);
 
-                    // Generate colors
                     const colors = [
-                        '#a855f7', '#c084fc', '#e9d5ff',
-                        '#fb923c', '#f97316', '#fdba74',
-                        '#22c55e', '#4ade80', '#86efac',
-                        '#3b82f6', '#60a5fa', '#93c5fd',
-                        '#ec4899', '#f472b6', '#f9a8d4',
-                        '#14b8a6', '#2dd4bf', '#5eead4',
-                        '#f59e0b', '#fbbf24', '#fcd34d'
+                        '#a855f7', '#22c55e', '#3b82f6', '#f97316', '#ec4899',
+                        '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444',
+                        '#84cc16', '#6366f1', '#d946ef', '#0ea5e9', '#eab308'
                     ];
 
-                    // Apply colors to legend items
                     categories.forEach((cat, index) => {
-                        const colorElements = document.querySelectorAll('.category-color-' + index);
-                        colorElements.forEach(el => {
+                        document.querySelectorAll('.category-color-' + index).forEach(el => {
                             el.style.backgroundColor = colors[index % colors.length];
                         });
                     });
 
-                    // Create chart
                     new Chart(ctx, {
-                        type: 'pie',
+                        type: 'doughnut',
                         data: {
                             labels: categories.map(c => c.name),
                             datasets: [{
                                 data: categories.map(c => c.amount),
                                 backgroundColor: colors.slice(0, categories.length),
-                                borderColor: '#1e293b',
-                                borderWidth: 2,
-                                hoverOffset: 10
+                                borderColor: '#0f172a',
+                                borderWidth: 3,
+                                hoverOffset: 8
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: true,
+                            cutout: '65%',
                             plugins: {
-                                legend: {
-                                    display: false
-                                },
+                                legend: { display: false },
                                 tooltip: {
                                     backgroundColor: 'rgba(30, 41, 59, 0.95)',
                                     titleColor: '#f1f5f9',
@@ -879,26 +834,16 @@
                                     borderColor: 'rgba(168, 85, 247, 0.3)',
                                     borderWidth: 1,
                                     padding: 12,
-                                    displayColors: true,
                                     callbacks: {
                                         label: function(context) {
                                             const value = context.parsed;
-                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                            return ' R$ ' + value.toFixed(2) + ' (' + percentage + '%)';
+                                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return ' R$ ' + value.toFixed(2) + ' (' + pct + '%)';
                                         }
                                     }
                                 }
                             },
-                            interaction: {
-                                intersect: true,
-                                mode: 'point'
-                            },
-                            animation: {
-                                animateRotate: true,
-                                animateScale: true,
-                                duration: 1000,
-                                easing: 'easeInOutQuart'
-                            }
+                            animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' }
                         }
                     });
                 })();

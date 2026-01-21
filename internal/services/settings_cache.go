@@ -12,11 +12,12 @@ import (
 
 // SettingsData represents cached application settings
 type SettingsData struct {
-	ProLabore              float64 `json:"pro_labore"`
-	INSSCeiling            float64 `json:"inss_ceiling"`
-	INSSRate               float64 `json:"inss_rate"`
-	INSSAmount             float64 `json:"inss_amount"` // Calculated value
-	BudgetWarningThreshold float64 `json:"budget_warning_threshold"`
+	ProLabore              float64   `json:"pro_labore"`
+	INSSCeiling            float64   `json:"inss_ceiling"`
+	INSSRate               float64   `json:"inss_rate"`
+	INSSAmount             float64   `json:"inss_amount"` // Calculated value
+	BudgetWarningThreshold float64   `json:"budget_warning_threshold"`
+	RecordStartDate        time.Time `json:"record_start_date"` // Date from which to show records
 }
 
 // SettingsCacheService provides thread-safe caching for application settings with TTL-based expiration
@@ -86,6 +87,7 @@ func (s *SettingsCacheService) fetchSettingsFromDB() SettingsData {
 		INSSCeiling:            getSettingFloat(models.SettingINSSCeiling),
 		INSSRate:               getSettingFloat(models.SettingINSSRate),
 		BudgetWarningThreshold: getSettingFloat(models.SettingBudgetWarningThreshold),
+		RecordStartDate:        getSettingDate(models.SettingRecordStartDate),
 	}
 
 	// Default to 100% if threshold is not set or is 0
@@ -102,6 +104,19 @@ func (s *SettingsCacheService) fetchSettingsFromDB() SettingsData {
 	data.INSSAmount = CalculateINSS(inssConfig)
 
 	return data
+}
+
+// getSettingDate retrieves a setting value from database and converts to time.Time
+func getSettingDate(key string) time.Time {
+	var setting models.Settings
+	if err := database.DB.Where("key = ?", key).First(&setting).Error; err != nil {
+		return time.Time{} // Return zero time if not set
+	}
+	parsed, err := time.Parse("2006-01-02", setting.Value)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
 }
 
 // getSettingFloat retrieves a setting value from database and converts to float64

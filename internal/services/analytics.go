@@ -5,13 +5,28 @@ import (
 
 	"gorm.io/gorm"
 
+	"poc-finance/internal/database"
 	"poc-finance/internal/models"
 )
+
+// getRecordStartDateSetting retrieves the record start date from settings
+func getRecordStartDateSetting() time.Time {
+	var setting models.Settings
+	if err := database.DB.Where("key = ?", models.SettingRecordStartDate).First(&setting).Error; err != nil {
+		return time.Time{}
+	}
+	parsed, err := time.Parse("2006-01-02", setting.Value)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
 
 // MonthOverMonthComparison represents a comparison between current and previous month spending
 type MonthOverMonthComparison struct {
 	CurrentMonth         MonthlySummary `json:"current_month"`
 	PreviousMonth        MonthlySummary `json:"previous_month"`
+	HasPreviousMonth     bool           `json:"has_previous_month"`     // Whether previous month data exists
 	IncomeChange         float64        `json:"income_change"`          // Percentage change in income
 	IncomeChangePercent  float64        `json:"income_change_percent"`  // Percentage change
 	ExpenseChange        float64        `json:"expense_change"`         // Percentage change in expenses
@@ -49,20 +64,32 @@ func GetMonthOverMonthComparison(db *gorm.DB, year int, month int, accountIDs []
 		prevYear = year - 1
 	}
 
-	// Use batch function to fetch both months efficiently (2 queries instead of 10)
-	summaries := GetBatchMonthlySummariesForAccounts(db, prevYear, prevMonth, year, month, accountIDs)
+	// Check record start date from settings
+	recordStartDate := getRecordStartDateSetting()
+	prevMonthDate := time.Date(prevYear, time.Month(prevMonth), 1, 0, 0, 0, 0, time.Local)
+	includePrevMonth := recordStartDate.IsZero() || !prevMonthDate.Before(recordStartDate)
+
+	var summaries []MonthlySummary
+	if includePrevMonth {
+		// Use batch function to fetch both months efficiently (2 queries instead of 10)
+		summaries = GetBatchMonthlySummariesForAccounts(db, prevYear, prevMonth, year, month, accountIDs)
+	} else {
+		// Only fetch current month since previous is before start date
+		summaries = GetBatchMonthlySummariesForAccounts(db, year, month, year, month, accountIDs)
+	}
 
 	// Initialize with empty summaries
 	comparison := MonthOverMonthComparison{
-		CurrentMonth:  MonthlySummary{},
-		PreviousMonth: MonthlySummary{},
+		CurrentMonth:     MonthlySummary{},
+		PreviousMonth:    MonthlySummary{},
+		HasPreviousMonth: includePrevMonth,
 	}
 
 	// Extract current and previous month from batch results
 	for _, summary := range summaries {
 		if summary.Month.Year() == year && int(summary.Month.Month()) == month {
 			comparison.CurrentMonth = summary
-		} else if summary.Month.Year() == prevYear && int(summary.Month.Month()) == prevMonth {
+		} else if includePrevMonth && summary.Month.Year() == prevYear && int(summary.Month.Month()) == prevMonth {
 			comparison.PreviousMonth = summary
 		}
 	}
