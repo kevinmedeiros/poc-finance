@@ -426,8 +426,8 @@ func formatMessage(format string, args ...interface{}) string {
 	return fmt.Sprintf(format, args...)
 }
 
-// UpdateCategorySpent recalculates spending from expenses for a specific category/month/year
-// This method is called when expenses are created, updated, or deleted
+// UpdateCategorySpent recalculates spending from expense payments for a specific category/month/year
+// This method is called when expense payments are created, updated, or deleted
 func (s *BudgetService) UpdateCategorySpent(userID uint, category string, year, month int) error {
 	// Find all active budgets for this user and period (individual and group budgets)
 	var budgets []models.Budget
@@ -445,20 +445,25 @@ func (s *BudgetService) UpdateCategorySpent(userID uint, category string, year, 
 			continue // Category doesn't exist in this budget, skip
 		}
 
-		// Recalculate spent amount from expenses
+		// Recalculate spent amount from expense payments
 		var totalSpent float64
-		expenseQuery := database.DB.Model(&models.Expense{}).
-			Where("category = ? AND EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?", category, year, month)
+		paymentQuery := database.DB.Table("expense_payments").
+			Joins("JOIN expenses ON expenses.id = expense_payments.expense_id").
+			Where("expenses.category = ? AND expense_payments.year = ? AND expense_payments.month = ?", category, year, month)
 
 		if budget.GroupID != nil {
-			// For group budgets, sum all expenses from group members
-			expenseQuery = expenseQuery.Where("group_id = ?", *budget.GroupID)
+			// For group budgets, sum all payments from group members' accounts
+			paymentQuery = paymentQuery.
+				Joins("JOIN accounts ON accounts.id = expenses.account_id").
+				Where("accounts.group_id = ?", *budget.GroupID)
 		} else {
-			// For individual budgets, only count user's expenses
-			expenseQuery = expenseQuery.Where("user_id = ? AND (group_id IS NULL OR group_id = 0)", userID)
+			// For individual budgets, only count user's account expenses
+			paymentQuery = paymentQuery.
+				Joins("JOIN accounts ON accounts.id = expenses.account_id").
+				Where("accounts.user_id = ? AND (accounts.group_id IS NULL OR accounts.type = ?)", userID, models.AccountTypeIndividual)
 		}
 
-		expenseQuery.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalSpent)
+		paymentQuery.Select("COALESCE(SUM(expense_payments.amount), 0)").Row().Scan(&totalSpent)
 
 		// Store old spent value to check if thresholds crossed
 		oldSpent := budgetCategory.Spent
@@ -494,7 +499,7 @@ func (s *BudgetService) UpdateCategorySpent(userID uint, category string, year, 
 	return nil
 }
 
-// RecalculateBudgetSpent recalculates all category spending for a budget from expenses
+// RecalculateBudgetSpent recalculates all category spending for a budget from expense payments
 func (s *BudgetService) RecalculateBudgetSpent(budgetID uint) error {
 	// Get budget with categories
 	var budget models.Budget
@@ -505,19 +510,24 @@ func (s *BudgetService) RecalculateBudgetSpent(budgetID uint) error {
 	// Recalculate each category
 	for _, category := range budget.Categories {
 		var totalSpent float64
-		expenseQuery := database.DB.Model(&models.Expense{}).
-			Where("category = ? AND EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?",
+		paymentQuery := database.DB.Table("expense_payments").
+			Joins("JOIN expenses ON expenses.id = expense_payments.expense_id").
+			Where("expenses.category = ? AND expense_payments.year = ? AND expense_payments.month = ?",
 				category.Category, budget.Year, budget.Month)
 
 		if budget.GroupID != nil {
-			// For group budgets, sum all expenses from group members
-			expenseQuery = expenseQuery.Where("group_id = ?", *budget.GroupID)
+			// For group budgets, sum all payments from group members' accounts
+			paymentQuery = paymentQuery.
+				Joins("JOIN accounts ON accounts.id = expenses.account_id").
+				Where("accounts.group_id = ?", *budget.GroupID)
 		} else {
-			// For individual budgets, only count user's expenses
-			expenseQuery = expenseQuery.Where("user_id = ? AND (group_id IS NULL OR group_id = 0)", budget.UserID)
+			// For individual budgets, only count user's account expenses
+			paymentQuery = paymentQuery.
+				Joins("JOIN accounts ON accounts.id = expenses.account_id").
+				Where("accounts.user_id = ? AND (accounts.group_id IS NULL OR accounts.type = ?)", budget.UserID, models.AccountTypeIndividual)
 		}
 
-		expenseQuery.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalSpent)
+		paymentQuery.Select("COALESCE(SUM(expense_payments.amount), 0)").Row().Scan(&totalSpent)
 
 		// Update spent amount
 		database.DB.Model(&category).Update("spent", totalSpent)
