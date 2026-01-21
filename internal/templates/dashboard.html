@@ -105,6 +105,89 @@
         </div>
     </div>
 
+    <!-- Health Score Widget -->
+    <a href="/health-score" class="block group transition-all duration-300 hover:scale-[1.02]">
+        <div class="relative overflow-hidden rounded-2xl">
+            <div class="absolute inset-0 {{if ge .healthScore 80.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else if ge .healthScore 60.0}}bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700{{else if ge .healthScore 40.0}}bg-gradient-to-br from-amber-600 via-amber-500 to-orange-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}}"></div>
+            <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+            <div class="relative p-6 lg:p-8">
+                <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+                    <!-- Score Circle (Compact) -->
+                    <div class="flex-shrink-0">
+                        <div class="relative w-32 h-32 lg:w-40 lg:h-40">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" cy="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" r="{{if eq 32 (printf `%.0f` 32)}}56{{else}}70{{end}}" stroke="rgba(255,255,255,0.2)" stroke-width="10" fill="none"/>
+                                <circle cx="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" cy="{{if eq 32 (printf `%.0f` 32)}}64{{else}}80{{end}}" r="{{if eq 32 (printf `%.0f` 32)}}56{{else}}70{{end}}"
+                                    stroke="white"
+                                    stroke-width="10"
+                                    fill="none"
+                                    stroke-dasharray="{{if eq 32 (printf `%.0f` 32)}}352{{else}}440{{end}}"
+                                    stroke-dashoffset="{{.scoreOffset}}"
+                                    stroke-linecap="round"
+                                    class="transition-all duration-1000"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-4xl lg:text-5xl font-bold text-white">{{printf "%.0f" .healthScore}}</span>
+                                <span class="text-white/80 text-xs font-medium">de 100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Info -->
+                    <div class="flex-1 text-center lg:text-left">
+                        <div class="flex items-center gap-2 justify-center lg:justify-start mb-2">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <h2 class="text-2xl lg:text-3xl font-bold text-white">
+                                {{if ge .healthScore 80.0}}Saude Financeira Excelente!
+                                {{else if ge .healthScore 60.0}}Boa Saude Financeira
+                                {{else if ge .healthScore 40.0}}Saude Financeira Regular
+                                {{else}}Atencao: Melhore sua Saude Financeira{{end}}
+                            </h2>
+                        </div>
+                        <p class="text-white/90 text-base lg:text-lg mb-4 max-w-2xl mx-auto lg:mx-0">
+                            {{if ge .healthScore 80.0}}Continue assim! Seus habitos financeiros estao otimos.
+                            {{else if ge .healthScore 60.0}}Voce esta no caminho certo. Veja recomendacoes para melhorar.
+                            {{else if ge .healthScore 40.0}}Ha espaco para melhorias. Clique para ver recomendacoes.
+                            {{else}}Sua situacao precisa de atencao. Veja recomendacoes urgentes.{{end}}
+                        </p>
+                        <div class="flex flex-wrap gap-3 justify-center lg:justify-start">
+                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                                <p class="text-white/80 text-xs uppercase tracking-wide mb-0.5">Ultima Atualizacao</p>
+                                <p class="text-white font-semibold text-sm">{{.lastUpdated}}</p>
+                            </div>
+                            {{if ne .scoreTrend 0.0}}
+                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                                <p class="text-white/80 text-xs uppercase tracking-wide mb-0.5">Tendencia</p>
+                                <div class="flex items-center gap-1.5">
+                                    {{if gt .scoreTrend 0.0}}
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                    </svg>
+                                    <span class="text-white font-semibold text-sm">+{{printf "%.1f" .scoreTrend}}</span>
+                                    {{else}}
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                                    </svg>
+                                    <span class="text-white font-semibold text-sm">{{printf "%.1f" .scoreTrend}}</span>
+                                    {{end}}
+                                </div>
+                            </div>
+                            {{end}}
+                            <div class="bg-white/30 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2 group-hover:bg-white/40 transition-colors">
+                                <span class="text-white font-semibold text-sm">Ver Detalhes</span>
+                                <svg class="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </a>
+
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Financial Summary (2 columns) -->
