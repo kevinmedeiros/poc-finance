@@ -302,6 +302,7 @@ func main() {
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
+	analyticsHandler := handlers.NewAnalyticsHandler()
 	taxReportHandler := handlers.NewTaxReportHandler(settingsCacheService)
 	budgetHandler := handlers.NewBudgetHandler()
 
@@ -402,6 +403,9 @@ func main() {
 	protected.POST("/recurring/:id", recurringHandler.Update)
 	protected.DELETE("/recurring/:id", recurringHandler.Delete)
 	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
+
+	// Analytics API
+	protected.GET("/analytics/trends", analyticsHandler.GetTrends)
 
 	// Tax Reports
 	protected.GET("/tax-report", taxReportHandler.TaxReportPage)
