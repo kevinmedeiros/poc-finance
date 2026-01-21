@@ -139,6 +139,25 @@
         <p class="text-xs text-dark-500 mt-2">Dados anteriores a esta data nao serao exibidos</p>
     </div>
 
+    <div>
+        <label class="block text-sm font-medium text-dark-300 mb-2">Faixa do Simples Nacional</label>
+        <div class="relative">
+            <select name="manual_bracket" class="input-premium w-full rounded-xl px-4 py-3 text-white appearance-none cursor-pointer">
+                <option value="0" {{if eq .settings.ManualBracket 0}}selected{{end}}>Automatico (baseado no faturamento)</option>
+                <option value="1" {{if eq .settings.ManualBracket 1}}selected{{end}}>Faixa 1 - ate R$ 180.000 (6%)</option>
+                <option value="2" {{if eq .settings.ManualBracket 2}}selected{{end}}>Faixa 2 - R$ 180.000 a R$ 360.000 (11,2%)</option>
+                <option value="3" {{if eq .settings.ManualBracket 3}}selected{{end}}>Faixa 3 - R$ 360.000 a R$ 720.000 (13,5%)</option>
+                <option value="4" {{if eq .settings.ManualBracket 4}}selected{{end}}>Faixa 4 - R$ 720.000 a R$ 1.800.000 (16%)</option>
+                <option value="5" {{if eq .settings.ManualBracket 5}}selected{{end}}>Faixa 5 - R$ 1.800.000 a R$ 3.600.000 (21%)</option>
+                <option value="6" {{if eq .settings.ManualBracket 6}}selected{{end}}>Faixa 6 - R$ 3.600.000 a R$ 4.800.000 (33%)</option>
+            </select>
+            <svg class="w-5 h-5 text-dark-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </div>
+        <p class="text-xs text-dark-500 mt-2">Selecione uma faixa fixa ou deixe automatico para calcular pelo faturamento</p>
+    </div>
+
     <!-- Calculo -->
     <div class="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-600">
         <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>

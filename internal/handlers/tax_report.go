@@ -94,9 +94,9 @@ func (h *TaxReportHandler) TaxReportPage(c echo.Context) error {
 	log.Printf("[TaxReport] Fetching monthly tax breakdown for year %d", year)
 	monthlyBreakdown := services.GetMonthlyTaxBreakdown(database.DB, year, accountIDs, inssConfig)
 
-	// Get revenue 12 months and bracket info
+	// Get revenue 12 months and bracket info (with manual override support)
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, effectiveRate, nextBracketAt := services.GetBracketInfo(revenue12M)
+	bracket, effectiveRate, nextBracketAt := services.GetBracketInfoWithManualOverride(revenue12M, settingsData.ManualBracket)
 
 	// Calculate bracket progress (percentage towards next bracket)
 	var bracketProgress float64
@@ -223,9 +223,9 @@ func (h *TaxReportHandler) ExportTaxReport(c echo.Context) error {
 	// Get monthly tax breakdown for detailed view
 	monthlyBreakdown := services.GetMonthlyTaxBreakdown(database.DB, year, accountIDs, inssConfig)
 
-	// Get bracket info
+	// Get bracket info (with manual override support)
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, effectiveRate, nextBracketAt := services.GetBracketInfo(revenue12M)
+	bracket, effectiveRate, nextBracketAt := services.GetBracketInfoWithManualOverride(revenue12M, settingsData.ManualBracket)
 
 	// Create Excel file
 	f := excelize.NewFile()
@@ -584,9 +584,9 @@ func (h *TaxReportHandler) exportTaxReportPDF(c echo.Context, year int, accountI
 	// Get monthly tax breakdown
 	monthlyBreakdown := services.GetMonthlyTaxBreakdown(database.DB, year, accountIDs, inssConfig)
 
-	// Get bracket info
+	// Get bracket info (with manual override support)
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, effectiveRate, nextBracketAt := services.GetBracketInfo(revenue12M)
+	bracket, effectiveRate, nextBracketAt := services.GetBracketInfoWithManualOverride(revenue12M, settings.ManualBracket)
 
 	// Create PDF document
 	pdf := fpdf.New("P", "mm", "A4", "")

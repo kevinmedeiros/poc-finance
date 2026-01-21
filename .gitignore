@@ -64,9 +64,9 @@ test_*.txt
 # Build artifacts
 dist/
 build/
-server
-poc-finance
-main
+/server
+/poc-finance
+/main
 
 # OS generated files
 Thumbs.db
@@ -83,3 +83,9 @@ Desktop.ini
 .worktrees/
 .security-key
 logs/security/
+
+# Documentation and scripts (AI-generated)
+*.md
+*.sh
+docs/
+scripts/

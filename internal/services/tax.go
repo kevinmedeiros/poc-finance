@@ -1,5 +1,7 @@
 package services
 
+import "log"
+
 // SimplesNacionalAnexoIII - Cálculo do Simples Nacional Anexo III
 // Usado para serviços de tecnologia/consultoria
 
@@ -112,4 +114,84 @@ func GetBracketInfo(revenue12M float64) (bracket int, rate float64, nextBracketA
 		}
 	}
 	return len(AnexoIII), 33, 4800000
+}
+
+// GetBracketInfoWithManualOverride retorna informações sobre a faixa considerando o override manual
+// Se manualBracket > 0, usa a faixa especificada ao invés de calcular automaticamente
+// A aliquota efetiva é calculada usando o faturamento real dentro da faixa selecionada
+func GetBracketInfoWithManualOverride(revenue12M float64, manualBracket int) (bracket int, rate float64, nextBracketAt float64) {
+	// Se não houver override manual (0 = automático), usa o cálculo padrão
+	if manualBracket <= 0 || manualBracket > len(AnexoIII) {
+		return GetBracketInfo(revenue12M)
+	}
+
+	// Usa a faixa manual especificada
+	b := AnexoIII[manualBracket-1]
+
+	// Para cálculo da alíquota efetiva com faixa manual, usamos o ponto médio da faixa
+	// se o faturamento real estiver fora da faixa selecionada.
+	// Isso dá uma alíquota mais representativa da faixa escolhida.
+	effectiveRevenue := revenue12M
+	if effectiveRevenue < b.MinRevenue || effectiveRevenue > b.MaxRevenue {
+		// Usa o ponto médio da faixa para calcular a alíquota efetiva
+		effectiveRevenue = (b.MinRevenue + b.MaxRevenue) / 2
+		if effectiveRevenue <= 0 {
+			effectiveRevenue = b.MaxRevenue / 2 // Primeira faixa tem mínimo 0
+		}
+	}
+
+	// Fórmula: (RBT12 × Alíquota - Dedução) / RBT12
+	effectiveRate := (effectiveRevenue*b.Rate - b.Deduction) / effectiveRevenue
+
+	// Próxima faixa
+	nextAt := b.MaxRevenue
+	if manualBracket < len(AnexoIII) {
+		nextAt = AnexoIII[manualBracket].MinRevenue
+	}
+
+	return manualBracket, effectiveRate * 100, nextAt
+}
+
+// CalculateTaxWithManualBracket calcula o imposto usando uma faixa específica
+// Se manualBracket > 0, usa a faixa especificada ao invés de calcular automaticamente
+func CalculateTaxWithManualBracket(revenue12M, grossAmount float64, manualBracket int) TaxCalculation {
+	// Se não houver override manual, usa o cálculo padrão
+	if manualBracket <= 0 || manualBracket > len(AnexoIII) {
+		return CalculateTax(revenue12M, grossAmount)
+	}
+
+	// Log para debug
+	log.Printf("[Tax] Using manual bracket %d for calculation (revenue12M: %.2f, gross: %.2f)", manualBracket, revenue12M, grossAmount)
+
+	result := TaxCalculation{
+		GrossAmount:    grossAmount,
+		Revenue12M:     revenue12M,
+		BracketApplied: manualBracket,
+	}
+
+	// Usa a faixa manual especificada
+	bracket := AnexoIII[manualBracket-1]
+
+	// Para cálculo da alíquota efetiva com faixa manual, usamos o ponto médio da faixa
+	// se o faturamento real for menor que o mínimo da faixa selecionada.
+	// Isso dá uma alíquota mais representativa da faixa escolhida.
+	effectiveRevenue := revenue12M
+	if effectiveRevenue < bracket.MinRevenue || effectiveRevenue > bracket.MaxRevenue {
+		// Usa o ponto médio da faixa para calcular a alíquota efetiva
+		effectiveRevenue = (bracket.MinRevenue + bracket.MaxRevenue) / 2
+		if effectiveRevenue <= 0 {
+			effectiveRevenue = bracket.MaxRevenue / 2 // Primeira faixa tem mínimo 0
+		}
+	}
+
+	// Fórmula: (RBT12 × Alíquota - Dedução) / RBT12
+	result.EffectiveRate = (effectiveRevenue*bracket.Rate - bracket.Deduction) / effectiveRevenue
+	log.Printf("[Tax] Calculated effective rate: %.4f (effectiveRevenue: %.2f, rate: %.4f, deduction: %.2f)",
+		result.EffectiveRate, effectiveRevenue, bracket.Rate, bracket.Deduction)
+
+	// Calcula o imposto
+	result.TaxAmount = grossAmount * result.EffectiveRate
+	result.NetAmount = grossAmount - result.TaxAmount
+
+	return result
 }

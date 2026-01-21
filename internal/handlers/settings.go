@@ -28,6 +28,7 @@ type SettingsData struct {
 	INSSAmount      float64 `json:"inss_amount"` // Calculado
 	BudgetThreshold float64 `json:"budget_threshold"`
 	RecordStartDate string  `json:"record_start_date"` // Format: YYYY-MM-DD
+	ManualBracket   int     `json:"manual_bracket"`    // 0 = automatic, 1-6 = specific bracket
 }
 
 func (h *SettingsHandler) Get(c echo.Context) error {
@@ -45,6 +46,7 @@ func (h *SettingsHandler) Get(c echo.Context) error {
 		INSSAmount:      cachedData.INSSAmount,
 		BudgetThreshold: cachedData.BudgetWarningThreshold,
 		RecordStartDate: startDateStr,
+		ManualBracket:   cachedData.ManualBracket,
 	}
 	return c.Render(http.StatusOK, "settings.html", map[string]interface{}{
 		"settings": data,
@@ -57,6 +59,7 @@ func (h *SettingsHandler) Update(c echo.Context) error {
 	inssRate, _ := strconv.ParseFloat(c.FormValue("inss_rate"), 64)
 	budgetThreshold, _ := strconv.ParseFloat(c.FormValue("budget_threshold"), 64)
 	recordStartDate := c.FormValue("record_start_date")
+	manualBracket, _ := strconv.Atoi(c.FormValue("manual_bracket"))
 
 	// Atualiza configurações
 	updateSetting(models.SettingProLabore, strconv.FormatFloat(proLabore, 'f', 2, 64))
@@ -64,6 +67,7 @@ func (h *SettingsHandler) Update(c echo.Context) error {
 	updateSetting(models.SettingINSSRate, strconv.FormatFloat(inssRate, 'f', 2, 64))
 	updateSetting(models.SettingBudgetWarningThreshold, strconv.FormatFloat(budgetThreshold, 'f', 2, 64))
 	updateSetting(models.SettingRecordStartDate, recordStartDate)
+	updateSetting(models.SettingManualBracket, strconv.Itoa(manualBracket))
 
 	// Invalidate cache to force refresh on next request
 	h.cacheService.InvalidateCache()
@@ -82,6 +86,7 @@ func (h *SettingsHandler) Update(c echo.Context) error {
 		INSSAmount:      cachedData.INSSAmount,
 		BudgetThreshold: cachedData.BudgetWarningThreshold,
 		RecordStartDate: startDateStr,
+		ManualBracket:   cachedData.ManualBracket,
 	}
 	return c.Render(http.StatusOK, "partials/settings-form.html", map[string]interface{}{
 		"settings": data,

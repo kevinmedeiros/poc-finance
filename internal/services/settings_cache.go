@@ -18,6 +18,7 @@ type SettingsData struct {
 	INSSAmount             float64   `json:"inss_amount"` // Calculated value
 	BudgetWarningThreshold float64   `json:"budget_warning_threshold"`
 	RecordStartDate        time.Time `json:"record_start_date"` // Date from which to show records
+	ManualBracket          int       `json:"manual_bracket"`    // Manual tax bracket override (0 = automatic, 1-6 = specific bracket)
 }
 
 // SettingsCacheService provides thread-safe caching for application settings with TTL-based expiration
@@ -67,7 +68,7 @@ func (s *SettingsCacheService) GetSettingsData() SettingsData {
 	}
 	s.cachedData = s.fetchSettingsFromDB()
 	s.lastFetch = time.Now()
-	log.Printf("[SettingsCache] Cache refreshed - ProLabore: %.2f, INSS: %.2f", s.cachedData.ProLabore, s.cachedData.INSSAmount)
+	log.Printf("[SettingsCache] Cache refreshed - ProLabore: %.2f, INSS: %.2f, ManualBracket: %d", s.cachedData.ProLabore, s.cachedData.INSSAmount, s.cachedData.ManualBracket)
 
 	return s.cachedData
 }
@@ -88,6 +89,7 @@ func (s *SettingsCacheService) fetchSettingsFromDB() SettingsData {
 		INSSRate:               getSettingFloat(models.SettingINSSRate),
 		BudgetWarningThreshold: getSettingFloat(models.SettingBudgetWarningThreshold),
 		RecordStartDate:        getSettingDate(models.SettingRecordStartDate),
+		ManualBracket:          getSettingInt(models.SettingManualBracket),
 	}
 
 	// Default to 100% if threshold is not set or is 0
@@ -126,5 +128,15 @@ func getSettingFloat(key string) float64 {
 		return 0
 	}
 	value, _ := strconv.ParseFloat(setting.Value, 64)
+	return value
+}
+
+// getSettingInt retrieves a setting value from database and converts to int
+func getSettingInt(key string) int {
+	var setting models.Settings
+	if err := database.DB.Where("key = ?", key).First(&setting).Error; err != nil {
+		return 0
+	}
+	value, _ := strconv.Atoi(setting.Value)
 	return value
 }

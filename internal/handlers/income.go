@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,11 +16,13 @@ import (
 
 type IncomeHandler struct {
 	accountService *services.AccountService
+	cacheService   *services.SettingsCacheService
 }
 
-func NewIncomeHandler() *IncomeHandler {
+func NewIncomeHandler(cacheService *services.SettingsCacheService) *IncomeHandler {
 	return &IncomeHandler{
 		accountService: services.NewAccountService(),
+		cacheService:   cacheService,
 	}
 }
 
@@ -39,9 +42,12 @@ func (h *IncomeHandler) List(c echo.Context) error {
 	var incomes []models.Income
 	database.DB.Where("account_id IN ?", accountIDs).Order("date DESC").Find(&incomes)
 
+	// Get settings for manual bracket override
+	settingsData := h.cacheService.GetSettingsData()
+
 	// Calcula faturamento 12 meses para mostrar na tela
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, rate, nextAt := services.GetBracketInfo(revenue12M)
+	bracket, rate, nextAt := services.GetBracketInfoWithManualOverride(revenue12M, settingsData.ManualBracket)
 
 	data := map[string]interface{}{
 		"incomes":        incomes,
@@ -50,6 +56,7 @@ func (h *IncomeHandler) List(c echo.Context) error {
 		"currentBracket": bracket,
 		"effectiveRate":  rate,
 		"nextBracketAt":  nextAt,
+		"manualBracket":  settingsData.ManualBracket,
 	}
 
 	return c.Render(http.StatusOK, "income.html", data)
@@ -84,10 +91,14 @@ func (h *IncomeHandler) Create(c echo.Context) error {
 	// Calcula valores
 	amountBRL := req.AmountUSD * req.ExchangeRate
 
+	// Get settings for manual bracket override
+	settingsData := h.cacheService.GetSettingsData()
+
 	// Busca faturamento dos últimos 12 meses para calcular imposto
 	accountIDs, _ := h.accountService.GetUserAccountIDs(userID)
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	taxCalc := services.CalculateTax(revenue12M, amountBRL)
+	log.Printf("[Income] Creating income - ManualBracket: %d, Revenue12M: %.2f, AmountBRL: %.2f", settingsData.ManualBracket, revenue12M, amountBRL)
+	taxCalc := services.CalculateTaxWithManualBracket(revenue12M, amountBRL, settingsData.ManualBracket)
 
 	income := models.Income{
 		AccountID:    accountID,
@@ -155,8 +166,12 @@ func (h *IncomeHandler) CalculatePreview(c echo.Context) error {
 	}
 
 	amountBRL := amountUSD * exchangeRate
+
+	// Get settings for manual bracket override
+	settingsData := h.cacheService.GetSettingsData()
+
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	taxCalc := services.CalculateTax(revenue12M, amountBRL)
+	taxCalc := services.CalculateTaxWithManualBracket(revenue12M, amountBRL, settingsData.ManualBracket)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"amount_brl":     amountBRL,

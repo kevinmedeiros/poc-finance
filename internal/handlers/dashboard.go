@@ -127,7 +127,7 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 
 	// Faturamento 12 meses e faixa atual
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, rate, nextBracketAt := services.GetBracketInfo(revenue12M)
+	bracket, rate, nextBracketAt := services.GetBracketInfoWithManualOverride(revenue12M, settingsData.ManualBracket)
 
 	// Calculate bracket warning if approaching next bracket
 	var bracketWarning map[string]interface{}

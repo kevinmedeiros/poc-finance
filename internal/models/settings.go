@@ -27,4 +27,6 @@ const (
 	SettingBudgetWarningThreshold = "budget_warning_threshold"
 	// SettingRecordStartDate represents the start date from which records should be displayed (format: YYYY-MM-DD)
 	SettingRecordStartDate = "record_start_date"
+	// SettingManualBracket represents the manually selected tax bracket (1-6, or 0 for automatic calculation)
+	SettingManualBracket = "manual_bracket"
 )

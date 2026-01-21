@@ -311,7 +311,7 @@ func main() {
 	// Handlers
 	authHandler := handlers.NewAuthHandler()
 	dashboardHandler := handlers.NewDashboardHandler(settingsCacheService)
-	incomeHandler := handlers.NewIncomeHandler()
+	incomeHandler := handlers.NewIncomeHandler(settingsCacheService)
 	expenseHandler := handlers.NewExpenseHandler(settingsCacheService)
 	cardHandler := handlers.NewCreditCardHandler()
 	exportHandler := handlers.NewExportHandler()
