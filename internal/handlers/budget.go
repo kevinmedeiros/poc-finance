@@ -50,7 +50,7 @@ func (h *BudgetHandler) BudgetsPage(c echo.Context) error {
 	currentMonth := int(now.Month())
 
 	// Get user budgets
-	budgets, err := h.budgetService.GetUserBudgets(userID)
+	budgets, err := h.budgetService.GetUserBudgets(userID, 0, 0)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Erro ao buscar orçamentos")
 	}
@@ -88,7 +88,7 @@ func (h *BudgetHandler) GroupBudgetsPage(c echo.Context) error {
 	}
 
 	// Get group budgets
-	budgets, err := h.budgetService.GetGroupBudgets(uint(groupID), userID)
+	budgets, err := h.budgetService.GetGroupBudgets(userID, uint(groupID), 0, 0)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Erro ao buscar orçamentos")
 	}
@@ -114,7 +114,7 @@ func (h *BudgetHandler) List(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 	groupIDStr := c.QueryParam("group_id")
 
-	var budgets []interface{}
+	var budgets []models.Budget
 	var err error
 
 	if groupIDStr != "" {
@@ -122,9 +122,9 @@ func (h *BudgetHandler) List(c echo.Context) error {
 		if parseErr != nil {
 			return c.String(http.StatusBadRequest, "ID do grupo inválido")
 		}
-		budgets, err = h.budgetService.GetGroupBudgets(uint(groupID), userID)
+		budgets, err = h.budgetService.GetGroupBudgets(userID, uint(groupID), 0, 0)
 	} else {
-		budgets, err = h.budgetService.GetUserBudgets(userID)
+		budgets, err = h.budgetService.GetUserBudgets(userID, 0, 0)
 	}
 
 	if err != nil {

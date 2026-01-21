@@ -81,10 +81,19 @@ func (s *BudgetService) CreateBudget(userID uint, groupID *uint, year, month int
 }
 
 // GetUserBudgets returns all budgets for a user (personal budgets only)
-func (s *BudgetService) GetUserBudgets(userID uint) ([]models.Budget, error) {
+func (s *BudgetService) GetUserBudgets(userID uint, year, month int) ([]models.Budget, error) {
 	var budgets []models.Budget
-	database.DB.Where("user_id = ? AND group_id IS NULL", userID).
-		Preload("Categories").
+	query := database.DB.Where("user_id = ? AND group_id IS NULL", userID)
+
+	// Optional year/month filtering
+	if year > 0 {
+		query = query.Where("year = ?", year)
+	}
+	if month > 0 {
+		query = query.Where("month = ?", month)
+	}
+
+	query.Preload("Categories").
 		Order("year DESC, month DESC").
 		Find(&budgets)
 
@@ -92,15 +101,24 @@ func (s *BudgetService) GetUserBudgets(userID uint) ([]models.Budget, error) {
 }
 
 // GetGroupBudgets returns all budgets for a group
-func (s *BudgetService) GetGroupBudgets(groupID, userID uint) ([]models.Budget, error) {
+func (s *BudgetService) GetGroupBudgets(userID, groupID uint, year, month int) ([]models.Budget, error) {
 	// Verify user is group member
 	if !s.groupService.IsGroupMember(groupID, userID) {
 		return nil, ErrUnauthorized
 	}
 
 	var budgets []models.Budget
-	database.DB.Where("group_id = ?", groupID).
-		Preload("User").
+	query := database.DB.Where("group_id = ?", groupID)
+
+	// Optional year/month filtering
+	if year > 0 {
+		query = query.Where("year = ?", year)
+	}
+	if month > 0 {
+		query = query.Where("month = ?", month)
+	}
+
+	query.Preload("User").
 		Preload("Categories").
 		Order("year DESC, month DESC").
 		Find(&budgets)

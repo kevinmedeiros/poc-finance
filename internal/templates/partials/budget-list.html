@@ -2,134 +2,97 @@
 <div class="divide-y divide-dark-700/50">
     {{range .budgets}}
     <div class="p-6 hover:bg-dark-800/30 transition-colors">
-        <div class="flex flex-col lg:flex-row lg:items-start gap-6">
-            <!-- Budget Info -->
-            <div class="flex-1">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center
-                                {{if gt .UsagePercentage 100}}bg-danger-500/20{{else if gt .UsagePercentage 75}}bg-warning-500/20{{else}}bg-success-500/20{{end}}">
-                                {{if gt .UsagePercentage 100}}
-                                <svg class="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                {{else if gt .UsagePercentage 75}}
-                                <svg class="w-5 h-5 text-warning-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                {{else}}
-                                <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                {{end}}
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-white">{{.Category}}</h3>
-                                {{if .Description}}
-                                <p class="text-sm text-dark-400">{{.Description}}</p>
-                                {{end}}
-                            </div>
+        <div class="flex flex-col gap-6">
+            <!-- Budget Header -->
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                            {{if ge .OverallProgressPercentage 100}}bg-danger-500/20{{else if ge .OverallProgressPercentage 80}}bg-warning-500/20{{else}}bg-success-500/20{{end}}">
+                            <svg class="w-5 h-5 {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">{{.Name}}</h3>
+                            <p class="text-sm text-dark-400">{{.Month}}/{{.Year}}</p>
                         </div>
                     </div>
+                </div>
+                <div class="flex items-center gap-2">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                        {{if gt .UsagePercentage 100}}badge-danger{{else if gt .UsagePercentage 75}}badge-warning{{else}}badge-success{{end}}">
-                        {{if gt .UsagePercentage 100}}Excedido{{else if gt .UsagePercentage 75}}Alerta{{else}}Normal{{end}}
+                        {{if eq .Status "active"}}badge-success{{else}}bg-dark-700/50 text-dark-400{{end}}">
+                        {{if eq .Status "active"}}Ativo{{else}}Arquivado{{end}}
+                    </span>
+                    <button hx-delete="/budgets/{{.ID}}" hx-target="#budget-list" hx-swap="innerHTML"
+                        hx-confirm="Tem certeza que deseja excluir este orcamento?"
+                        class="inline-flex items-center justify-center p-2 rounded-lg text-danger-400 hover:bg-danger-500/10 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overall Progress -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-dark-300">Progresso Geral</span>
+                    <span class="text-sm font-semibold {{if ge .OverallProgressPercentage 100}}text-danger-400{{else if ge .OverallProgressPercentage 80}}text-warning-400{{else}}text-white{{end}}">
+                        {{printf "%.1f" .OverallProgressPercentage}}%
                     </span>
                 </div>
-
-                <!-- Progress Bar -->
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-dark-300">Uso do Orcamento</span>
-                        <span class="text-sm font-semibold {{if gt .UsagePercentage 100}}text-danger-400{{else if gt .UsagePercentage 75}}text-warning-400{{else}}text-white{{end}}">{{printf "%.1f" .UsagePercentage}}%</span>
-                    </div>
-                    <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
-                        <div class="h-full transition-all duration-500 rounded-full
-                            {{if gt .UsagePercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if gt .UsagePercentage 75}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
-                            style="width: {{if gt .UsagePercentage 100}}100{{else}}{{printf "%.1f" .UsagePercentage}}{{end}}%"></div>
-                    </div>
+                <div class="w-full h-3 bg-dark-700/50 rounded-full overflow-hidden">
+                    <div class="h-full transition-all duration-500 rounded-full
+                        {{if ge .OverallProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .OverallProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                        style="width: {{if ge .OverallProgressPercentage 100}}100{{else}}{{printf "%.1f" .OverallProgressPercentage}}{{end}}%"></div>
                 </div>
+            </div>
 
-                <!-- Amount Info -->
-                <div class="grid grid-cols-3 gap-4 mb-4">
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">Gasto</p>
-                        <p class="text-xl font-bold {{if gt .UsagePercentage 100}}text-danger-400{{else}}text-warning-400{{end}}">R$ {{printf "%.2f" .SpentAmount}}</p>
-                    </div>
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">Limite</p>
-                        <p class="text-xl font-bold text-white">R$ {{printf "%.2f" .LimitAmount}}</p>
-                    </div>
-                    <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
-                        <p class="text-xs text-dark-400 uppercase tracking-wide">{{if gt .UsagePercentage 100}}Excedente{{else}}Restante{{end}}</p>
-                        <p class="text-xl font-bold {{if gt .UsagePercentage 100}}text-danger-400{{else}}text-success-400{{end}}">R$ {{printf "%.2f" .RemainingAmount}}</p>
-                    </div>
+            <!-- Total Summary -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Planejado</p>
+                    <p class="text-xl font-bold text-brand-400">R$ {{printf "%.2f" .TotalLimit}}</p>
                 </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Total Gasto</p>
+                    <p class="text-xl font-bold text-warning-400">R$ {{printf "%.2f" .TotalSpent}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-3 border border-white/5">
+                    <p class="text-xs text-dark-400 uppercase tracking-wide">Disponivel</p>
+                    <p class="text-xl font-bold text-success-400">R$ {{printf "%.2f" .RemainingAmount}}</p>
+                </div>
+            </div>
 
-                <!-- Period Info -->
-                <div class="flex items-center gap-4 text-sm text-dark-400">
-                    <div class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <span>Periodo: {{.StartDate.Format "02/01/2006"}} - {{.EndDate.Format "02/01/2006"}}</span>
-                    </div>
-                    {{if .Account}}
-                    <div class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        <span>{{.Account.Name}}</span>
+            <!-- Categories -->
+            {{if .Categories}}
+            <div>
+                <p class="text-sm font-medium text-dark-300 mb-3">Categorias</p>
+                <div class="space-y-3">
+                    {{range .Categories}}
+                    <div class="bg-dark-800/30 rounded-xl p-4 border border-white/5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-white">{{.Category}}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-dark-400">R$ {{printf "%.2f" .Spent}} / R$ {{printf "%.2f" .Limit}}</span>
+                                <span class="text-sm font-semibold {{if ge .ProgressPercentage 100}}text-danger-400{{else if ge .ProgressPercentage 80}}text-warning-400{{else}}text-success-400{{end}}">
+                                    {{printf "%.0f" .ProgressPercentage}}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="w-full h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                            <div class="h-full transition-all duration-500 rounded-full
+                                {{if ge .ProgressPercentage 100}}bg-gradient-to-r from-danger-500 to-danger-600{{else if ge .ProgressPercentage 80}}bg-gradient-to-r from-warning-500 to-warning-600{{else}}bg-gradient-to-r from-success-500 to-emerald-500{{end}}"
+                                style="width: {{if ge .ProgressPercentage 100}}100{{else}}{{printf "%.1f" .ProgressPercentage}}{{end}}%"></div>
+                        </div>
                     </div>
                     {{end}}
                 </div>
             </div>
-
-            <!-- Right Side: Actions -->
-            <div class="lg:w-80 space-y-4">
-                <!-- Budget Alert Box -->
-                {{if gt .UsagePercentage 75}}
-                <div class="{{if gt .UsagePercentage 100}}bg-danger-500/10 border-danger-500/30{{else}}bg-warning-500/10 border-warning-500/30{{end}} rounded-xl p-4 border">
-                    <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 {{if gt .UsagePercentage 100}}text-danger-400{{else}}text-warning-400{{end}} flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-semibold {{if gt .UsagePercentage 100}}text-danger-300{{else}}text-warning-300{{end}}">
-                                {{if gt .UsagePercentage 100}}Orcamento Excedido{{else}}Proximo do Limite{{end}}
-                            </p>
-                            <p class="text-xs {{if gt .UsagePercentage 100}}text-danger-400{{else}}text-warning-400{{end}} mt-1">
-                                {{if gt .UsagePercentage 100}}
-                                Voce excedeu o orcamento desta categoria. Considere ajustar seus gastos.
-                                {{else}}
-                                Voce esta proximo do limite. Monitore seus gastos nesta categoria.
-                                {{end}}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {{end}}
-
-                <!-- Edit Button -->
-                <a href="/budgets/{{.ID}}/edit"
-                    class="w-full inline-flex items-center justify-center gap-2 glass-light rounded-xl px-4 py-2.5 hover:bg-white/5 font-medium text-sm transition-colors text-brand-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    Editar Orcamento
-                </a>
-
-                <!-- Delete Button -->
-                <button hx-delete="/budgets/{{.ID}}" hx-target="#budget-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja excluir este orcamento?"
-                    class="w-full inline-flex items-center justify-center gap-2 bg-danger-500/20 text-danger-400 px-4 py-2 rounded-xl hover:bg-danger-500/30 font-medium text-sm transition-colors border border-danger-500/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Excluir Orcamento
-                </button>
-            </div>
+            {{else}}
+            <p class="text-sm text-dark-400 text-center py-4">Nenhuma categoria adicionada ainda</p>
+            {{end}}
         </div>
     </div>
     {{else}}
@@ -141,9 +104,9 @@
                 </svg>
             </div>
             <p class="text-dark-300 font-medium">Nenhum orcamento criado</p>
-            <p class="text-sm text-dark-500 mt-1">Crie seu primeiro orcamento para o grupo acima</p>
+            <p class="text-sm text-dark-500 mt-1">Crie seu primeiro orcamento acima</p>
         </div>
     </div>
     {{end}}
 </div>
-{{end}}
+{{end}
