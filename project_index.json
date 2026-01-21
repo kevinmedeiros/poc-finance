@@ -1,0 +1,26 @@
+{
+  "project_type": "single",
+  "services": {
+    "backend": {
+      "path": ".",
+      "tech_stack": ["go", "html-templates", "tailwind-css", "htmx"],
+      "port": 8080,
+      "dev_command": "go run cmd/server/main.go",
+      "test_command": "go test ./..."
+    }
+  },
+  "infrastructure": {
+    "docker": false,
+    "database": "sqlite"
+  },
+  "conventions": {
+    "templating": "go-html-template",
+    "styling": "tailwind-css-cdn",
+    "interactions": "htmx"
+  },
+  "template_structure": {
+    "base_templates": ["internal/templates/base.html", "internal/templates/layout.html"],
+    "page_templates": "internal/templates/*.html",
+    "partial_templates": "internal/templates/partials/*.html"
+  }
+}

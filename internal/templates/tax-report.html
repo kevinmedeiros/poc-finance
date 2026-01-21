@@ -1,0 +1,632 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+            <p class="text-brand-400 text-sm font-medium tracking-wide uppercase mb-2">Projeccao Fiscal</p>
+            <h1 class="font-display text-4xl sm:text-5xl text-white tracking-tight">Relatorio de Impostos</h1>
+        </div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Account Filter -->
+            <div class="glass-light rounded-xl px-4 py-3">
+                <label for="account_filter" class="sr-only">Filtrar por conta</label>
+                <select id="account_filter" name="account_id"
+                    class="w-full sm:w-auto text-sm font-medium text-dark-200 bg-transparent border-none focus:ring-0 cursor-pointer"
+                    onchange="updateFilters()">
+                    <option value="all" {{if eq .selectedAccountID 0}}selected{{end}}>Todas as Contas</option>
+                    {{range .accounts}}
+                    <option value="{{.ID}}" {{if eq $.selectedAccountID .ID}}selected{{end}}>
+                        {{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}
+                    </option>
+                    {{end}}
+                </select>
+            </div>
+            <!-- Year Filter -->
+            <div class="glass-light rounded-xl px-4 py-3">
+                <label for="year_filter" class="sr-only">Ano</label>
+                <select id="year_filter" name="year"
+                    class="w-full sm:w-auto text-sm font-medium text-dark-200 bg-transparent border-none focus:ring-0 cursor-pointer"
+                    onchange="updateFilters()">
+                    {{range .availableYears}}
+                    <option value="{{.}}" {{if eq $.selectedYear .}}selected{{end}}>{{.}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <!-- Export Buttons -->
+            <div class="flex items-center gap-2">
+                <a id="export-excel-btn" href="/tax-report/export?year={{.selectedYear}}{{if ne .selectedAccountID 0}}&account_id={{.selectedAccountID}}{{end}}&format=excel"
+                    class="glass-light rounded-xl px-4 py-3 flex items-center gap-2 text-success-400 hover:bg-success-500/20 transition-all"
+                    title="Exportar Excel">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="hidden sm:inline text-sm font-medium">Excel</span>
+                </a>
+                <a id="export-pdf-btn" href="/tax-report/export?year={{.selectedYear}}{{if ne .selectedAccountID 0}}&account_id={{.selectedAccountID}}{{end}}&format=pdf"
+                    class="glass-light rounded-xl px-4 py-3 flex items-center gap-2 text-danger-400 hover:bg-danger-500/20 transition-all"
+                    title="Exportar PDF">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                    </svg>
+                    <span class="hidden sm:inline text-sm font-medium">PDF</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bracket Warning Alert -->
+    {{if and .projection.BracketWarning .projection.BracketWarning.IsApproaching}}
+    <div class="relative overflow-hidden rounded-2xl p-6
+        {{if eq .projection.BracketWarning.WarningLevel "critical"}}bg-gradient-to-r from-danger-600/20 to-danger-500/10 border border-danger-500/30
+        {{else if eq .projection.BracketWarning.WarningLevel "high"}}bg-gradient-to-r from-warning-600/20 to-warning-500/10 border border-warning-500/30
+        {{else if eq .projection.BracketWarning.WarningLevel "medium"}}bg-gradient-to-r from-brand-600/20 to-brand-500/10 border border-brand-500/30
+        {{else}}bg-gradient-to-r from-sky-600/20 to-sky-500/10 border border-sky-500/30{{end}}">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center
+                {{if eq .projection.BracketWarning.WarningLevel "critical"}}bg-danger-500/20
+                {{else if eq .projection.BracketWarning.WarningLevel "high"}}bg-warning-500/20
+                {{else if eq .projection.BracketWarning.WarningLevel "medium"}}bg-brand-500/20
+                {{else}}bg-sky-500/20{{end}}">
+                <svg class="w-6 h-6
+                    {{if eq .projection.BracketWarning.WarningLevel "critical"}}text-danger-400
+                    {{else if eq .projection.BracketWarning.WarningLevel "high"}}text-warning-400
+                    {{else if eq .projection.BracketWarning.WarningLevel "medium"}}text-brand-400
+                    {{else}}text-sky-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-white text-lg mb-1">
+                    {{if eq .projection.BracketWarning.WarningLevel "critical"}}Alerta Critico
+                    {{else if eq .projection.BracketWarning.WarningLevel "high"}}Alerta Alto
+                    {{else if eq .projection.BracketWarning.WarningLevel "medium"}}Atencao
+                    {{else}}Informativo{{end}}
+                </h3>
+                <p class="text-dark-300">{{.projection.BracketWarning.WarningMessage}}</p>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <!-- Receita YTD -->
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <span class="badge-success text-xs font-medium px-2.5 py-1 rounded-full">YTD</span>
+            </div>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .projection.YTDIncome}}</p>
+            <p class="text-sm text-dark-400">Receita Bruta</p>
+        </div>
+
+        <!-- Imposto YTD -->
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-danger-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+                    </svg>
+                </div>
+                <span class="badge-danger text-xs font-medium px-2.5 py-1 rounded-full">Impostos</span>
+            </div>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .projection.YTDTax}}</p>
+            <p class="text-sm text-dark-400">Simples Pago</p>
+        </div>
+
+        <!-- INSS YTD -->
+        <div class="card-premium rounded-2xl p-6 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-brand-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                    </svg>
+                </div>
+                <span class="badge-info text-xs font-medium px-2.5 py-1 rounded-full">INSS</span>
+            </div>
+            <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .projection.YTDINSS}}</p>
+            <p class="text-sm text-dark-400">Contribuicao YTD</p>
+        </div>
+
+        <!-- Liquido YTD -->
+        <div class="relative overflow-hidden rounded-2xl p-6 {{if gt .projection.YTDNetIncome 0.0}}bg-gradient-to-br from-success-600 via-success-500 to-emerald-600{{else}}bg-gradient-to-br from-danger-600 via-danger-500 to-rose-600{{end}} group">
+            <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15 0v30M0 15h30%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+            <div class="relative">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-white/90 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">Liquido</span>
+                </div>
+                <p class="text-3xl font-bold text-white mb-1">R$ {{printf "%.2f" .projection.YTDNetIncome}}</p>
+                <p class="text-sm text-white/70">Receita Liquida YTD</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Projecao Anual (2 columns) -->
+        <div class="lg:col-span-2 card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Projecao Anual {{.selectedYear}}</h2>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <!-- Receita Projetada -->
+                <div class="flex items-center justify-between py-4 border-b border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-success-500/15 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <span class="text-dark-200 font-medium">Receita Bruta Projetada</span>
+                    </div>
+                    <span class="text-2xl font-bold text-success-400">R$ {{printf "%.2f" .projection.ProjectedAnnualIncome}}</span>
+                </div>
+
+                <!-- Impostos Projetados -->
+                <div class="space-y-3 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-danger-500/15 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
+                                </svg>
+                            </div>
+                            <span class="text-dark-300">Simples Nacional Projetado ({{printf "%.2f" .effectiveRate}}%)</span>
+                        </div>
+                        <span class="font-semibold text-danger-400">R$ {{printf "%.2f" .projection.ProjectedAnnualTax}}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-danger-500/10 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-danger-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="text-dark-300">INSS Pro-labore Projetado ({{printf "%.0f" .inssRate}}%)</span>
+                                {{if gt .proLabore 0.0}}
+                                <span class="text-xs text-dark-500 ml-2">12x R$ {{printf "%.0f" .inssMonthly}}</span>
+                                {{else}}
+                                <a href="/settings" class="text-xs text-brand-400 ml-2 hover:text-brand-300 transition-colors">Configurar</a>
+                                {{end}}
+                            </div>
+                        </div>
+                        <span class="font-semibold text-danger-400/70">R$ {{printf "%.2f" .projection.ProjectedAnnualINSS}}</span>
+                    </div>
+                </div>
+
+                <!-- Liquido Projetado -->
+                <div class="relative overflow-hidden flex items-center justify-between py-5 px-6 rounded-2xl {{if gt .projection.ProjectedNetIncome 0.0}}bg-gradient-to-r from-success-600 to-emerald-600{{else}}bg-gradient-to-r from-danger-600 to-rose-600{{end}} mt-2">
+                    <div class="absolute inset-0 opacity-50" style="background-image: url('data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M10 0v20M0 10h20%22 stroke=%22rgba(255,255,255,0.1)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+                    <div class="relative">
+                        <span class="text-lg font-bold text-white">LIQUIDO PROJETADO</span>
+                        <p class="text-xs text-white/60">Receita - Simples - INSS</p>
+                    </div>
+                    <span class="relative text-4xl font-bold text-white">R$ {{printf "%.2f" .projection.ProjectedNetIncome}}</span>
+                </div>
+
+                <!-- Metadata -->
+                <div class="flex items-center justify-between pt-4 text-sm text-dark-400">
+                    <span>Meses decorridos: {{.projection.MonthsElapsed}} de 12</span>
+                    <span>Calculado em: {{.now.Format "02/01/2006 15:04"}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bracket Info -->
+        <div class="card-premium rounded-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Faixa do Simples</h2>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Current Bracket Display -->
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 mb-4">
+                        <span class="text-4xl font-bold text-white">{{.currentBracket}}</span>
+                    </div>
+                    <p class="text-dark-400 text-sm">Faixa Atual</p>
+                    <p class="text-2xl font-bold text-brand-400 mt-1">{{printf "%.2f" .effectiveRate}}%</p>
+                    <p class="text-dark-500 text-xs">Aliquota Efetiva</p>
+                </div>
+
+                <!-- Revenue 12M -->
+                <div class="bg-dark-800/50 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-dark-400 text-sm">Faturamento 12 meses</span>
+                        <span class="font-semibold text-white">R$ {{printf "%.2f" .revenue12m}}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-dark-400 text-sm">Proxima faixa em</span>
+                        <span class="font-semibold text-brand-400">R$ {{printf "%.2f" .nextBracketAt}}</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar to Next Bracket -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-dark-400">Progresso na faixa</span>
+                        <span class="font-medium text-white">{{printf "%.1f" .bracketProgress}}%</span>
+                    </div>
+                    <div class="h-3 bg-dark-800 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500
+                            {{if ge .bracketProgress 95.0}}bg-gradient-to-r from-danger-500 to-danger-400
+                            {{else if ge .bracketProgress 85.0}}bg-gradient-to-r from-warning-500 to-warning-400
+                            {{else if ge .bracketProgress 70.0}}bg-gradient-to-r from-brand-500 to-brand-400
+                            {{else}}bg-gradient-to-r from-success-500 to-success-400{{end}}"
+                            style="width: {{.bracketProgress}}%">
+                        </div>
+                    </div>
+                    <p class="text-xs text-dark-500 text-center">
+                        Faltam R$ {{printf "%.2f" .amountToNextBracket}} para a proxima faixa
+                    </p>
+                </div>
+
+                <!-- Bracket Info Link -->
+                {{if .currentBracket}}
+                <div class="pt-4 border-t border-white/5">
+                    <p class="text-xs text-dark-400 text-center">
+                        Simples Nacional - Anexo III
+                        <br/>
+                        Servicos de Tecnologia/Consultoria
+                    </p>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- INSS Configuration -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-white">Configuracao INSS</h2>
+            </div>
+            <a href="/settings" class="text-sm text-brand-400 hover:text-brand-300 transition-colors flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Editar
+            </a>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-dark-800/50 rounded-xl p-4 text-center">
+                    <p class="text-dark-400 text-xs uppercase tracking-wide mb-1">Pro-Labore</p>
+                    <p class="text-xl font-bold text-white">R$ {{printf "%.2f" .proLabore}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-4 text-center">
+                    <p class="text-dark-400 text-xs uppercase tracking-wide mb-1">Aliquota INSS</p>
+                    <p class="text-xl font-bold text-white">{{printf "%.0f" .inssRate}}%</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-4 text-center">
+                    <p class="text-dark-400 text-xs uppercase tracking-wide mb-1">Teto INSS</p>
+                    <p class="text-xl font-bold text-white">R$ {{printf "%.2f" .inssCeiling}}</p>
+                </div>
+                <div class="bg-dark-800/50 rounded-xl p-4 text-center">
+                    <p class="text-dark-400 text-xs uppercase tracking-wide mb-1">INSS Mensal</p>
+                    <p class="text-xl font-bold text-brand-400">R$ {{printf "%.2f" .inssMonthly}}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown Table -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Impostos por Mes - {{.selectedYear}}</h2>
+        </div>
+
+        <!-- Desktop Table View (hidden on mobile) -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-white/5">
+                        <th class="text-left py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Mes</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Receita Bruta</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Simples</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">INSS</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Receita Liquida</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {{range .monthlyBreakdown}}
+                    <tr class="table-row-premium transition-colors duration-150">
+                        <td class="py-4 px-6">
+                            <span class="font-medium text-white">{{.MonthName}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="text-success-400 font-semibold">R$ {{printf "%.2f" .GrossIncome}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="text-danger-400 font-semibold">R$ {{printf "%.2f" .TaxPaid}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="text-brand-400 font-semibold">R$ {{printf "%.2f" .INSSPaid}}</span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <span class="font-bold {{if gt .NetIncome 0.0}}text-success-400{{else}}text-dark-400{{end}}">
+                                R$ {{printf "%.2f" .NetIncome}}
+                            </span>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View (visible on mobile only) -->
+        <div class="md:hidden divide-y divide-white/5">
+            {{range .monthlyBreakdown}}
+            <div class="p-4 hover:bg-dark-800/30 transition-colors">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-bold text-white text-lg">{{.MonthName}}</span>
+                    <span class="font-bold text-lg {{if gt .NetIncome 0.0}}text-success-400{{else}}text-dark-400{{end}}">
+                        R$ {{printf "%.2f" .NetIncome}}
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="flex items-center justify-between bg-success-500/10 rounded-lg px-3 py-2">
+                        <span class="text-dark-300">Receita</span>
+                        <span class="text-success-400 font-semibold">R$ {{printf "%.2f" .GrossIncome}}</span>
+                    </div>
+                    <div class="flex items-center justify-between bg-danger-500/10 rounded-lg px-3 py-2">
+                        <span class="text-dark-300">Simples</span>
+                        <span class="text-danger-400 font-semibold">R$ {{printf "%.2f" .TaxPaid}}</span>
+                    </div>
+                    <div class="flex items-center justify-between bg-brand-500/10 rounded-lg px-3 py-2 col-span-2">
+                        <span class="text-dark-300">INSS</span>
+                        <span class="text-brand-400 font-semibold">R$ {{printf "%.2f" .INSSPaid}}</span>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Simples Nacional Brackets Reference -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Tabela Simples Nacional - Anexo III</h2>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-white/5">
+                        <th class="text-center py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Faixa</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Receita Bruta Anual</th>
+                        <th class="text-center py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Aliquota Nominal</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Deducao</th>
+                        <th class="text-center py-4 px-6 text-xs font-semibold text-dark-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <!-- Faixa 1 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 1}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 1}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">1</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">Ate R$ 180.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">6,00%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 0,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 1}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                    <!-- Faixa 2 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 2}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 2}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">2</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">R$ 180.000,01 a R$ 360.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">11,20%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 9.360,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 2}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                    <!-- Faixa 3 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 3}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 3}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">3</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">R$ 360.000,01 a R$ 720.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">13,50%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 17.640,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 3}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                    <!-- Faixa 4 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 4}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 4}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">4</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">R$ 720.000,01 a R$ 1.800.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">16,00%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 35.640,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 4}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                    <!-- Faixa 5 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 5}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 5}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">5</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">R$ 1.800.000,01 a R$ 3.600.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">21,00%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 125.640,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 5}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                    <!-- Faixa 6 -->
+                    <tr class="table-row-premium transition-colors duration-150 {{if eq .currentBracket 6}}bg-brand-500/10{{end}}">
+                        <td class="py-4 px-6 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 6}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">6</span>
+                        </td>
+                        <td class="py-4 px-6 text-right text-dark-200">R$ 3.600.000,01 a R$ 4.800.000,00</td>
+                        <td class="py-4 px-6 text-center text-white font-semibold">33,00%</td>
+                        <td class="py-4 px-6 text-right text-dark-300">R$ 648.000,00</td>
+                        <td class="py-4 px-6 text-center">
+                            {{if eq .currentBracket 6}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="md:hidden divide-y divide-white/5">
+            <!-- Faixa 1 -->
+            <div class="p-4 {{if eq .currentBracket 1}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 1}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">1</span>
+                    {{if eq .currentBracket 1}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">Ate R$ 180.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">6,00%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 0,00</span></span>
+                </div>
+            </div>
+            <!-- Faixa 2 -->
+            <div class="p-4 {{if eq .currentBracket 2}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 2}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">2</span>
+                    {{if eq .currentBracket 2}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">R$ 180.000,01 a R$ 360.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">11,20%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 9.360,00</span></span>
+                </div>
+            </div>
+            <!-- Faixa 3 -->
+            <div class="p-4 {{if eq .currentBracket 3}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 3}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">3</span>
+                    {{if eq .currentBracket 3}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">R$ 360.000,01 a R$ 720.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">13,50%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 17.640,00</span></span>
+                </div>
+            </div>
+            <!-- Faixa 4 -->
+            <div class="p-4 {{if eq .currentBracket 4}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 4}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">4</span>
+                    {{if eq .currentBracket 4}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">R$ 720.000,01 a R$ 1.800.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">16,00%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 35.640,00</span></span>
+                </div>
+            </div>
+            <!-- Faixa 5 -->
+            <div class="p-4 {{if eq .currentBracket 5}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 5}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">5</span>
+                    {{if eq .currentBracket 5}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">R$ 1.800.000,01 a R$ 3.600.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">21,00%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 125.640,00</span></span>
+                </div>
+            </div>
+            <!-- Faixa 6 -->
+            <div class="p-4 {{if eq .currentBracket 6}}bg-brand-500/10{{end}}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {{if eq .currentBracket 6}}bg-brand-500 text-white{{else}}bg-dark-700 text-dark-300{{end}} font-bold">6</span>
+                    {{if eq .currentBracket 6}}<span class="badge-success text-xs px-2.5 py-1 rounded-full">Atual</span>{{end}}
+                </div>
+                <p class="text-dark-200 text-sm">R$ 3.600.000,01 a R$ 4.800.000,00</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-dark-400">Aliquota: <span class="text-white font-semibold">33,00%</span></span>
+                    <span class="text-dark-400">Deducao: <span class="text-dark-300">R$ 648.000,00</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateFilters() {
+        const accountId = document.getElementById('account_filter').value;
+        const year = document.getElementById('year_filter').value;
+        let url = '/tax-report?';
+        if (accountId !== 'all') {
+            url += 'account_id=' + accountId + '&';
+        }
+        url += 'year=' + year;
+        window.location.href = url;
+    }
+
+    function updateExportButtons() {
+        const accountId = document.getElementById('account_filter').value;
+        const year = document.getElementById('year_filter').value;
+        const excelBtn = document.getElementById('export-excel-btn');
+        const pdfBtn = document.getElementById('export-pdf-btn');
+
+        let baseUrl = '/tax-report/export?year=' + year;
+        if (accountId !== 'all') {
+            baseUrl += '&account_id=' + accountId;
+        }
+
+        if (excelBtn) {
+            excelBtn.href = baseUrl + '&format=excel';
+        }
+        if (pdfBtn) {
+            pdfBtn.href = baseUrl + '&format=pdf';
+        }
+    }
+
+    // Update export buttons when filters change
+    document.getElementById('account_filter').addEventListener('change', updateExportButtons);
+    document.getElementById('year_filter').addEventListener('change', updateExportButtons);
+</script>
+{{end}}

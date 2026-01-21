@@ -3,6 +3,7 @@ module poc-finance
 go 1.25.5
 
 require (
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/xuri/excelize/v2 v2.10.0

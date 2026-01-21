@@ -21,18 +21,18 @@
             </div>
 
             <!-- Form Novo Cartao -->
-            <div class="p-5 border-b border-dark-700/50">
+            <div id="card-form" class="p-5 border-b border-dark-700/50">
                 <form hx-post="/cards" hx-target="#card-list" hx-swap="innerHTML" class="space-y-4">
                     <input type="text" name="name" placeholder="Nome do cartao" required
                         class="input-premium w-full rounded-xl px-4 py-3 text-sm">
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="text-xs text-dark-400 mb-1.5 block font-medium">Fechamento</label>
+                            <label class="text-xs text-dark-400 mb-1.5 block font-medium">Fechamento <span class="text-danger-400">*</span></label>
                             <input type="number" name="closing_day" min="1" max="31" required placeholder="Dia"
                                 class="input-premium w-full rounded-xl px-3 py-2.5 text-sm">
                         </div>
                         <div>
-                            <label class="text-xs text-dark-400 mb-1.5 block font-medium">Vencimento</label>
+                            <label class="text-xs text-dark-400 mb-1.5 block font-medium">Vencimento <span class="text-danger-400">*</span></label>
                             <input type="number" name="due_day" min="1" max="31" required placeholder="Dia"
                                 class="input-premium w-full rounded-xl px-3 py-2.5 text-sm">
                         </div>
@@ -71,7 +71,7 @@
             </div>
 
             <!-- Form Novo Parcelamento -->
-            <div class="p-5 border-b border-dark-700/50">
+            <div id="installment-form" class="p-5 border-b border-dark-700/50">
                 <form hx-post="/installments" hx-target="#installment-list" hx-swap="innerHTML" class="space-y-4">
                     <select name="credit_card_id" required
                         class="input-premium w-full rounded-xl px-4 py-3 text-sm bg-dark-900">
@@ -93,7 +93,8 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="date" name="start_date" required
-                            class="input-premium rounded-xl px-3 py-2.5 text-sm">
+                            class="input-premium rounded-xl px-3 py-2.5 text-sm"
+                            style="color-scheme: dark;">
                         <select name="category" class="input-premium rounded-xl px-3 py-2.5 text-sm bg-dark-900">
                             {{range .categories}}
                             <option value="{{.}}">{{.}}</option>
@@ -145,7 +146,7 @@
                 </span>
                 {{end}}
                 <button hx-delete="/cards/{{.ID}}" hx-target="#card-list" hx-swap="innerHTML"
-                    hx-confirm="Excluir cartao e todos os parcelamentos?"
+                    onclick="event.preventDefault(); showConfirmModal('Excluir cartao e todos os parcelamentos?', () => htmx.ajax('DELETE', '/cards/{{.ID}}', {target: '#card-list', swap: 'innerHTML'})); return false;"
                     class="p-2 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -163,6 +164,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhum cartao cadastrado</p>
         <p class="text-sm text-dark-500 mt-1">Adicione seu primeiro cartao acima</p>
+        <button onclick="document.getElementById('card-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Cartão
+        </button>
     </div>
     {{end}}
 </div>
@@ -192,7 +200,7 @@
             <div class="flex items-center gap-3 ml-3">
                 <span class="font-bold text-purple-400">R$ {{printf "%.2f" .InstallmentAmount}}</span>
                 <button hx-delete="/installments/{{.ID}}" hx-target="#installment-list" hx-swap="innerHTML"
-                    hx-confirm="Excluir parcelamento?"
+                    onclick="event.preventDefault(); showConfirmModal('Excluir parcelamento?', () => htmx.ajax('DELETE', '/installments/{{.ID}}', {target: '#installment-list', swap: 'innerHTML'})); return false;"
                     class="p-2 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -210,6 +218,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhum parcelamento ativo</p>
         <p class="text-sm text-dark-500 mt-1">Adicione suas compras parceladas</p>
+        <button onclick="document.getElementById('installment-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Parcelamento
+        </button>
     </div>
     {{end}}
 </div>

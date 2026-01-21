@@ -281,3 +281,42 @@ func (s *NotificationService) NotifyUpcomingDueDate(expense *models.Expense, use
 	}
 	return s.Create(notification)
 }
+
+// NotifyBudgetThreshold creates notifications when a budget category reaches spending thresholds (80% or 100%)
+func (s *NotificationService) NotifyBudgetThreshold(budget *models.Budget, category *models.BudgetCategory, threshold int, members []models.User) error {
+	percentage := category.ProgressPercentage()
+
+	var title, statusText string
+	if threshold >= 100 {
+		title = "Orçamento excedido"
+		statusText = "atingiu ou ultrapassou"
+	} else {
+		title = "Alerta de orçamento"
+		statusText = "atingiu"
+	}
+
+	message := fmt.Sprintf("A categoria \"%s\" do orçamento \"%s\" %s %d%% do limite! Gastos: R$ %.2f / R$ %.2f (%.0f%%)",
+		category.Category,
+		budget.Name,
+		statusText,
+		threshold,
+		category.Spent,
+		category.Limit,
+		percentage,
+	)
+
+	for _, member := range members {
+		notification := &models.Notification{
+			UserID:  member.ID,
+			Type:    models.NotificationTypeBudgetAlert,
+			Title:   title,
+			Message: message,
+			Link:    "/budgets",
+			GroupID: budget.GroupID,
+		}
+		if err := s.Create(notification); err != nil {
+			return err
+		}
+	}
+	return nil
+}

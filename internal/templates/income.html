@@ -25,7 +25,7 @@
     </div>
 
     <!-- Formulario -->
-    <div class="card-premium rounded-2xl overflow-hidden">
+    <div id="income-form" class="card-premium rounded-2xl overflow-hidden">
         <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
             <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                 <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +37,7 @@
         <form hx-post="/incomes" hx-target="#income-list" hx-swap="innerHTML" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta <span class="text-danger-400">*</span></label>
                     <select name="account_id" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
@@ -45,12 +45,13 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data <span class="text-danger-400">*</span></label>
                     <input type="date" name="date" required
-                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white"
+                        style="color-scheme: dark;">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (USD)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (USD) <span class="text-danger-400">*</span></label>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500">$</span>
                         <input type="number" name="amount_usd" step="0.01" min="0.01" required placeholder="Valor em dólares"
@@ -60,7 +61,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Taxa Remessa Online</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Taxa Remessa Online <span class="text-danger-400">*</span></label>
                     <input type="number" name="exchange_rate" step="0.0001" min="0.0001" required placeholder="Taxa de câmbio"
                         class="input-premium w-full rounded-xl px-4 py-3 text-white"
                         hx-get="/incomes/preview" hx-trigger="keyup changed delay:500ms" hx-target="#preview"
@@ -191,7 +192,7 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
                 </td>
                 <td class="px-6 py-4 text-center">
                     <button hx-delete="/incomes/{{.ID}}" hx-target="#income-list" hx-swap="innerHTML"
-                        hx-confirm="Tem certeza que deseja excluir?"
+                        onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir?', () => htmx.ajax('DELETE', '/incomes/{{.ID}}', {target: '#income-list', swap: 'innerHTML'})); return false;"
                         class="inline-flex items-center gap-1 text-sm text-danger-400 hover:text-danger-300 font-medium transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -211,6 +212,13 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
                         </div>
                         <p class="text-dark-300 font-medium">Nenhum recebimento cadastrado</p>
                         <p class="text-sm text-dark-500 mt-1">Adicione seu primeiro recebimento acima</p>
+                        <button onclick="document.getElementById('income-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+                            class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Adicionar Recebimento
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -265,7 +273,7 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
             <!-- Acao -->
             <div class="flex justify-end">
                 <button hx-delete="/incomes/{{.ID}}" hx-target="#income-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja excluir?"
+                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir?', () => htmx.ajax('DELETE', '/incomes/{{.ID}}', {target: '#income-list', swap: 'innerHTML'})); return false;"
                     class="inline-flex items-center gap-1 text-sm text-danger-400 hover:text-danger-300 font-medium transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -285,6 +293,13 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
             </div>
             <p class="text-dark-300 font-medium">Nenhum recebimento cadastrado</p>
             <p class="text-sm text-dark-500 mt-1">Adicione seu primeiro recebimento acima</p>
+            <button onclick="document.getElementById('income-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+                class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Adicionar Recebimento
+            </button>
         </div>
     </div>
     {{end}}

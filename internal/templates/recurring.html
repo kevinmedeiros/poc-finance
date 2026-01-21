@@ -20,7 +20,7 @@
     </div>
 
     <!-- Formulario -->
-    <div class="card-premium rounded-2xl overflow-hidden">
+    <div id="recurring-form" class="card-premium rounded-2xl overflow-hidden">
         <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
             <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                 <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@
         <form hx-post="/recurring" hx-target="#recurring-list" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) this.reset()" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Conta <span class="text-danger-400">*</span></label>
                     <select name="account_id" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .accounts}}
                         <option value="{{.ID}}">{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
@@ -40,7 +40,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Tipo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Tipo <span class="text-danger-400">*</span></label>
                     <select name="transaction_type" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .transactionTypes}}
                         <option value="{{.}}">{{if eq . "income"}}Receita{{else}}Despesa{{end}}</option>
@@ -50,12 +50,12 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição <span class="text-danger-400">*</span></label>
                     <input type="text" name="description" required placeholder="Ex: Salário, Aluguel..."
                         class="input-premium w-full rounded-xl px-4 py-3 text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (R$)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor (R$) <span class="text-danger-400">*</span></label>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500">R$</span>
                         <input type="number" name="amount" step="0.01" min="0.01" required placeholder="Valor"
@@ -70,7 +70,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Frequência</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Frequência <span class="text-danger-400">*</span></label>
                     <select name="frequency" required class="input-premium w-full rounded-xl px-4 py-3 text-white">
                         {{range .frequencies}}
                         <option value="{{.}}">
@@ -83,14 +83,16 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Início</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Início <span class="text-danger-400">*</span></label>
                     <input type="date" name="start_date" required
-                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white"
+                        style="color-scheme: dark;">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-dark-300 mb-2">Data Fim (Opcional)</label>
                     <input type="date" name="end_date"
-                        class="input-premium w-full rounded-xl px-4 py-3 text-white">
+                        class="input-premium w-full rounded-xl px-4 py-3 text-white"
+                        style="color-scheme: dark;">
                 </div>
             </div>
             <button type="submit" class="btn-primary inline-flex items-center gap-2 text-dark-900 px-6 py-3 rounded-xl font-semibold" hx-disabled-elt="this">
@@ -203,7 +205,7 @@
                             {{end}}
                         </button>
                         <button hx-delete="/recurring/{{.ID}}" hx-target="#recurring-list" hx-swap="innerHTML"
-                            hx-confirm="Tem certeza que deseja excluir esta transação recorrente?"
+                            onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir esta transação recorrente?', () => htmx.ajax('DELETE', '/recurring/{{.ID}}', {target: '#recurring-list', swap: 'innerHTML'})); return false;"
                             class="inline-flex items-center gap-1 text-sm text-danger-400 hover:text-danger-300 font-medium transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -224,6 +226,13 @@
                         </div>
                         <p class="text-dark-300 font-medium">Nenhuma transação recorrente</p>
                         <p class="text-sm text-dark-500 mt-1">Adicione sua primeira transação recorrente acima</p>
+                        <button onclick="document.getElementById('recurring-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+                            class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Adicionar Transação
+                        </button>
                     </div>
                 </td>
             </tr>

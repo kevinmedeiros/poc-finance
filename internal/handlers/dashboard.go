@@ -106,7 +106,30 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 
 	// Faturamento 12 meses e faixa atual
 	revenue12M := services.GetRevenue12MonthsForAccounts(database.DB, accountIDs)
-	bracket, rate, _ := services.GetBracketInfo(revenue12M)
+	bracket, rate, nextBracketAt := services.GetBracketInfo(revenue12M)
+
+	// Calculate bracket warning if approaching next bracket
+	var bracketWarning map[string]interface{}
+	if nextBracketAt > 0 && bracket < 6 { // Don't warn if already at max bracket
+		remaining := nextBracketAt - revenue12M
+		percentageUsed := (revenue12M / nextBracketAt) * 100
+
+		// Warn if within 15% of next bracket
+		if percentageUsed >= 85 {
+			// Get next bracket's rate for comparison
+			nextBracket, nextRate, _ := services.GetBracketInfo(nextBracketAt + 1)
+			rateIncrease := nextRate - rate
+
+			bracketWarning = map[string]interface{}{
+				"remaining":      remaining,
+				"percentageUsed": percentageUsed,
+				"nextBracket":    nextBracket,
+				"nextRate":       nextRate,
+				"rateIncrease":   rateIncrease,
+				"threshold":      nextBracketAt,
+			}
+		}
+	}
 
 	// Busca configurações de INSS
 	settingsData := h.cacheService.GetSettingsData()
@@ -154,6 +177,7 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		"monthOverMonthComparison":         monthOverMonthComparison,
 		"categoryBreakdownWithPercentages": categoryBreakdownWithPercentages,
 		"incomeVsExpenseTrend":             incomeVsExpenseTrend,
+		"bracketWarning":                   bracketWarning,
 	}
 
 	return c.Render(http.StatusOK, "dashboard.html", data)
