@@ -73,6 +73,8 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/groups.html"
 	case strings.Contains(baseName, "recurring"):
 		templateFile = "internal/templates/recurring.html"
+	case strings.Contains(baseName, "health"):
+		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	case strings.Contains(baseName, "tax"):
 		templateFile = "internal/templates/tax-report.html"
 	case strings.Contains(baseName, "budget"):
@@ -135,6 +137,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/accounts.html",
 		"internal/templates/group-dashboard.html",
 		"internal/templates/goals.html",
+		"internal/templates/health_score.html",
 		"internal/templates/notifications.html",
 		"internal/templates/recurring.html",
 		"internal/templates/tax-report.html",
@@ -302,6 +305,7 @@ func main() {
 	goalHandler := handlers.NewGoalHandler()
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
+	healthScoreHandler := handlers.NewHealthScoreHandler()
 	analyticsHandler := handlers.NewAnalyticsHandler()
 	taxReportHandler := handlers.NewTaxReportHandler(settingsCacheService)
 	budgetHandler := handlers.NewBudgetHandler()
@@ -389,6 +393,10 @@ func main() {
 	protected.DELETE("/goals/:goalId", goalHandler.Delete)
 	protected.POST("/goals/:goalId/contribution", goalHandler.AddContribution)
 
+	// Health Score do grupo
+	protected.GET("/groups/:id/health-score", healthScoreHandler.GroupScorePage)
+	protected.GET("/groups/:id/health-score/history", healthScoreHandler.GetGroupScoreHistory)
+
 	// Notificacoes
 	protected.GET("/notifications", notificationHandler.List)
 	protected.GET("/notifications/badge", notificationHandler.GetBadge)
@@ -403,6 +411,11 @@ func main() {
 	protected.POST("/recurring/:id", recurringHandler.Update)
 	protected.DELETE("/recurring/:id", recurringHandler.Delete)
 	protected.POST("/recurring/:id/toggle", recurringHandler.Toggle)
+
+	// Health Score
+	protected.GET("/health-score", healthScoreHandler.Index)
+	protected.GET("/health-score/current", healthScoreHandler.GetUserScore)
+	protected.GET("/health-score/history", healthScoreHandler.GetScoreHistory)
 
 	// Analytics API
 	protected.GET("/analytics/trends", analyticsHandler.GetTrends)

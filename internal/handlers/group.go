@@ -13,6 +13,7 @@ import (
 	"poc-finance/internal/i18n"
 	"poc-finance/internal/middleware"
 	"poc-finance/internal/models"
+	"poc-finance/internal/security"
 	"poc-finance/internal/services"
 )
 
@@ -22,12 +23,31 @@ type GroupHandler struct {
 	notificationService *services.NotificationService
 }
 
+type CreateGroupRequest struct {
+	Name        string `form:"name"`
+	Description string `form:"description"`
+}
+
+type CreateJointAccountRequest struct {
+	Name string `form:"name"`
+}
+
+type RegisterAndJoinRequest struct {
+	Email    string `form:"email"`
+	Password string `form:"password"`
+	Name     string `form:"name"`
+}
+
 func NewGroupHandler() *GroupHandler {
 	return &GroupHandler{
 		groupService:        services.NewGroupService(),
 		accountService:      services.NewAccountService(),
 		notificationService: services.NewNotificationService(),
 	}
+}
+
+func isValidGroupPassword(password string) (bool, string) {
+	return security.ValidatePassword(password)
 }
 
 func (h *GroupHandler) List(c echo.Context) error {

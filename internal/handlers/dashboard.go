@@ -16,14 +16,16 @@ import (
 )
 
 type DashboardHandler struct {
-	accountService *services.AccountService
-	cacheService   *services.SettingsCacheService
+	accountService     *services.AccountService
+	cacheService       *services.SettingsCacheService
+	healthScoreService *services.HealthScoreService
 }
 
 func NewDashboardHandler(cacheService *services.SettingsCacheService) *DashboardHandler {
 	return &DashboardHandler{
-		accountService: services.NewAccountService(),
-		cacheService:   cacheService,
+		accountService:     services.NewAccountService(),
+		cacheService:       cacheService,
+		healthScoreService: services.NewHealthScoreService(),
 	}
 }
 
@@ -148,6 +150,34 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 	log.Println("[Dashboard] Fetching category breakdown")
 	categoryBreakdown := services.GetCategoryBreakdownForAccounts(database.DB, year, month, accountIDs)
 
+	// Calculate health score for dashboard widget
+	log.Println("[Dashboard] Calculating health score")
+	healthScore, err := h.healthScoreService.CalculateUserScore(userID, accountIDs)
+	var scoreValue float64
+	var scoreOffset float64
+	var lastUpdated string
+	var scoreTrend float64
+
+	if err == nil && healthScore != nil {
+		scoreValue = healthScore.Score
+		// Calculate circular progress offset (628 = 2*pi*100, circumference of the circle)
+		scoreOffset = 628 - (628 * scoreValue / 100)
+		lastUpdated = healthScore.CalculatedAt.Format("02/01/2006")
+
+		// Get previous score for trend calculation
+		history, histErr := h.healthScoreService.GetScoreHistory(&userID, nil, 2)
+		if histErr == nil && len(history) >= 2 {
+			scoreTrend = history[0].Score - history[1].Score
+		}
+	} else {
+		log.Printf("[Dashboard] Error calculating health score: %v", err)
+		// Default values if score calculation fails
+		scoreValue = 0
+		scoreOffset = 628
+		lastUpdated = "N/A"
+		scoreTrend = 0
+	}
+
 	// Analytics data
 	log.Println("[Dashboard] Fetching analytics data")
 	monthOverMonthComparison := services.GetMonthOverMonthComparison(database.DB, year, month, accountIDs)
@@ -174,6 +204,10 @@ func (h *DashboardHandler) Index(c echo.Context) error {
 		"saldoFinal":                       saldoFinal,
 		"accounts":                         allAccounts,
 		"selectedAccountID":                selectedAccountID,
+		"healthScore":                      scoreValue,
+		"scoreOffset":                      scoreOffset,
+		"lastUpdated":                      lastUpdated,
+		"scoreTrend":                       scoreTrend,
 		"monthOverMonthComparison":         monthOverMonthComparison,
 		"categoryBreakdownWithPercentages": categoryBreakdownWithPercentages,
 		"incomeVsExpenseTrend":             incomeVsExpenseTrend,

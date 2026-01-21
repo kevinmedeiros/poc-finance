@@ -46,6 +46,7 @@ func SetupTestDB() *gorm.DB {
 		&models.Notification{},
 		&models.Settings{},
 		&models.RecurringTransaction{},
+		&models.HealthScore{},
 		&models.Budget{},
 		&models.BudgetCategory{},
 	)

@@ -57,6 +57,7 @@ func Init() error {
 		&models.GoalContribution{},
 		&models.Notification{},
 		&models.RecurringTransaction{},
+		&models.HealthScore{},
 		&models.Budget{},
 		&models.BudgetCategory{},
 	)
