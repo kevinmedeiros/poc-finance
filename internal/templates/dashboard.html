@@ -175,10 +175,10 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Receita</span>
                         </div>
-                        {{if .previousMonth}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
                         {{$change := 0.0}}
-                        {{if gt .previousMonth.TotalIncomeGross 0.0}}
-                            {{$change = mul (div (sub .currentMonth.TotalIncomeGross .previousMonth.TotalIncomeGross) .previousMonth.TotalIncomeGross) 100.0}}
+                        {{if gt .monthOverMonthComparison.PreviousMonth.TotalIncomeGross 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalIncomeGross .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) 100.0}}
                         {{end}}
                         <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
                             {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
@@ -188,12 +188,12 @@
                     <div class="space-y-2">
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
-                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .currentMonth.TotalIncomeGross}}</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalIncomeGross}}</p>
                         </div>
-                        {{if .previousMonth}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
-                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .previousMonth.TotalIncomeGross}}</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalIncomeGross}}</p>
                         </div>
                         {{else}}
                         <div>
@@ -214,9 +214,9 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Impostos</span>
                         </div>
-                        {{if .previousMonth}}
-                        {{$prevTax := add .previousMonth.TotalTax .previousInss}}
-                        {{$currTax := .totalImpostos}}
+                        {{$currTax := add .monthOverMonthComparison.CurrentMonth.TotalTax .monthOverMonthComparison.CurrentMonth.TotalINSS}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
                         {{$change := 0.0}}
                         {{if gt $prevTax 0.0}}
                             {{$change = mul (div (sub $currTax $prevTax) $prevTax) 100.0}}
@@ -229,12 +229,13 @@
                     <div class="space-y-2">
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
-                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .totalImpostos}}</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" $currTax}}</p>
                         </div>
-                        {{if .previousMonth}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
-                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" (add .previousMonth.TotalTax .previousInss)}}</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevTax}}</p>
                         </div>
                         {{else}}
                         <div>
@@ -255,10 +256,10 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Despesas</span>
                         </div>
-                        {{if .previousMonth}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
                         {{$change := 0.0}}
-                        {{if gt .previousMonth.TotalExpenses 0.0}}
-                            {{$change = mul (div (sub .currentMonth.TotalExpenses .previousMonth.TotalExpenses) .previousMonth.TotalExpenses) 100.0}}
+                        {{if gt .monthOverMonthComparison.PreviousMonth.TotalExpenses 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalExpenses .monthOverMonthComparison.PreviousMonth.TotalExpenses) .monthOverMonthComparison.PreviousMonth.TotalExpenses) 100.0}}
                         {{end}}
                         <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-danger-500/20 text-danger-400{{else}}bg-success-500/20 text-success-400{{end}}">
                             {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
@@ -268,12 +269,12 @@
                     <div class="space-y-2">
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
-                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .currentMonth.TotalExpenses}}</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalExpenses}}</p>
                         </div>
-                        {{if .previousMonth}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
-                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .previousMonth.TotalExpenses}}</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalExpenses}}</p>
                         </div>
                         {{else}}
                         <div>
@@ -294,14 +295,13 @@
                             </div>
                             <span class="text-sm font-medium text-dark-300">Saldo</span>
                         </div>
-                        {{if .previousMonth}}
-                        {{$prevBalance := sub (sub .previousMonth.TotalIncomeGross .previousMonth.TotalTax) .previousMonth.TotalExpenses}}
-                        {{$prevBalance = sub $prevBalance .previousInss}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
                         {{$change := 0.0}}
                         {{if gt $prevBalance 0.0}}
-                            {{$change = mul (div (sub .saldoFinal $prevBalance) $prevBalance) 100.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.Balance $prevBalance) $prevBalance) 100.0}}
                         {{else if lt $prevBalance 0.0}}
-                            {{$change = mul (div (sub .saldoFinal $prevBalance) (mul $prevBalance -1.0)) 100.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.Balance $prevBalance) (mul $prevBalance -1.0)) 100.0}}
                         {{end}}
                         <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
                             {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
@@ -311,11 +311,10 @@
                     <div class="space-y-2">
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
-                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .saldoFinal}}</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.Balance}}</p>
                         </div>
-                        {{if .previousMonth}}
-                        {{$prevBalance := sub (sub .previousMonth.TotalIncomeGross .previousMonth.TotalTax) .previousMonth.TotalExpenses}}
-                        {{$prevBalance = sub $prevBalance .previousInss}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
                         <div>
                             <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
                             <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevBalance}}</p>
