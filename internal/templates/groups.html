@@ -27,7 +27,7 @@
     </div>
 
     <!-- Formulario -->
-    <div class="card-premium rounded-2xl overflow-hidden">
+    <div id="create-group-form" class="card-premium rounded-2xl overflow-hidden">
         <div class="px-6 py-4 border-b border-dark-700/50 bg-dark-800/50">
             <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                 <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
         <form hx-post="/groups" hx-target="#group-list" hx-swap="innerHTML" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome do Grupo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome do Grupo <span class="text-danger-400">*</span></label>
                     <input type="text" name="name" required placeholder="Ex: Familia Silva"
                         class="input-premium w-full rounded-xl px-4 py-3 text-white">
                 </div>
@@ -130,7 +130,7 @@
                             {{end}}
                             {{if and $isAdmin (ne .UserID $userID)}}
                             <button hx-delete="/groups/{{$gID}}/members/{{.UserID}}" hx-target="#group-list" hx-swap="innerHTML"
-                                hx-confirm="Tem certeza que deseja remover {{.User.Name}} do grupo?"
+                                onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja remover {{.User.Name}} do grupo?', () => htmx.ajax('DELETE', '/groups/{{$gID}}/members/{{.UserID}}', {target: '#group-list', swap: 'innerHTML'})); return false;"
                                 class="ml-1 text-danger-400 hover:text-danger-300 transition-colors">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -167,7 +167,7 @@
                                     <span class="font-medium text-white">{{.Name}}</span>
                                 </div>
                                 <button hx-delete="/groups/{{$gID}}/accounts/{{.ID}}" hx-target="#joint-accounts-{{$gID}}" hx-swap="innerHTML"
-                                    hx-confirm="Tem certeza que deseja excluir esta conta conjunta?"
+                                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir esta conta conjunta?', () => htmx.ajax('DELETE', '/groups/{{$gID}}/accounts/{{.ID}}', {target: '#joint-accounts-{{$gID}}', swap: 'innerHTML'})); return false;"
                                     class="text-danger-400 hover:text-danger-300 p-1 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -220,7 +220,7 @@
                     Convidar
                 </button>
                 <button hx-delete="/groups/{{$gID}}" hx-target="#group-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita e todos os membros serão removidos."
+                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita e todos os membros serão removidos.', () => htmx.ajax('DELETE', '/groups/{{$gID}}', {target: '#group-list', swap: 'innerHTML'})); return false;"
                     class="inline-flex items-center gap-2 bg-danger-600 hover:bg-danger-500 text-white px-4 py-2 rounded-xl font-medium text-sm transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -230,7 +230,7 @@
                 {{end}}
                 {{if eq .UserID $userID}}
                 <button hx-post="/groups/{{$gID}}/leave" hx-target="#group-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja sair deste grupo?"
+                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja sair deste grupo?', () => htmx.ajax('POST', '/groups/{{$gID}}/leave', {target: '#group-list', swap: 'innerHTML'})); return false;"
                     class="inline-flex items-center gap-2 bg-danger-500/20 text-danger-400 px-4 py-2 rounded-xl hover:bg-danger-500/30 font-medium text-sm transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -251,7 +251,14 @@
                 </svg>
             </div>
             <p class="text-dark-300 font-medium">Nenhum grupo cadastrado</p>
-            <p class="text-sm text-dark-500 mt-1">Crie seu primeiro grupo familiar acima</p>
+            <p class="text-sm text-dark-500 mt-1">Crie seu primeiro grupo familiar</p>
+            <button onclick="document.getElementById('create-group-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+                class="mt-4 btn-primary inline-flex items-center gap-2 text-dark-900 px-6 py-3 rounded-xl font-semibold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Criar Grupo
+            </button>
         </div>
     </div>
     {{end}}

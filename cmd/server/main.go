@@ -75,6 +75,10 @@ func (t *TemplateRegistry) renderPartial(w io.Writer, name string, data interfac
 		templateFile = "internal/templates/recurring.html"
 	case strings.Contains(baseName, "health"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
+	case strings.Contains(baseName, "tax"):
+		templateFile = "internal/templates/tax-report.html"
+	case strings.Contains(baseName, "budget"):
+		templateFile = "internal/templates/budgets.html"
 	case strings.Contains(baseName, "invite"), strings.Contains(baseName, "joint-accounts"), strings.Contains(baseName, "split-members"), strings.Contains(baseName, "notification"):
 		return t.renderPartialFile(w, "internal/templates/partials/"+baseName+".html", data)
 	default:
@@ -136,6 +140,8 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/health_score.html",
 		"internal/templates/notifications.html",
 		"internal/templates/recurring.html",
+		"internal/templates/tax-report.html",
+		"internal/templates/budgets.html",
 	}
 
 	// Auth pages have their own base template embedded
@@ -300,6 +306,9 @@ func main() {
 	notificationHandler := handlers.NewNotificationHandler()
 	recurringHandler := handlers.NewRecurringTransactionHandler()
 	healthScoreHandler := handlers.NewHealthScoreHandler()
+	analyticsHandler := handlers.NewAnalyticsHandler()
+	taxReportHandler := handlers.NewTaxReportHandler(settingsCacheService)
+	budgetHandler := handlers.NewBudgetHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -407,6 +416,26 @@ func main() {
 	protected.GET("/health-score", healthScoreHandler.Index)
 	protected.GET("/health-score/current", healthScoreHandler.GetUserScore)
 	protected.GET("/health-score/history", healthScoreHandler.GetScoreHistory)
+
+	// Analytics API
+	protected.GET("/analytics/trends", analyticsHandler.GetTrends)
+
+	// Tax Reports
+	protected.GET("/tax-report", taxReportHandler.TaxReportPage)
+	protected.GET("/tax-report/export", taxReportHandler.ExportTaxReport)
+
+	// Budgets (individual user budgets)
+	protected.GET("/budgets", budgetHandler.BudgetsPage)
+	protected.GET("/budgets/list", budgetHandler.List)
+	protected.POST("/budgets", budgetHandler.Create)
+	protected.DELETE("/budgets/:id", budgetHandler.Delete)
+	protected.POST("/budgets/:id/categories", budgetHandler.AddCategory)
+	protected.POST("/budgets/:id/categories/:catId", budgetHandler.UpdateCategory)
+	protected.DELETE("/budgets/:id/categories/:catId", budgetHandler.DeleteCategory)
+	protected.POST("/budgets/copy", budgetHandler.CopyFromPreviousMonth)
+
+	// Group Budgets
+	protected.GET("/groups/:id/budgets", budgetHandler.GroupBudgetsPage)
 
 	// Inicia servidor
 	log.Println("Servidor iniciado em http://localhost:8080")

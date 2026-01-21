@@ -58,6 +58,8 @@ func Init() error {
 		&models.Notification{},
 		&models.RecurringTransaction{},
 		&models.HealthScore{},
+		&models.Budget{},
+		&models.BudgetCategory{},
 	)
 	if err != nil {
 		return err

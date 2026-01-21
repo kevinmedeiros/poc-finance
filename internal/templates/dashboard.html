@@ -43,6 +43,52 @@
         </div>
     </div>
 
+    <!-- Bracket Warning Notification -->
+    {{if .bracketWarning}}
+    <div id="bracket-warning" class="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-500/30">
+        <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M10 0v20M0 10h20%22 stroke=%22rgba(251,191,36,0.15)%22 fill=%22none%22/%3E%3C/svg%3E');"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-amber-300 text-lg">Atencao: Aproximando da Faixa {{.bracketWarning.nextBracket}}</h3>
+                    <p class="text-dark-300 text-sm mt-1">
+                        Faltam <span class="font-semibold text-amber-400">R$ {{printf "%.2f" .bracketWarning.remaining}}</span>
+                        para atingir a proxima faixa do Simples Nacional (R$ {{printf "%.0f" .bracketWarning.threshold}}).
+                    </p>
+                    <p class="text-dark-400 text-xs mt-2">
+                        A aliquota efetiva aumentara de <span class="text-brand-400">{{printf "%.2f" $.effectiveRate}}%</span>
+                        para <span class="text-amber-400">~{{printf "%.2f" .bracketWarning.nextRate}}%</span>
+                        (aumento de +{{printf "%.2f" .bracketWarning.rateIncrease}}%)
+                    </p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('bracket-warning').remove()"
+                class="self-start sm:self-center p-2 rounded-lg hover:bg-amber-500/20 transition-colors group">
+                <svg class="w-5 h-5 text-dark-400 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Progress bar showing how close to next bracket -->
+        <div class="relative mt-4">
+            <div class="h-2 bg-dark-800/50 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                     style="width: {{printf "%.1f" .bracketWarning.percentageUsed}}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-dark-500 mt-1">
+                <span>Faixa {{$.currentBracket}}</span>
+                <span>{{printf "%.1f" .bracketWarning.percentageUsed}}% utilizado</span>
+                <span>Faixa {{.bracketWarning.nextBracket}}</span>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <!-- Quick Stats Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <!-- Receita -->
@@ -187,6 +233,353 @@
             </div>
         </div>
     </a>
+
+    <!-- Month-over-Month Comparison -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Comparacao Mes a Mes</h2>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Receita Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-success-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-success-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Receita</span>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$change := 0.0}}
+                        {{if gt .monthOverMonthComparison.PreviousMonth.TotalIncomeGross 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalIncomeGross .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) .monthOverMonthComparison.PreviousMonth.TotalIncomeGross) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalIncomeGross}}</p>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalIncomeGross}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Impostos Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-danger-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-danger-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Impostos</span>
+                        </div>
+                        {{$currTax := add .monthOverMonthComparison.CurrentMonth.TotalTax .monthOverMonthComparison.CurrentMonth.TotalINSS}}
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
+                        {{$change := 0.0}}
+                        {{if gt $prevTax 0.0}}
+                            {{$change = mul (div (sub $currTax $prevTax) $prevTax) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-danger-500/20 text-danger-400{{else}}bg-success-500/20 text-success-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" $currTax}}</p>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevTax := add .monthOverMonthComparison.PreviousMonth.TotalTax .monthOverMonthComparison.PreviousMonth.TotalINSS}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevTax}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Despesas Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-brand-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-brand-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Despesas</span>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$change := 0.0}}
+                        {{if gt .monthOverMonthComparison.PreviousMonth.TotalExpenses 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.TotalExpenses .monthOverMonthComparison.PreviousMonth.TotalExpenses) .monthOverMonthComparison.PreviousMonth.TotalExpenses) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-danger-500/20 text-danger-400{{else}}bg-success-500/20 text-success-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.TotalExpenses}}</p>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" .monthOverMonthComparison.PreviousMonth.TotalExpenses}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Saldo Comparison -->
+                <div class="p-5 rounded-xl bg-dark-800/50 border border-white/5 hover:border-violet-500/30 transition-all duration-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-violet-500/15 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-dark-300">Saldo</span>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
+                        {{$change := 0.0}}
+                        {{if gt $prevBalance 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.Balance $prevBalance) $prevBalance) 100.0}}
+                        {{else if lt $prevBalance 0.0}}
+                            {{$change = mul (div (sub .monthOverMonthComparison.CurrentMonth.Balance $prevBalance) (mul $prevBalance -1.0)) 100.0}}
+                        {{end}}
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full {{if ge $change 0.0}}bg-success-500/20 text-success-400{{else}}bg-danger-500/20 text-danger-400{{end}}">
+                            {{if ge $change 0.0}}+{{end}}{{printf "%.1f" $change}}%
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Atual</p>
+                            <p class="text-lg font-bold text-white">R$ {{printf "%.2f" .monthOverMonthComparison.CurrentMonth.Balance}}</p>
+                        </div>
+                        {{if .monthOverMonthComparison.PreviousMonth}}
+                        {{$prevBalance := .monthOverMonthComparison.PreviousMonth.Balance}}
+                        <div>
+                            <p class="text-xs text-dark-500 mb-1">Mes Anterior</p>
+                            <p class="text-sm font-semibold text-dark-300">R$ {{printf "%.2f" $prevBalance}}</p>
+                        </div>
+                        {{else}}
+                        <div>
+                            <p class="text-xs text-dark-500">Sem dados do mes anterior</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income vs Expense Trend -->
+    <div class="card-premium rounded-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-semibold text-white">Tendencia - Receita vs Despesas</h2>
+        </div>
+
+        <div class="p-6">
+            {{if .monthSummaries}}
+            <div class="relative w-full" style="height: 400px;">
+                <canvas id="trendLineChart"></canvas>
+            </div>
+
+            <script>
+                (function() {
+                    const ctx = document.getElementById('trendLineChart');
+                    if (!ctx) return;
+
+                    // Get the last 6 months of data
+                    const monthData = [
+                        {{range .incomeVsExpenseTrend}}
+                        {
+                            month: "{{.MonthName}}",
+                            income: {{.TotalIncome}},
+                            expenses: {{.TotalExpense}}
+                        },
+                        {{end}}
+                    ];
+
+                    // Create chart
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: monthData.map(d => d.month),
+                            datasets: [
+                                {
+                                    label: 'Receita',
+                                    data: monthData.map(d => d.income),
+                                    borderColor: '#22c55e',
+                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    pointBackgroundColor: '#22c55e',
+                                    pointBorderColor: '#1e293b',
+                                    pointBorderWidth: 2,
+                                    pointHoverBackgroundColor: '#22c55e',
+                                    pointHoverBorderColor: '#fff',
+                                    pointHoverBorderWidth: 3
+                                },
+                                {
+                                    label: 'Despesas',
+                                    data: monthData.map(d => d.expenses),
+                                    borderColor: '#a855f7',
+                                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    pointBackgroundColor: '#a855f7',
+                                    pointBorderColor: '#1e293b',
+                                    pointBorderWidth: 2,
+                                    pointHoverBackgroundColor: '#a855f7',
+                                    pointHoverBorderColor: '#fff',
+                                    pointHoverBorderWidth: 3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    align: 'end',
+                                    labels: {
+                                        color: '#e2e8f0',
+                                        font: {
+                                            size: 13,
+                                            weight: '600'
+                                        },
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleColor: '#f1f5f9',
+                                    bodyColor: '#e2e8f0',
+                                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return ' ' + context.dataset.label + ': R$ ' + context.parsed.y.toFixed(2);
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        }
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        },
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toFixed(0);
+                                        }
+                                    }
+                                }
+                            },
+                            animation: {
+                                duration: 1000,
+                                easing: 'easeInOutQuart'
+                            }
+                        }
+                    });
+                })();
+            </script>
+            {{else}}
+            <div class="text-center py-12">
+                <div class="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                    </svg>
+                </div>
+                <p class="text-dark-400 font-medium">Sem dados suficientes</p>
+                <p class="text-dark-500 text-sm mt-1">Adicione transacoes para visualizar a tendencia</p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+>>>>>>> master
 
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -375,7 +768,8 @@
         <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
             <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                 </svg>
             </div>
             <h2 class="text-lg font-semibold text-white">Despesas por Categoria</h2>
@@ -383,23 +777,138 @@
 
         <div class="p-6">
             {{if .categoryBreakdown}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {{range .categoryBreakdown}}
-                <div class="flex items-center justify-between p-4 rounded-xl bg-dark-800/50 border border-white/5 hover:bg-dark-800 transition-all duration-200">
-                    <div class="flex-1 min-w-0">
-                        <p class="font-medium text-white truncate">{{.Category}}</p>
-                    </div>
-                    <div class="ml-3">
-                        <span class="font-bold text-brand-400 whitespace-nowrap">R$ {{printf "%.2f" .Amount}}</span>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Pie Chart -->
+                <div class="flex items-center justify-center p-4">
+                    <div class="relative w-full max-w-sm aspect-square">
+                        <canvas id="categoryPieChart"></canvas>
                     </div>
                 </div>
-                {{end}}
+
+                <!-- Legend with Percentages -->
+                <div class="flex flex-col justify-center">
+                    <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wider mb-4">Distribuicao</h3>
+                    <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                        {{$total := 0.0}}
+                        {{range .categoryBreakdown}}
+                            {{$total = add $total .Amount}}
+                        {{end}}
+                        {{range $index, $cat := .categoryBreakdown}}
+                        {{$percentage := 0.0}}
+                        {{if gt $total 0.0}}
+                            {{$percentage = mul (div $cat.Amount $total) 100.0}}
+                        {{end}}
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:bg-dark-800 transition-all duration-200">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="w-4 h-4 rounded-full category-color-{{$index}} flex-shrink-0"></div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-white truncate">{{$cat.Category}}</p>
+                                    <p class="text-xs text-dark-400">R$ {{printf "%.2f" $cat.Amount}}</p>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <span class="text-lg font-bold text-brand-400 whitespace-nowrap">{{printf "%.1f" $percentage}}%</span>
+                            </div>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
             </div>
+
+            <script>
+                (function() {
+                    const ctx = document.getElementById('categoryPieChart');
+                    if (!ctx) return;
+
+                    // Category data
+                    const categories = [
+                        {{range .categoryBreakdownWithPercentages}}
+                        {
+                            name: "{{.Category}}",
+                            amount: {{.Amount}}
+                        },
+                        {{end}}
+                    ];
+
+                    // Calculate total
+                    const total = categories.reduce((sum, cat) => sum + cat.amount, 0);
+
+                    // Generate colors
+                    const colors = [
+                        '#a855f7', '#c084fc', '#e9d5ff',
+                        '#fb923c', '#f97316', '#fdba74',
+                        '#22c55e', '#4ade80', '#86efac',
+                        '#3b82f6', '#60a5fa', '#93c5fd',
+                        '#ec4899', '#f472b6', '#f9a8d4',
+                        '#14b8a6', '#2dd4bf', '#5eead4',
+                        '#f59e0b', '#fbbf24', '#fcd34d'
+                    ];
+
+                    // Apply colors to legend items
+                    categories.forEach((cat, index) => {
+                        const colorElements = document.querySelectorAll('.category-color-' + index);
+                        colorElements.forEach(el => {
+                            el.style.backgroundColor = colors[index % colors.length];
+                        });
+                    });
+
+                    // Create chart
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: categories.map(c => c.name),
+                            datasets: [{
+                                data: categories.map(c => c.amount),
+                                backgroundColor: colors.slice(0, categories.length),
+                                borderColor: '#1e293b',
+                                borderWidth: 2,
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleColor: '#f1f5f9',
+                                    bodyColor: '#e2e8f0',
+                                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed;
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return ' R$ ' + value.toFixed(2) + ' (' + percentage + '%)';
+                                        }
+                                    }
+                                }
+                            },
+                            interaction: {
+                                intersect: true,
+                                mode: 'point'
+                            },
+                            animation: {
+                                animateRotate: true,
+                                animateScale: true,
+                                duration: 1000,
+                                easing: 'easeInOutQuart'
+                            }
+                        }
+                    });
+                })();
+            </script>
             {{else}}
             <div class="text-center py-12">
                 <div class="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                     </svg>
                 </div>
                 <p class="text-dark-400 font-medium">Nenhuma despesa categorizada</p>

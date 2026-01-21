@@ -23,7 +23,7 @@
     </div>
 
     <!-- Create Goal Form -->
-    <div class="card-premium rounded-2xl overflow-hidden">
+    <div id="create-goal-form" class="card-premium rounded-2xl overflow-hidden">
         <div class="px-6 py-4 border-b border-dark-700/50 bg-gradient-to-r from-success-500/10 to-emerald-600/10">
             <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                 <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,21 +35,22 @@
         <form hx-post="/groups/{{.groupID}}/goals" hx-target="#goal-list" hx-swap="innerHTML" class="p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome da Meta</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome da Meta <span class="text-danger-400">*</span></label>
                     <input type="text" name="name" required placeholder="Ex: Fundo de Emergencia"
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Alvo (R$)</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Valor Alvo (R$) <span class="text-danger-400">*</span></label>
                     <input type="number" name="target_amount" step="0.01" min="0.01" required placeholder="0,00"
                         class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Alvo</label>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data Alvo <span class="text-danger-400">*</span></label>
                     <input type="date" name="target_date" required
-                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white">
+                        class="input-premium w-full rounded-xl px-4 py-2.5 text-sm text-white"
+                        style="color-scheme: dark;">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-dark-300 mb-2">Conta (opcional)</label>
@@ -229,7 +230,7 @@
 
                 <!-- Delete Button -->
                 <button hx-delete="/goals/{{.ID}}" hx-target="#goal-list" hx-swap="innerHTML"
-                    hx-confirm="Tem certeza que deseja excluir esta meta?"
+                    onclick="event.preventDefault(); showConfirmModal('Tem certeza que deseja excluir esta meta?', () => htmx.ajax('DELETE', '/goals/{{.ID}}', {target: '#goal-list', swap: 'innerHTML'})); return false;"
                     class="w-full inline-flex items-center justify-center gap-2 bg-danger-500/20 text-danger-400 px-4 py-2 rounded-xl hover:bg-danger-500/30 font-medium text-sm transition-colors border border-danger-500/30">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -249,6 +250,13 @@
             </div>
             <p class="text-dark-300 font-medium">Nenhuma meta criada</p>
             <p class="text-sm text-dark-500 mt-1">Crie sua primeira meta para o grupo acima</p>
+            <button onclick="document.getElementById('create-goal-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+                class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Criar Meta
+            </button>
         </div>
     </div>
     {{end}}

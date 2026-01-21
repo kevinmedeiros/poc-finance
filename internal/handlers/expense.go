@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,6 +18,7 @@ type ExpenseHandler struct {
 	accountService       *services.AccountService
 	notificationService  *services.NotificationService
 	settingsCacheService *services.SettingsCacheService
+	budgetService        *services.BudgetService
 }
 
 func NewExpenseHandler(settingsCacheService *services.SettingsCacheService) *ExpenseHandler {
@@ -24,6 +26,7 @@ func NewExpenseHandler(settingsCacheService *services.SettingsCacheService) *Exp
 		accountService:       services.NewAccountService(),
 		notificationService:  services.NewNotificationService(),
 		settingsCacheService: settingsCacheService,
+		budgetService:        services.NewBudgetService(),
 	}
 }
 
@@ -313,7 +316,33 @@ func (h *ExpenseHandler) Delete(c echo.Context) error {
 	}
 
 	expenseType := string(expense.Type)
+	category := expense.Category
+
+	// Delete associated payments first and track affected months
+	var payments []models.ExpensePayment
+	database.DB.Where("expense_id = ?", id).Find(&payments)
+
+	// Track unique year/month combinations for budget updates
+	affectedPeriods := make(map[string]struct{})
+	for _, payment := range payments {
+		key := fmt.Sprintf("%d-%d", payment.Year, payment.Month)
+		affectedPeriods[key] = struct{}{}
+	}
+
+	// Delete payments
+	database.DB.Where("expense_id = ?", id).Delete(&models.ExpensePayment{})
+
+	// Delete expense
 	database.DB.Delete(&expense)
+
+	// Update budgets for all affected periods
+	if category != "" {
+		for periodKey := range affectedPeriods {
+			var year, month int
+			fmt.Sscanf(periodKey, "%d-%d", &year, &month)
+			h.budgetService.UpdateCategorySpent(userID, category, year, month)
+		}
+	}
 
 	return h.renderExpenseList(c, expenseType)
 }
@@ -347,6 +376,11 @@ func (h *ExpenseHandler) MarkPaid(c echo.Context) error {
 			Amount:    expense.Amount,
 		}
 		database.DB.Create(&payment)
+
+		// Update budget tracking in real-time
+		if expense.Category != "" {
+			h.budgetService.UpdateCategorySpent(userID, expense.Category, year, month)
+		}
 	}
 
 	return h.renderExpenseList(c, string(expense.Type))
@@ -369,6 +403,11 @@ func (h *ExpenseHandler) MarkUnpaid(c echo.Context) error {
 
 	// Remove pagamento
 	database.DB.Where("expense_id = ? AND month = ? AND year = ?", id, month, year).Delete(&models.ExpensePayment{})
+
+	// Update budget tracking in real-time
+	if expense.Category != "" {
+		h.budgetService.UpdateCategorySpent(userID, expense.Category, year, month)
+	}
 
 	return h.renderExpenseList(c, string(expense.Type))
 }

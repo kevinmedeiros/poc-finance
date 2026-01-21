@@ -53,7 +53,7 @@
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
+            <div id="fixed-expense-form" class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses{{if .selectedCategory}}?category={{.selectedCategory}}{{end}}" hx-target="#fixed-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="fixed">
                     <select name="account_id" required
@@ -68,11 +68,11 @@
                         {{end}}
                     </select>
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="text" name="name" placeholder="Nome da despesa" required
+                        <input type="text" name="name" placeholder="Nome da despesa *" required
                             class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
-                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor" required
+                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor *" required
                                 class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
@@ -122,7 +122,7 @@
             </div>
 
             <!-- Form -->
-            <div class="p-4 border-b border-dark-700/50 bg-dark-800/30">
+            <div id="variable-expense-form" class="p-4 border-b border-dark-700/50 bg-dark-800/30">
                 <form hx-post="/expenses{{if .selectedCategory}}?category={{.selectedCategory}}{{end}}" hx-target="#variable-expense-list" hx-swap="innerHTML" class="space-y-3">
                     <input type="hidden" name="type" value="variable">
                     <select name="account_id" required
@@ -137,11 +137,11 @@
                         {{end}}
                     </select>
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="text" name="name" placeholder="Nome da despesa" required
+                        <input type="text" name="name" placeholder="Nome da despesa *" required
                             class="input-premium rounded-xl px-4 py-2.5 text-sm text-white">
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500 text-sm">R$</span>
-                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor" required
+                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="Valor *" required
                                 class="input-premium w-full rounded-xl pl-10 pr-4 py-2.5 text-sm text-white">
                         </div>
                     </div>
@@ -235,7 +235,7 @@
                     {{end}}
                 </button>
                 <button hx-delete="/expenses/{{.ID}}{{if $.selectedCategory}}?category={{$.selectedCategory}}{{end}}" hx-target="#fixed-expense-list" hx-swap="innerHTML"
-                    hx-confirm="Excluir despesa?"
+                    onclick="event.preventDefault(); showConfirmModal('Excluir despesa?', () => htmx.ajax('DELETE', '/expenses/{{.ID}}{{if $.selectedCategory}}?category={{$.selectedCategory}}{{end}}', {target: '#fixed-expense-list', swap: 'innerHTML'})); return false;"
                     class="p-1.5 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -253,6 +253,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhuma despesa fixa</p>
         <p class="text-sm text-dark-500 mt-1">Adicione suas despesas recorrentes</p>
+        <button onclick="document.getElementById('fixed-expense-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-dark-900 inline-flex items-center justify-center gap-2 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Despesa
+        </button>
     </div>
     {{end}}
 </div>
@@ -281,7 +288,7 @@
         <div class="flex items-center gap-3">
             <span class="font-bold text-sm text-warning-400">R$ {{printf "%.2f" .Amount}}</span>
             <button hx-delete="/expenses/{{.ID}}{{if $.selectedCategory}}?category={{$.selectedCategory}}{{end}}" hx-target="#variable-expense-list" hx-swap="innerHTML"
-                hx-confirm="Excluir despesa?"
+                onclick="event.preventDefault(); showConfirmModal('Excluir despesa?', () => htmx.ajax('DELETE', '/expenses/{{.ID}}{{if $.selectedCategory}}?category={{$.selectedCategory}}{{end}}', {target: '#variable-expense-list', swap: 'innerHTML'})); return false;"
                 class="p-1.5 rounded-lg text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -298,6 +305,13 @@
         </div>
         <p class="text-dark-300 font-medium">Nenhuma despesa variavel</p>
         <p class="text-sm text-dark-500 mt-1">Adicione gastos pontuais do mes</p>
+        <button onclick="document.getElementById('variable-expense-form').scrollIntoView({behavior: 'smooth', block: 'center'})"
+            class="mt-4 bg-warning-500 hover:bg-warning-400 text-dark-900 px-6 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Adicionar Despesa
+        </button>
     </div>
     {{end}}
 </div>
