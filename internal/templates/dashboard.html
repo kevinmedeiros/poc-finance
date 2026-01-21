@@ -472,7 +472,8 @@
         <div class="px-6 py-5 border-b border-white/5 flex items-center gap-3">
             <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                 </svg>
             </div>
             <h2 class="text-lg font-semibold text-white">Despesas por Categoria</h2>
@@ -480,23 +481,138 @@
 
         <div class="p-6">
             {{if .categoryBreakdown}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {{range .categoryBreakdown}}
-                <div class="flex items-center justify-between p-4 rounded-xl bg-dark-800/50 border border-white/5 hover:bg-dark-800 transition-all duration-200">
-                    <div class="flex-1 min-w-0">
-                        <p class="font-medium text-white truncate">{{.Category}}</p>
-                    </div>
-                    <div class="ml-3">
-                        <span class="font-bold text-brand-400 whitespace-nowrap">R$ {{printf "%.2f" .Amount}}</span>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Pie Chart -->
+                <div class="flex items-center justify-center p-4">
+                    <div class="relative w-full max-w-sm aspect-square">
+                        <canvas id="categoryPieChart"></canvas>
                     </div>
                 </div>
-                {{end}}
+
+                <!-- Legend with Percentages -->
+                <div class="flex flex-col justify-center">
+                    <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wider mb-4">Distribuicao</h3>
+                    <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                        {{$total := 0.0}}
+                        {{range .categoryBreakdown}}
+                            {{$total = add $total .Amount}}
+                        {{end}}
+                        {{range $index, $cat := .categoryBreakdown}}
+                        {{$percentage := 0.0}}
+                        {{if gt $total 0.0}}
+                            {{$percentage = mul (div $cat.Amount $total) 100.0}}
+                        {{end}}
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:bg-dark-800 transition-all duration-200">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="w-4 h-4 rounded-full category-color-{{$index}} flex-shrink-0"></div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-white truncate">{{$cat.Category}}</p>
+                                    <p class="text-xs text-dark-400">R$ {{printf "%.2f" $cat.Amount}}</p>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <span class="text-lg font-bold text-brand-400 whitespace-nowrap">{{printf "%.1f" $percentage}}%</span>
+                            </div>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
             </div>
+
+            <script>
+                (function() {
+                    const ctx = document.getElementById('categoryPieChart');
+                    if (!ctx) return;
+
+                    // Category data
+                    const categories = [
+                        {{range .categoryBreakdown}}
+                        {
+                            name: "{{.Category}}",
+                            amount: {{.Amount}}
+                        },
+                        {{end}}
+                    ];
+
+                    // Calculate total
+                    const total = categories.reduce((sum, cat) => sum + cat.amount, 0);
+
+                    // Generate colors
+                    const colors = [
+                        '#a855f7', '#c084fc', '#e9d5ff',
+                        '#fb923c', '#f97316', '#fdba74',
+                        '#22c55e', '#4ade80', '#86efac',
+                        '#3b82f6', '#60a5fa', '#93c5fd',
+                        '#ec4899', '#f472b6', '#f9a8d4',
+                        '#14b8a6', '#2dd4bf', '#5eead4',
+                        '#f59e0b', '#fbbf24', '#fcd34d'
+                    ];
+
+                    // Apply colors to legend items
+                    categories.forEach((cat, index) => {
+                        const colorElements = document.querySelectorAll('.category-color-' + index);
+                        colorElements.forEach(el => {
+                            el.style.backgroundColor = colors[index % colors.length];
+                        });
+                    });
+
+                    // Create chart
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: categories.map(c => c.name),
+                            datasets: [{
+                                data: categories.map(c => c.amount),
+                                backgroundColor: colors.slice(0, categories.length),
+                                borderColor: '#1e293b',
+                                borderWidth: 2,
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleColor: '#f1f5f9',
+                                    bodyColor: '#e2e8f0',
+                                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed;
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return ' R$ ' + value.toFixed(2) + ' (' + percentage + '%)';
+                                        }
+                                    }
+                                }
+                            },
+                            interaction: {
+                                intersect: true,
+                                mode: 'point'
+                            },
+                            animation: {
+                                animateRotate: true,
+                                animateScale: true,
+                                duration: 1000,
+                                easing: 'easeInOutQuart'
+                            }
+                        }
+                    });
+                })();
+            </script>
             {{else}}
             <div class="text-center py-12">
                 <div class="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                     </svg>
                 </div>
                 <p class="text-dark-400 font-medium">Nenhuma despesa categorizada</p>
