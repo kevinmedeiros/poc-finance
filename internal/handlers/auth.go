@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"html"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -237,7 +238,17 @@ func (h *AuthHandler) ForgotPassword(c echo.Context) error {
 			baseURL = "http://localhost:8080"
 		}
 		// Send email in background (don't block response)
-		go h.emailService.SendPasswordResetEmail(req.Email, user.Name, token, baseURL)
+		go func() {
+			if emailErr := h.emailService.SendPasswordResetEmail(req.Email, user.Name, token, baseURL); emailErr != nil {
+				log.Printf("Erro ao enviar email de recuperação para %s: %v", req.Email, emailErr)
+			} else {
+				log.Printf("Email de recuperação enviado com sucesso para %s", req.Email)
+			}
+		}()
+	} else if err != nil {
+		log.Printf("Usuário não encontrado para recuperação: %s", req.Email)
+	} else {
+		log.Printf("SMTP não configurado - email não enviado")
 	}
 
 	// Always show success message to prevent email enumeration
