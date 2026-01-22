@@ -3,7 +3,9 @@ package database
 import (
 	"log"
 	"os"
+	"strings"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -27,20 +29,32 @@ func Init() error {
 		logLevel = logger.Error
 	}
 
-	// Get database path from environment or use default
-	dbPath := os.Getenv("DATABASE_PATH")
-	if dbPath == "" {
-		dbPath = "finance.db"
-	}
-
-	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+	config := &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
-	})
-	if err != nil {
-		return err
 	}
 
-	log.Println("Conectado ao banco de dados SQLite")
+	// Check for PostgreSQL connection string first (DATABASE_URL)
+	// Falls back to SQLite (DATABASE_PATH) for local development
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL != "" {
+		// PostgreSQL connection
+		DB, err = gorm.Open(postgres.Open(databaseURL), config)
+		if err != nil {
+			return err
+		}
+		log.Println("Conectado ao banco de dados PostgreSQL")
+	} else {
+		// SQLite fallback for local development
+		dbPath := os.Getenv("DATABASE_PATH")
+		if dbPath == "" {
+			dbPath = "finance.db"
+		}
+		DB, err = gorm.Open(sqlite.Open(dbPath), config)
+		if err != nil {
+			return err
+		}
+		log.Println("Conectado ao banco de dados SQLite")
+	}
 
 	// Auto migrate
 	err = DB.AutoMigrate(
@@ -96,4 +110,9 @@ func initDefaultSettings() {
 
 func GetDB() *gorm.DB {
 	return DB
+}
+
+// IsPostgres returns true if connected to PostgreSQL
+func IsPostgres() bool {
+	return strings.Contains(os.Getenv("DATABASE_URL"), "postgres")
 }

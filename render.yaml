@@ -9,7 +9,7 @@ services:
         generateValue: true
       - key: ENV
         value: production
-      - key: DATABASE_PATH
-        value: /app/data/finance.db
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard with PostgreSQL connection string
       - key: TZ
         value: America/Sao_Paulo
