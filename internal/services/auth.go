@@ -290,9 +290,15 @@ func (s *AuthService) CleanupExpiredTokens() error {
 
 // GeneratePasswordResetToken creates a password reset token for a user
 func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
+	token, _, err := s.GeneratePasswordResetTokenWithUser(email)
+	return token, err
+}
+
+// GeneratePasswordResetTokenWithUser creates a password reset token and returns the user
+func (s *AuthService) GeneratePasswordResetTokenWithUser(email string) (string, *models.User, error) {
 	var user models.User
 	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
-		return "", ErrUserNotFound
+		return "", nil, ErrUserNotFound
 	}
 
 	// Invalidate any existing reset tokens for this user
@@ -301,7 +307,7 @@ func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
 	// Generate random token
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	tokenString := hex.EncodeToString(bytes)
 
@@ -314,10 +320,10 @@ func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
 	}
 
 	if err := database.DB.Create(resetToken).Error; err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return tokenString, nil
+	return tokenString, &user, nil
 }
 
 // ValidatePasswordResetToken validates a password reset token

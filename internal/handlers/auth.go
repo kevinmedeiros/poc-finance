@@ -19,12 +19,14 @@ func isProduction() bool {
 }
 
 type AuthHandler struct {
-	authService *services.AuthService
+	authService  *services.AuthService
+	emailService *services.EmailService
 }
 
 func NewAuthHandler() *AuthHandler {
 	return &AuthHandler{
-		authService: services.NewAuthService(),
+		authService:  services.NewAuthService(),
+		emailService: services.NewEmailService(),
 	}
 }
 
@@ -227,10 +229,16 @@ func (h *AuthHandler) ForgotPassword(c echo.Context) error {
 		})
 	}
 
-	// In production, this would:
-	// 1. Generate reset token: h.authService.GeneratePasswordResetToken(req.Email)
-	// 2. Send email with reset link
-	// For now, password reset is disabled until email is implemented
+	// Generate reset token and send email (silently fail to prevent email enumeration)
+	token, user, err := h.authService.GeneratePasswordResetTokenWithUser(req.Email)
+	if err == nil && h.emailService.IsConfigured() {
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:8080"
+		}
+		// Send email in background (don't block response)
+		go h.emailService.SendPasswordResetEmail(req.Email, user.Name, token, baseURL)
+	}
 
 	// Always show success message to prevent email enumeration
 	return c.Render(http.StatusOK, "forgot-password.html", map[string]interface{}{
