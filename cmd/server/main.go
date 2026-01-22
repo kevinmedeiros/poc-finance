@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -458,6 +459,10 @@ func main() {
 	protected.GET("/groups/:id/budgets", budgetHandler.GroupBudgetsPage)
 
 	// Inicia servidor
-	log.Println("Servidor iniciado em http://localhost:8080")
-	e.Logger.Fatal(e.Start(":8080"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Servidor iniciado em http://localhost:%s", port)
+	e.Logger.Fatal(e.Start(":" + port))
 }
