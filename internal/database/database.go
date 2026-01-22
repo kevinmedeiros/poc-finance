@@ -27,7 +27,13 @@ func Init() error {
 		logLevel = logger.Error
 	}
 
-	DB, err = gorm.Open(sqlite.Open("finance.db"), &gorm.Config{
+	// Get database path from environment or use default
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = "finance.db"
+	}
+
+	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {

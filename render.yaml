@@ -3,9 +3,13 @@ services:
     name: poc-finance
     runtime: docker
     plan: free
+    healthCheckPath: /login
     envVars:
       - key: JWT_SECRET
         generateValue: true
-      - key: PORT
-        value: 8080
-    healthCheckPath: /login
+      - key: ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /app/data/finance.db
+      - key: TZ
+        value: America/Sao_Paulo
