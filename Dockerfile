@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -7,6 +7,10 @@ RUN apk add --no-cache gcc musl-dev
 
 # Copy go mod files
 COPY go.mod go.sum ./
+
+# Set GOTOOLCHAIN to auto to allow downloading newer toolchain if needed
+ENV GOTOOLCHAIN=auto
+
 RUN go mod download
 
 # Copy source code
