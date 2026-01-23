@@ -40,6 +40,47 @@ type OnboardingData struct {
 	Categories      []models.BudgetCategory
 }
 
+// getCurrentStep calculates the current step based on user's progress
+// Step 1: Welcome screen
+// Step 2: Create account (unlocked if step 1 completed)
+// Step 3: Select categories (unlocked if account exists)
+// Step 4: Create transaction (unlocked if budget exists)
+// Step 5: Complete (unlocked if transaction exists)
+func (h *OnboardingHandler) getCurrentStep(userID uint) int {
+	currentStep := 1 // Default to welcome screen
+
+	// Check if user has an account (step 2 completed)
+	account, err := h.accountService.GetUserIndividualAccount(userID)
+	if err != nil || account == nil {
+		return 2 // User needs to create an account
+	}
+	currentStep = 3 // Account exists, move to categories
+
+	// Check if user has a budget with categories (step 3 completed)
+	now := time.Now()
+	var budget models.Budget
+	err = database.DB.Where("user_id = ? AND year = ? AND month = ?",
+		userID, now.Year(), int(now.Month())).
+		Preload("Categories").
+		First(&budget).Error
+	if err != nil || budget.ID == 0 || len(budget.Categories) == 0 {
+		return 3 // User needs to select categories
+	}
+	currentStep = 4 // Budget exists, move to transaction
+
+	// Check if user has any expenses (step 4 completed)
+	var expenseCount int64
+	database.DB.Model(&models.Expense{}).
+		Where("account_id = ?", account.ID).
+		Count(&expenseCount)
+	if expenseCount == 0 {
+		return 4 // User needs to create a transaction
+	}
+	currentStep = 5 // Transaction exists, move to completion
+
+	return currentStep
+}
+
 // ShowWizard displays the onboarding wizard at the current step
 func (h *OnboardingHandler) ShowWizard(c echo.Context) error {
 	userID := middleware.GetUserID(c)
@@ -50,20 +91,49 @@ func (h *OnboardingHandler) ShowWizard(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
-	// Get current step from query param (default to step 1)
-	step := 1
+	// Calculate the current step based on user's progress
+	currentStep := h.getCurrentStep(userID)
+
+	// Get requested step from query param
+	requestedStep := currentStep
 	if stepParam := c.QueryParam("step"); stepParam != "" {
 		if s, err := strconv.Atoi(stepParam); err == nil && s >= 1 && s <= 5 {
-			step = s
+			requestedStep = s
 		}
+	}
+
+	// Prevent users from skipping ahead to steps they haven't unlocked
+	// Users can go back to previous steps, but not forward beyond their progress
+	step := requestedStep
+	if requestedStep > currentStep {
+		step = currentStep
 	}
 
 	// Get category templates for step 3
 	templates := h.onboardingService.GetCategoryTemplates()
 
+	// Get user's account for step 4
+	var account *models.Account
+	var categories []models.BudgetCategory
+	if step >= 4 {
+		account, _ = h.accountService.GetUserIndividualAccount(userID)
+		now := time.Now()
+		var budget models.Budget
+		database.DB.Where("user_id = ? AND year = ? AND month = ?",
+			userID, now.Year(), int(now.Month())).
+			Preload("Categories").
+			First(&budget)
+		if budget.ID != 0 {
+			categories = budget.Categories
+		}
+	}
+
 	data := map[string]interface{}{
-		"step":      step,
-		"templates": templates,
+		"step":        step,
+		"currentStep": currentStep,
+		"templates":   templates,
+		"account":     account,
+		"categories":  categories,
 	}
 
 	return c.Render(http.StatusOK, "onboarding.html", data)
