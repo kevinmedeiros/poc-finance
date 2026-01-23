@@ -167,7 +167,6 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/forgot-password.html",
 		"internal/templates/reset-password.html",
 		"internal/templates/join-group.html",
-		"internal/templates/onboarding.html",
 	}
 
 	// Get all partial templates
@@ -187,6 +186,11 @@ func loadTemplates() *TemplateRegistry {
 		tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(page))
 		templates[name] = tmpl
 	}
+
+	// Onboarding page needs its partials
+	onboardingPartials, _ := filepath.Glob("internal/templates/partials/onboarding-*.html")
+	onboardingFiles := append([]string{"internal/templates/onboarding.html"}, onboardingPartials...)
+	templates["onboarding.html"] = template.Must(template.New("").Funcs(funcMap).ParseFiles(onboardingFiles...))
 
 	return &TemplateRegistry{templates: templates, funcMap: funcMap}
 }

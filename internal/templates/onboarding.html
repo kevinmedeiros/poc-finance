@@ -247,7 +247,19 @@
         </div>
         {{end}}
 
-        {{template "step-content" .}}
+        {{if eq .step 1}}
+            {{template "onboarding-welcome" .}}
+        {{else if eq .step 2}}
+            {{template "onboarding-account" .}}
+        {{else if eq .step 3}}
+            {{template "onboarding-categories" .}}
+        {{else if eq .step 4}}
+            {{template "onboarding-transaction" .}}
+        {{else if eq .step 5}}
+            {{template "onboarding-complete" .}}
+        {{else}}
+            {{template "step-content" .}}
+        {{end}}
     </div>
 
     <!-- Footer -->
