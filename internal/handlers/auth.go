@@ -131,7 +131,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	// Authenticate user
-	_, accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, services.ErrAccountLocked) {
 			return c.Render(http.StatusOK, "login.html", map[string]interface{}{
@@ -167,6 +167,11 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(services.RefreshTokenDuration.Seconds()),
 	})
+
+	// Check if onboarding is completed
+	if !user.OnboardingCompleted {
+		return c.Redirect(http.StatusSeeOther, "/onboarding")
+	}
 
 	// Redirect to specified URL or home (with open redirect protection)
 	redirectURL := "/"
