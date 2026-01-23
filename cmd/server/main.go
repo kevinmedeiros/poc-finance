@@ -167,6 +167,7 @@ func loadTemplates() *TemplateRegistry {
 		"internal/templates/forgot-password.html",
 		"internal/templates/reset-password.html",
 		"internal/templates/join-group.html",
+		"internal/templates/onboarding.html",
 	}
 
 	// Get all partial templates
