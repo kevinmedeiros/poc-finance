@@ -1,0 +1,138 @@
+{{define "onboarding-categories"}}
+<div class="space-y-8">
+    <!-- Step Header -->
+    <div class="text-center animate-fade-up">
+        <div class="w-16 h-16 bg-gradient-to-br from-success-500 to-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+        </div>
+        <h2 class="font-display text-2xl text-white mb-3 font-bold">Organize suas categorias</h2>
+        <p class="text-dark-300 text-lg">Escolha um modelo pre-configurado para comecar rapidamente</p>
+    </div>
+
+    <!-- Form -->
+    <form action="/onboarding/categories" method="POST" class="space-y-6 animate-fade-up animate-delay-1">
+        <input type="hidden" name="_csrf" value="{{.csrf}}">
+
+        <!-- Category Template Selection -->
+        <div>
+            <label class="block text-sm font-medium text-dark-300 mb-3">Modelo de Categorias</label>
+            <div class="grid gap-3">
+                <!-- Personal Template -->
+                <label class="relative flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50 cursor-pointer hover:border-brand-500/50 transition-all group">
+                    <input
+                        type="radio"
+                        name="template"
+                        value="personal"
+                        class="mt-1 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-900"
+                        {{if or (eq .formData.template "personal") (not .formData.template)}}checked{{end}}
+                    >
+                    <div class="flex items-start gap-3 flex-1">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold mb-1">Pessoal</h3>
+                            <p class="text-dark-400 text-sm">Categorias basicas para controle financeiro individual</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Alimentacao</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Transporte</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Moradia</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Lazer</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Family Template -->
+                <label class="relative flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50 cursor-pointer hover:border-brand-500/50 transition-all group">
+                    <input
+                        type="radio"
+                        name="template"
+                        value="family"
+                        class="mt-1 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-900"
+                        {{if eq .formData.template "family"}}checked{{end}}
+                    >
+                    <div class="flex items-start gap-3 flex-1">
+                        <div class="w-10 h-10 rounded-lg bg-success-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-success-500/30 transition-colors">
+                            <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold mb-1">Familiar</h3>
+                            <p class="text-dark-400 text-sm">Categorias completas para orcamento familiar</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Educacao</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Saude</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Criancas</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Casa</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Brazilian Template -->
+                <label class="relative flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50 cursor-pointer hover:border-brand-500/50 transition-all group">
+                    <input
+                        type="radio"
+                        name="template"
+                        value="brazilian"
+                        class="mt-1 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-900"
+                        {{if eq .formData.template "brazilian"}}checked{{end}}
+                    >
+                    <div class="flex items-start gap-3 flex-1">
+                        <div class="w-10 h-10 rounded-lg bg-warning-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-warning-500/30 transition-colors">
+                            <svg class="w-5 h-5 text-warning-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold mb-1">Brasileiro</h3>
+                            <p class="text-dark-400 text-sm">Categorias adaptadas para realidade brasileira</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Impostos</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Condominio</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Combustivel</span>
+                                <span class="text-xs px-2 py-1 rounded-md bg-dark-700/50 text-dark-300">Delivery</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            {{if .errors.template}}
+            <p class="mt-2 text-sm text-danger-400">{{.errors.template}}</p>
+            {{end}}
+        </div>
+
+        <!-- Info Banner -->
+        <div class="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-brand-300 text-sm text-left">
+                <span class="font-semibold">Dica:</span> Voce pode adicionar, editar ou remover categorias a qualquer momento nas configuracoes.
+            </p>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex flex-col-reverse sm:flex-row gap-3 animate-fade-up animate-delay-2">
+            <a href="/onboarding?step=2" class="btn-secondary w-full sm:flex-1 text-dark-300 py-4 px-6 rounded-xl font-medium flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+                </svg>
+                <span>Voltar</span>
+            </a>
+            <button type="submit" class="btn-primary w-full sm:flex-1 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2">
+                <span>Continuar</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

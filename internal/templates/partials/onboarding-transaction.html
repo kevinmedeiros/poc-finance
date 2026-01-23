@@ -1,0 +1,122 @@
+{{define "onboarding-transaction"}}
+<div class="space-y-8">
+    <!-- Step Header -->
+    <div class="text-center animate-fade-up">
+        <div class="w-16 h-16 bg-gradient-to-br from-warning-500 to-orange-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h2 class="font-display text-2xl text-white mb-3 font-bold">Registre sua primeira transacao</h2>
+        <p class="text-dark-300 text-lg">Comece a acompanhar suas despesas imediatamente</p>
+    </div>
+
+    <!-- Form -->
+    <form action="/onboarding/transaction" method="POST" class="space-y-6 animate-fade-up animate-delay-1">
+        <input type="hidden" name="_csrf" value="{{.csrf}}">
+
+        <!-- Account (Read-only) -->
+        <div>
+            <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+            <input type="hidden" name="account_id" value="{{.account.ID}}">
+            <div class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white">
+                {{.account.Name}}{{if eq .account.Type "joint"}} (Conjunta){{end}}
+            </div>
+            <p class="mt-2 text-xs text-dark-400">Usando a conta criada na etapa anterior</p>
+        </div>
+
+        <!-- Transaction Type (Hidden - Only expenses supported) -->
+        <div class="hidden">
+            <input type="hidden" name="type" value="expense">
+        </div>
+
+        <!-- Transaction Details -->
+        <div class="grid gap-4">
+            <!-- Name -->
+            <div>
+                <label for="name" class="block text-sm font-medium text-dark-300 mb-2">Descricao</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    placeholder="Ex: Supermercado, Salario, Restaurante"
+                    class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                    value="{{.formData.name}}"
+                >
+                {{if .errors.name}}
+                <p class="mt-2 text-sm text-danger-400">{{.errors.name}}</p>
+                {{end}}
+            </div>
+
+            <!-- Amount -->
+            <div>
+                <label for="amount" class="block text-sm font-medium text-dark-300 mb-2">Valor</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-400 text-sm font-medium">R$</span>
+                    <input
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        placeholder="0,00"
+                        class="w-full pl-10 pr-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                        value="{{.formData.amount}}"
+                    >
+                </div>
+                {{if .errors.amount}}
+                <p class="mt-2 text-sm text-danger-400">{{.errors.amount}}</p>
+                {{end}}
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label for="category" class="block text-sm font-medium text-dark-300 mb-2">Categoria</label>
+                <select
+                    id="category"
+                    name="category"
+                    required
+                    class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                >
+                    {{range .categories}}
+                    <option value="{{.Category}}" {{if eq $.formData.category .Category}}selected{{end}}>
+                        {{.Category}}
+                    </option>
+                    {{end}}
+                </select>
+                {{if .errors.category}}
+                <p class="mt-2 text-sm text-danger-400">{{.errors.category}}</p>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-brand-300 text-sm text-left">
+                <span class="font-semibold">Dica:</span> Voce pode adicionar mais transacoes depois na pagina de Despesas ou Receitas.
+            </p>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex flex-col-reverse sm:flex-row gap-3 animate-fade-up animate-delay-2">
+            <a href="/onboarding?step=3" class="btn-secondary w-full sm:flex-1 text-dark-300 py-4 px-6 rounded-xl font-medium flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+                </svg>
+                <span>Voltar</span>
+            </a>
+            <button type="submit" class="btn-primary w-full sm:flex-1 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2">
+                <span>Concluir Configuracao</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

@@ -21,6 +21,7 @@ type User struct {
 	FailedLoginAttempts int        `json:"failed_login_attempts" gorm:"default:0"`
 	LockedUntil         *time.Time `json:"locked_until,omitempty"`
 	LastFailedLoginAt   *time.Time `json:"last_failed_login_at,omitempty"`
+	OnboardingCompleted bool       `json:"onboarding_completed" gorm:"default:false"`
 }
 
 func (u *User) TableName() string {

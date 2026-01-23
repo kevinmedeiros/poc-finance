@@ -1,0 +1,307 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuracao Inicial - MedeirosFinance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#faf5ff',
+                            100: '#f3e8ff',
+                            200: '#e9d5ff',
+                            300: '#d8b4fe',
+                            400: '#c084fc',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7e22ce',
+                            800: '#6b21a8',
+                            900: '#581c87',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        success: { 400: '#4ade80', 500: '#22c55e', 600: '#16a34a' },
+                        danger: { 400: '#f87171', 500: '#ef4444', 600: '#dc2626' },
+                        warning: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        .font-display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.15); }
+            50% { box-shadow: 0 0 60px rgba(168, 85, 247, 0.25); }
+        }
+
+        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; opacity: 0; }
+        .animate-delay-1 { animation-delay: 0.1s; }
+        .animate-delay-2 { animation-delay: 0.2s; }
+        .animate-delay-3 { animation-delay: 0.3s; }
+        .animate-delay-4 { animation-delay: 0.4s; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .input-premium {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+        .input-premium:focus {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+        }
+        .input-premium::placeholder { color: rgba(148, 163, 184, 0.5); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+        }
+        .btn-primary:active { transform: translateY(0) scale(0.98); }
+
+        .btn-secondary {
+            background: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: rgba(148, 163, 184, 0.15);
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+
+        .ambient-bg {
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+                linear-gradient(180deg, #0f172a 0%, #020617 100%);
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        .step-indicator {
+            position: relative;
+        }
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(148, 163, 184, 0.2);
+            z-index: 0;
+        }
+        .step-item {
+            position: relative;
+            z-index: 1;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            transition: all 0.3s ease;
+        }
+        .step-item.active .step-circle {
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+            border-color: #a855f7;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        .step-item.completed .step-circle {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-color: #22c55e;
+        }
+    </style>
+</head>
+<body class="ambient-bg min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="noise-overlay"></div>
+    {{template "content" .}}
+</body>
+</html>
+{{end}}
+
+{{define "content"}}
+<div class="w-full max-w-2xl relative z-10">
+    <!-- Logo & Header -->
+    <div class="text-center mb-10 animate-fade-up">
+        <div class="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float animate-pulse-glow shadow-2xl">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </div>
+        <h1 class="font-display text-3xl text-white mb-3 font-bold">Configuracao Inicial</h1>
+        <p class="text-dark-400 text-lg">Vamos configurar sua conta em poucos passos</p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="mb-10 animate-fade-up animate-delay-1">
+        <div class="step-indicator flex items-center justify-between px-4">
+            <!-- Step 1: Welcome -->
+            <div class="step-item {{if le .currentStep 1}}active{{else}}completed{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    {{if gt .currentStep 1}}
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{else}}
+                    <span class="text-sm font-bold text-white">1</span>
+                    {{end}}
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Bem-vindo</span>
+            </div>
+
+            <!-- Step 2: Account -->
+            <div class="step-item {{if eq .currentStep 2}}active{{else if gt .currentStep 2}}completed{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    {{if gt .currentStep 2}}
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{else}}
+                    <span class="text-sm font-bold {{if eq .currentStep 2}}text-white{{else}}text-dark-500{{end}}">2</span>
+                    {{end}}
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Conta</span>
+            </div>
+
+            <!-- Step 3: Categories -->
+            <div class="step-item {{if eq .currentStep 3}}active{{else if gt .currentStep 3}}completed{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    {{if gt .currentStep 3}}
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{else}}
+                    <span class="text-sm font-bold {{if eq .currentStep 3}}text-white{{else}}text-dark-500{{end}}">3</span>
+                    {{end}}
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Categorias</span>
+            </div>
+
+            <!-- Step 4: Transaction -->
+            <div class="step-item {{if eq .currentStep 4}}active{{else if gt .currentStep 4}}completed{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    {{if gt .currentStep 4}}
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{else}}
+                    <span class="text-sm font-bold {{if eq .currentStep 4}}text-white{{else}}text-dark-500{{end}}">4</span>
+                    {{end}}
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Transação</span>
+            </div>
+
+            <!-- Step 5: Complete -->
+            <div class="step-item {{if eq .currentStep 5}}active{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    <span class="text-sm font-bold {{if eq .currentStep 5}}text-white{{else}}text-dark-500{{end}}">5</span>
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Concluído</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card -->
+    <div class="glass-card rounded-3xl p-8 animate-fade-up animate-delay-2">
+        {{if .error}}
+        <div class="bg-danger-500/10 text-danger-400 p-4 rounded-2xl text-sm flex items-center gap-3 mb-6 border border-danger-500/20">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>{{.error}}</span>
+        </div>
+        {{end}}
+
+        {{if eq .step 1}}
+            {{template "onboarding-welcome" .}}
+        {{else if eq .step 2}}
+            {{template "onboarding-account" .}}
+        {{else if eq .step 3}}
+            {{template "onboarding-categories" .}}
+        {{else if eq .step 4}}
+            {{template "onboarding-transaction" .}}
+        {{else if eq .step 5}}
+            {{template "onboarding-complete" .}}
+        {{else}}
+            {{template "step-content" .}}
+        {{end}}
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center animate-fade-up animate-delay-3">
+        <p class="text-dark-500 text-sm">Voce pode alterar essas configuracoes depois em Configuracoes</p>
+    </div>
+
+    <!-- Footer decoration -->
+    <div class="mt-8 text-center animate-fade-up animate-delay-4">
+        <p class="text-dark-600 text-sm">MedeirosFinance &copy; 2025</p>
+    </div>
+</div>
+{{end}}
+
+{{define "step-content"}}
+<!-- This will be overridden by step-specific templates -->
+<div class="text-center py-12">
+    <p class="text-dark-400">Carregando...</p>
+</div>
+{{end}}

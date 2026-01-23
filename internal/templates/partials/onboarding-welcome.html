@@ -1,0 +1,81 @@
+{{define "onboarding-welcome"}}
+<div class="text-center space-y-8">
+    <!-- Welcome Message -->
+    <div class="animate-fade-up">
+        <div class="w-16 h-16 bg-gradient-to-br from-brand-400 to-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/>
+            </svg>
+        </div>
+        <h2 class="font-display text-2xl text-white mb-3 font-bold">Bem-vindo ao MedeirosFinance!</h2>
+        <p class="text-dark-300 text-lg">Vamos configurar sua conta em menos de 5 minutos</p>
+    </div>
+
+    <!-- Feature Highlights -->
+    <div class="grid gap-4 text-left animate-fade-up animate-delay-1">
+        <div class="flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50">
+            <div class="w-10 h-10 rounded-lg bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold mb-1">Crie sua primeira conta</h3>
+                <p class="text-dark-400 text-sm">Configure uma conta para comecar a rastrear suas financas</p>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50">
+            <div class="w-10 h-10 rounded-lg bg-success-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold mb-1">Organize suas categorias</h3>
+                <p class="text-dark-400 text-sm">Escolha um modelo pre-configurado ou crie o seu proprio</p>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50">
+            <div class="w-10 h-10 rounded-lg bg-warning-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-warning-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold mb-1">Registre sua primeira transacao</h3>
+                <p class="text-dark-400 text-sm">Comece a acompanhar suas despesas imediatamente</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 flex items-start gap-3 animate-fade-up animate-delay-2">
+        <svg class="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-brand-300 text-sm text-left">
+            <span class="font-semibold">Dica:</span> Voce pode pular esta configuracao e voltar depois nas Configuracoes.
+        </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-3 animate-fade-up animate-delay-3">
+        <form action="/onboarding?step=2" method="GET" class="flex-1">
+            <button type="submit" class="btn-primary w-full text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2">
+                <span>Comecar Configuracao</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+            </button>
+        </form>
+        <form action="/onboarding/skip" method="POST">
+            <input type="hidden" name="_csrf" value="{{.csrf}}">
+            <button type="submit" class="btn-secondary w-full sm:w-auto text-dark-300 py-4 px-6 rounded-xl font-medium flex items-center justify-center gap-2">
+                Pular por agora
+            </button>
+        </form>
+    </div>
+</div>
+{{end}}

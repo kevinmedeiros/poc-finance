@@ -187,6 +187,11 @@ func loadTemplates() *TemplateRegistry {
 		templates[name] = tmpl
 	}
 
+	// Onboarding page needs its partials
+	onboardingPartials, _ := filepath.Glob("internal/templates/partials/onboarding-*.html")
+	onboardingFiles := append([]string{"internal/templates/onboarding.html"}, onboardingPartials...)
+	templates["onboarding.html"] = template.Must(template.New("").Funcs(funcMap).ParseFiles(onboardingFiles...))
+
 	return &TemplateRegistry{templates: templates, funcMap: funcMap}
 }
 
@@ -330,6 +335,7 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler()
 	taxReportHandler := handlers.NewTaxReportHandler(settingsCacheService)
 	budgetHandler := handlers.NewBudgetHandler()
+	onboardingHandler := handlers.NewOnboardingHandler()
 
 	// Auth routes (public - no authentication required)
 	e.GET("/register", authHandler.RegisterPage)
@@ -457,6 +463,14 @@ func main() {
 
 	// Group Budgets
 	protected.GET("/groups/:id/budgets", budgetHandler.GroupBudgetsPage)
+
+	// Onboarding wizard
+	protected.GET("/onboarding", onboardingHandler.ShowWizard)
+	protected.POST("/onboarding/account", onboardingHandler.CreateAccount)
+	protected.POST("/onboarding/categories", onboardingHandler.SelectCategories)
+	protected.POST("/onboarding/transaction", onboardingHandler.CreateTransaction)
+	protected.POST("/onboarding/complete", onboardingHandler.Complete)
+	protected.POST("/onboarding/skip", onboardingHandler.Skip)
 
 	// Inicia servidor
 	port := os.Getenv("PORT")
