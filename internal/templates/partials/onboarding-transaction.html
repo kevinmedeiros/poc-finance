@@ -15,75 +15,19 @@
     <form action="/onboarding/transaction" method="POST" class="space-y-6 animate-fade-up animate-delay-1">
         <input type="hidden" name="_csrf" value="{{.csrf}}">
 
-        <!-- Account Selection -->
+        <!-- Account (Read-only) -->
         <div>
-            <label for="account_id" class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
-            <select
-                id="account_id"
-                name="account_id"
-                required
-                class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
-            >
-                {{range .accounts}}
-                <option value="{{.ID}}" {{if eq $.formData.account_id .ID}}selected{{end}}>{{.Name}}{{if eq .Type "joint"}} (Conjunta){{end}}</option>
-                {{end}}
-            </select>
-            {{if .errors.account_id}}
-            <p class="mt-2 text-sm text-danger-400">{{.errors.account_id}}</p>
-            {{end}}
+            <label class="block text-sm font-medium text-dark-300 mb-2">Conta</label>
+            <input type="hidden" name="account_id" value="{{.account.ID}}">
+            <div class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white">
+                {{.account.Name}}{{if eq .account.Type "joint"}} (Conjunta){{end}}
+            </div>
+            <p class="mt-2 text-xs text-dark-400">Usando a conta criada na etapa anterior</p>
         </div>
 
-        <!-- Transaction Type -->
-        <div>
-            <label class="block text-sm font-medium text-dark-300 mb-3">Tipo de Transacao</label>
-            <div class="grid gap-3">
-                <!-- Expense -->
-                <label class="relative flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50 cursor-pointer hover:border-brand-500/50 transition-all group">
-                    <input
-                        type="radio"
-                        name="type"
-                        value="expense"
-                        class="mt-1 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-900"
-                        {{if or (eq .formData.type "expense") (not .formData.type)}}checked{{end}}
-                    >
-                    <div class="flex items-start gap-3 flex-1">
-                        <div class="w-10 h-10 rounded-lg bg-danger-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-danger-500/30 transition-colors">
-                            <svg class="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-white font-semibold mb-1">Despesa</h3>
-                            <p class="text-dark-400 text-sm">Registre um gasto ou despesa</p>
-                        </div>
-                    </div>
-                </label>
-
-                <!-- Income -->
-                <label class="relative flex items-start gap-4 p-4 rounded-xl bg-dark-800/50 border border-dark-700/50 cursor-pointer hover:border-brand-500/50 transition-all group">
-                    <input
-                        type="radio"
-                        name="type"
-                        value="income"
-                        class="mt-1 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-900"
-                        {{if eq .formData.type "income"}}checked{{end}}
-                    >
-                    <div class="flex items-start gap-3 flex-1">
-                        <div class="w-10 h-10 rounded-lg bg-success-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-success-500/30 transition-colors">
-                            <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-white font-semibold mb-1">Receita</h3>
-                            <p class="text-dark-400 text-sm">Registre uma entrada de dinheiro</p>
-                        </div>
-                    </div>
-                </label>
-            </div>
-            {{if .errors.type}}
-            <p class="mt-2 text-sm text-danger-400">{{.errors.type}}</p>
-            {{end}}
+        <!-- Transaction Type (Hidden - Only expenses supported) -->
+        <div class="hidden">
+            <input type="hidden" name="type" value="expense">
         </div>
 
         <!-- Transaction Details -->
@@ -137,7 +81,9 @@
                     class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700/50 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
                 >
                     {{range .categories}}
-                    <option value="{{.}}" {{if eq $.formData.category .}}selected{{end}}>{{.}}</option>
+                    <option value="{{.Category}}" {{if eq $.formData.category .Category}}selected{{end}}>
+                        {{.Category}}
+                    </option>
                     {{end}}
                 </select>
                 {{if .errors.category}}

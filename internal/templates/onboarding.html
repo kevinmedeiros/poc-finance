@@ -195,7 +195,8 @@
     <!-- Progress Indicator -->
     <div class="mb-10 animate-fade-up animate-delay-1">
         <div class="step-indicator flex items-center justify-between px-4">
-            <div class="step-item {{if eq .currentStep 1}}active{{else if gt .currentStep 1}}completed{{end}} flex flex-col items-center">
+            <!-- Step 1: Welcome -->
+            <div class="step-item {{if le .currentStep 1}}active{{else}}completed{{end}} flex flex-col items-center">
                 <div class="step-circle">
                     {{if gt .currentStep 1}}
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,9 +206,10 @@
                     <span class="text-sm font-bold text-white">1</span>
                     {{end}}
                 </div>
-                <span class="text-xs text-dark-400 mt-2">Pro-labore</span>
+                <span class="text-xs text-dark-400 mt-2">Bem-vindo</span>
             </div>
 
+            <!-- Step 2: Account -->
             <div class="step-item {{if eq .currentStep 2}}active{{else if gt .currentStep 2}}completed{{end}} flex flex-col items-center">
                 <div class="step-circle">
                     {{if gt .currentStep 2}}
@@ -218,9 +220,10 @@
                     <span class="text-sm font-bold {{if eq .currentStep 2}}text-white{{else}}text-dark-500{{end}}">2</span>
                     {{end}}
                 </div>
-                <span class="text-xs text-dark-400 mt-2">Orcamento</span>
+                <span class="text-xs text-dark-400 mt-2">Conta</span>
             </div>
 
+            <!-- Step 3: Categories -->
             <div class="step-item {{if eq .currentStep 3}}active{{else if gt .currentStep 3}}completed{{end}} flex flex-col items-center">
                 <div class="step-circle">
                     {{if gt .currentStep 3}}
@@ -231,7 +234,29 @@
                     <span class="text-sm font-bold {{if eq .currentStep 3}}text-white{{else}}text-dark-500{{end}}">3</span>
                     {{end}}
                 </div>
-                <span class="text-xs text-dark-400 mt-2">Faturamento</span>
+                <span class="text-xs text-dark-400 mt-2">Categorias</span>
+            </div>
+
+            <!-- Step 4: Transaction -->
+            <div class="step-item {{if eq .currentStep 4}}active{{else if gt .currentStep 4}}completed{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    {{if gt .currentStep 4}}
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{else}}
+                    <span class="text-sm font-bold {{if eq .currentStep 4}}text-white{{else}}text-dark-500{{end}}">4</span>
+                    {{end}}
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Transação</span>
+            </div>
+
+            <!-- Step 5: Complete -->
+            <div class="step-item {{if eq .currentStep 5}}active{{end}} flex flex-col items-center">
+                <div class="step-circle">
+                    <span class="text-sm font-bold {{if eq .currentStep 5}}text-white{{else}}text-dark-500{{end}}">5</span>
+                </div>
+                <span class="text-xs text-dark-400 mt-2">Concluído</span>
             </div>
         </div>
     </div>
